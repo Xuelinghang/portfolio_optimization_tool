@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Portfolio Optimizer - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    .header {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      background-color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .left-panel {
+      background-color: #d1f0e0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      text-align: center;
+    }
+    .left-panel h1 {
+      font-size: 24px;
+      color: #0b5d1e;
+    }
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    .form-container {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    input[type="email"],
+    input[type="password"] {
+      padding: 10px;
+      margin-bottom: 15px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    .login-btn {
+      background-color: #8dbf88;
+      color: #1a3f1a;
+      padding: 12px;
+      border: none;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .login-btn:hover {
+      background-color: #7aae78;
+    }
+    .register-link {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 0.95em;
+    }
+    .register-link a {
+      color: #0b5d1e;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with logo -->
+  <div class="header">
+    <div class="logo">
+      <img src="logo.jpeg" alt="Logo" />
+      <div class="logo-text">Portfolio Optimizer</div>
+    </div>
+  </div>
+
+  <!-- Left welcome panel -->
+  <div class="left-panel">
+    <h1>Welcome to Portfolio Optimizer!<br />
+    Securely manage your investments and optimize your portfolio with ease.</h1>
+  </div>
+
+  <!-- Right login panel -->
+  <div class="right-panel">
+    <h2>Log in to get started.</h2>
+    <form id="loginForm" action="data-entry.html" method="GET" class="form-container">
+      <input type="email" id="email" placeholder="Email*" required />
+      <input type="password" id="password" placeholder="Password*" required />
+      <button type="submit" class="login-btn">Log in</button>
+      <p class="error" id="errorMsg"></p>
+    </form>
+    <div class="register-link">
+      Do not have an account? <a href="register.html">Register Now</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.textContent = '';
+
+      if (!email || !password) {
+        e.preventDefault();
+        errorMsg.textContent = 'Please fill in both fields.';
+        return;
+      }
+
+      // Dummy credentials for demo
+      if (email !== 'user@example.com' || password !== 'pass') {
+        e.preventDefault();
+        errorMsg.textContent = 'Invalid credentials.';
+      }
+    });
+  </script>
+</body>
+</html>
