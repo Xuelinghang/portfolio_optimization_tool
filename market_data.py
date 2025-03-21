@@ -1,0 +1,75 @@
+import yfinance as yf
+import requests
+import json
+from alpha_vantage.timeseries import TimeSeries
+
+# Alpha Vantage API Key (replace with your own)
+ALPHA_VANTAGE_API_KEY = ""
+
+def fetch_yahoo_finance_data(symbol):
+    """Fetch stock data from Yahoo Finance with error handling."""
+    try:
+        stock = yf.Ticker(symbol)
+        data = stock.history(period="1mo")  # Fetch last 1 month of data
+
+        if data.empty:
+            raise ValueError(f"No data found for symbol: {symbol}")
+
+        return data
+    except ValueError as ve:
+        return {"error": str(ve)}
+    except Exception as e:
+        return {"error": f"Failed to fetch Yahoo Finance data: {str(e)}"}
+
+def fetch_alpha_vantage_data(symbol):
+    """Fetch stock data from Alpha Vantage with error handling."""
+    try:
+        ts = TimeSeries(key=ALPHA_VANTAGE_API_KEY, output_format="json")
+        data, meta_data = ts.get_daily(symbol=symbol, outputsize="compact")
+
+        if not data:
+            raise ValueError(f"No data returned for symbol: {symbol}")
+
+        return data
+    except ValueError as ve:
+        return {"error": str(ve)}
+    except requests.exceptions.RequestException as re:
+        return {"error": f"Network error while fetching Alpha Vantage data: {str(re)}"}
+    except Exception as e:
+        return {"error": f"Failed to fetch Alpha Vantage data: {str(e)}"}
+
+def fetch_coingecko_data(crypto_id):
+    """Fetch cryptocurrency data from CoinGecko with error handling."""
+    try:
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={crypto_id}&vs_currencies=usd"
+        response = requests.get(url, timeout=10)  # 10-second timeout
+
+        if response.status_code != 200:
+            raise ValueError(f"CoinGecko API returned error code: {response.status_code}")
+
+        data = response.json()
+
+        if crypto_id not in data:
+            raise ValueError(f"No data found for cryptocurrency: {crypto_id}")
+
+        return data
+    except ValueError as ve:
+        return {"error": str(ve)}
+    except requests.exceptions.Timeout:
+        return {"error": "CoinGecko request timed out"}
+    except requests.exceptions.RequestException as re:
+        return {"error": f"Network error while fetching CoinGecko data: {str(re)}"}
+    except Exception as e:
+        return {"error": f"Failed to fetch CoinGecko data: {str(e)}"}
+
+if __name__ == "__main__":
+    symbol = "AAPL"  # Example stock
+    crypto_id = "bitcoin"  # Example crypto
+
+    yahoo_data = fetch_yahoo_finance_data(symbol)
+    alpha_vantage_data = fetch_alpha_vantage_data(symbol)
+    coingecko_data = fetch_coingecko_data(crypto_id)
+
+    print("Yahoo Finance Data:", yahoo_data)
+    print("Alpha Vantage Data:", alpha_vantage_data)
+    print("CoinGecko Data:", coingecko_data)
