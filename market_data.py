@@ -3,7 +3,6 @@ import requests
 import json
 from alpha_vantage.timeseries import TimeSeries
 
-# Alpha Vantage API Key (replace with your own)
 ALPHA_VANTAGE_API_KEY = ""
 
 def fetch_yahoo_finance_data(symbol):
