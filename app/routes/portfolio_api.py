@@ -1,62 +1,41 @@
-import os
-import sqlite3
-import pandas as pd
-from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
-import random
+# portfolio_api.py
 
-app = Flask(__name__)
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app import db
+from models import Portfolio, Asset, User  # adjust import path to your structure
 
-# Configuration
-UPLOAD_FOLDER = "uploads"
-ALLOWED_EXTENSIONS = {"csv"}
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+portfolio_bp = Blueprint("portfolio", __name__)
 
-DB_FILE = "portfolio.db"
-
-# Initialize database
-def init_db():
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS portfolio (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                asset_symbol TEXT NOT NULL,
-                quantity REAL NOT NULL,
-                purchase_price REAL NOT NULL
-            )
-        """)
-        conn.commit()
-
-# Helper function to check allowed file type
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route("/submit_manual", methods=["POST"])
+@portfolio_bp.route("/portfolio/manual", methods=["POST"])
+@jwt_required()
 def submit_manual_entry():
-    """Accept manually entered portfolio data."""
+    user_id = get_jwt_identity()
     data = request.get_json()
-    asset_symbol = data.get("asset_symbol")
+    symbol = data.get("asset_symbol")
     quantity = data.get("quantity")
     purchase_price = data.get("purchase_price")
+    asset_type = data.get("asset_type", "Stock")  # default type
 
-    if not asset_symbol or not quantity or not purchase_price:
-        return jsonify({"error": "All fields (asset_symbol, quantity, purchase_price) are required"}), 400
+    if not symbol or not quantity or not purchase_price:
+        return jsonify({"error": "Missing fields"}), 400
 
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO portfolio (asset_symbol, quantity, purchase_price) VALUES (?, ?, ?)",
-                           (asset_symbol, quantity, purchase_price))
-            conn.commit()
-        return jsonify({"message": "Asset added to portfolio"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    asset = Asset.query.filter_by(symbol=symbol, user_id=user_id).first()
+    if not asset:
+        asset = Asset(symbol=symbol, asset_type=asset_type, user_id=user_id)
+        db.session.add(asset)
+        db.session.commit()
 
-@app.route("/upload_csv", methods=["POST"])
+    entry = Portfolio(user_id=user_id, asset_id=asset.id, quantity=quantity, purchase_price=purchase_price)
+    db.session.add(entry)
+    db.session.commit()
+
+    return jsonify({"message": "Asset added to portfolio"}), 201
+
+@portfolio_bp.route("/portfolio/upload", methods=["POST"])
+@jwt_required()
 def upload_csv():
-    """Accept a CSV file and parse portfolio data."""
+    user_id = get_jwt_identity()
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -64,53 +43,54 @@ def upload_csv():
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
+    import pandas as pd
+    from werkzeug.utils import secure_filename
+    import os
 
-        try:
-            df = pd.read_csv(filepath)
-            required_columns = {"asset_symbol", "quantity", "purchase_price"}
-            if not required_columns.issubset(df.columns):
-                return jsonify({"error": f"CSV must contain columns: {required_columns}"}), 400
+    filename = secure_filename(file.filename)
+    filepath = os.path.join("uploads", filename)
+    os.makedirs("uploads", exist_ok=True)
+    file.save(filepath)
 
-            with sqlite3.connect(DB_FILE) as conn:
-                cursor = conn.cursor()
-                for _, row in df.iterrows():
-                    cursor.execute("INSERT INTO portfolio (asset_symbol, quantity, purchase_price) VALUES (?, ?, ?)",
-                                   (row["asset_symbol"], row["quantity"], row["purchase_price"]))
-                conn.commit()
-            
-            return jsonify({"message": "CSV uploaded and portfolio updated"}), 201
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Only CSV files are allowed."}), 400
-
-@app.route("/simulate_market_data", methods=["GET"])
-def simulate_market_data():
-    """Simulate fetching market data for portfolio assets."""
     try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT asset_symbol FROM portfolio")
-            assets = [row[0] for row in cursor.fetchall()]
+        df = pd.read_csv(filepath)
+        required_columns = {"asset_symbol", "quantity", "purchase_price"}
+        if not required_columns.issubset(df.columns):
+            return jsonify({"error": "CSV must contain: asset_symbol, quantity, purchase_price"}), 400
 
-        if not assets:
-            return jsonify({"error": "No assets in portfolio to fetch data for"}), 400
+        for _, row in df.iterrows():
+            symbol = row["asset_symbol"]
+            quantity = row["quantity"]
+            purchase_price = row["purchase_price"]
 
-        simulated_data = {}
-        for asset in assets:
-            simulated_data[asset] = {
-                "current_price": round(random.uniform(50, 500), 2),
-                "daily_change": round(random.uniform(-5, 5), 2)
-            }
+            asset = Asset.query.filter_by(symbol=symbol, user_id=user_id).first()
+            if not asset:
+                asset = Asset(symbol=symbol, asset_type="Stock", user_id=user_id)
+                db.session.add(asset)
+                db.session.commit()
 
-        return jsonify(simulated_data), 200
+            entry = Portfolio(user_id=user_id, asset_id=asset.id, quantity=quantity, purchase_price=purchase_price)
+            db.session.add(entry)
+
+        db.session.commit()
+        return jsonify({"message": "CSV uploaded and portfolio updated"}), 201
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
+@portfolio_bp.route("/portfolio/simulate", methods=["GET"])
+@jwt_required()
+def simulate_market_data():
+    user_id = get_jwt_identity()
+    portfolios = Portfolio.query.filter_by(user_id=user_id).all()
+    if not portfolios:
+        return jsonify({"error": "No assets found in portfolio"}), 400
+
+    import random
+    simulated = {
+        p.asset.symbol: {
+            "current_price": round(random.uniform(50, 500), 2),
+            "daily_change": round(random.uniform(-5, 5), 2)
+        } for p in portfolios
+    }
+    return jsonify(simulated), 200
