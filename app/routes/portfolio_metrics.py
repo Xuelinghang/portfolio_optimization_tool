@@ -1,78 +1,83 @@
+# app/routes/portfolio_metrics.py
+
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app import db
+from app.models import Portfolio, MarketData
 import numpy as np
 import pandas as pd
-import scipy.optimize as sco
+import datetime
 
-# Sample portfolio returns (Use actual historical data)
-np.random.seed(42)
-dates = pd.date_range("2020-01-01", periods=252)  # 1-year daily returns
-returns = pd.DataFrame(np.random.normal(0.0005, 0.01, size=(252, 4)), index=dates, columns=["Stock A", "Stock B", "Stock C", "Stock D"])
+metrics_bp = Blueprint("metrics", __name__)
 
-# Portfolio weights (Modify as needed)
-weights = np.array([0.25, 0.25, 0.25, 0.25])
+@metrics_bp.route("/portfolio/metrics", methods=["GET"])
+@jwt_required()
+def calculate_portfolio_metrics():
+    user_id = get_jwt_identity()
 
-# Risk-free rate (assumed)
-risk_free_rate = 0.02 / 252  # Daily risk-free rate
+    # Step 1: Get user portfolio
+    portfolios = Portfolio.query.filter_by(user_id=user_id).all()
+    if not portfolios:
+        return jsonify({"error": "No portfolio found"}), 404
 
-# Function to calculate expected return
-def expected_return(returns, weights):
-    return np.dot(weights, returns.mean()) * 252  # Annualized
+    assets = [p.asset.symbol for p in portfolios]
+    quantities = {p.asset.symbol: p.quantity for p in portfolios}
 
-# Function to calculate portfolio volatility
-def portfolio_volatility(returns, weights):
-    cov_matrix = returns.cov() * 252  # Annualized covariance matrix
-    return np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+    # Step 2: Get recent price history from MarketData (or mock for now)
+    data = {}
+    today = datetime.date.today()
 
-# Function to calculate Sharpe ratio
-def sharpe_ratio(returns, weights, risk_free_rate):
-    exp_return = expected_return(returns, weights)
-    volatility = portfolio_volatility(returns, weights)
-    return (exp_return - risk_free_rate * 252) / volatility
+    for asset in assets:
+        # Simulate 252 days of returns (for demo; replace with real DB prices)
+        np.random.seed(hash(asset) % 10000)
+        daily_returns = np.random.normal(0.0005, 0.01, 252)
+        data[asset] = daily_returns
 
-# Function to calculate maximum drawdown
-def max_drawdown(portfolio_values):
-    cumulative_max = portfolio_values.cummax()
-    drawdowns = (portfolio_values - cumulative_max) / cumulative_max
-    return drawdowns.min()
+    returns_df = pd.DataFrame(data)
 
-# Function to calculate CAGR
-def cagr(start_balance, end_balance, years):
-    return (end_balance / start_balance) ** (1 / years) - 1
+    # Step 3: Compute portfolio weights
+    latest_prices = {symbol: 100 for symbol in assets}  # TODO: pull real latest prices from MarketData table
+    total_value = sum(quantities[symbol] * latest_prices[symbol] for symbol in assets)
+    weights = np.array([quantities[symbol] * latest_prices[symbol] / total_value for symbol in assets])
 
-# Function to compute Efficient Frontier
-def efficient_frontier(returns):
-    num_assets = len(returns.columns)
-    mean_returns = returns.mean() * 252
-    cov_matrix = returns.cov() * 252
+    # Step 4: Compute metrics
+    risk_free_rate = 0.02 / 252
 
-    def portfolio_stats(weights):
-        port_return = np.dot(weights, mean_returns)
-        port_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-        return np.array([port_return, port_volatility, port_return / port_volatility])
+    def expected_return(returns, weights):
+        return np.dot(weights, returns.mean()) * 252
 
-    def min_volatility(weights):
-        return portfolio_stats(weights)[1]  # Minimize volatility
+    def portfolio_volatility(returns, weights):
+        cov_matrix = returns.cov() * 252
+        return np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
-    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})  # Weights sum to 1
-    bounds = tuple((0, 1) for _ in range(num_assets))  # No short-selling
-    initial_weights = np.array(num_assets * [1.0 / num_assets])
+    def sharpe_ratio(returns, weights, risk_free_rate):
+        er = expected_return(returns, weights)
+        vol = portfolio_volatility(returns, weights)
+        return (er - risk_free_rate * 252) / vol
 
-    result = sco.minimize(min_volatility, initial_weights, method="SLSQP", bounds=bounds, constraints=constraints)
-    return result.x  # Optimal weights
+    def max_drawdown(values):
+        cumulative = values.cummax()
+        drawdowns = (values - cumulative) / cumulative
+        return drawdowns.min()
 
-# Compute Metrics
-start_balance = 10000
-end_balance = start_balance * (1 + expected_return(returns, weights))
-years = len(returns) / 252
+    def cagr(start, end, years):
+        return (end / start) ** (1 / years) - 1
 
-metrics = {
-    "Start Balance": start_balance,
-    "End Balance": round(end_balance, 2),
-    "Annualized Return (CAGR)": round(cagr(start_balance, end_balance, years) * 100, 2),
-    "Standard Deviation": round(portfolio_volatility(returns, weights) * 100, 2),
-    "Best Year": round(returns.mean().max() * 252 * 100, 2),
-    "Worst Year": round(returns.mean().min() * 252 * 100, 2),
-    "Maximum Drawdown": round(max_drawdown((1 + returns.mean()).cumprod()) * 100, 2),
-    "Sharpe Ratio": round(sharpe_ratio(returns, weights, risk_free_rate), 2),
-}
+    start_balance = 10000
+    end_balance = start_balance * (1 + expected_return(returns_df, weights))
+    years = 1  # 252 trading days
 
-print(metrics)
+    values = (1 + returns_df @ weights).cumprod()
+
+    metrics = {
+        "Start Balance": start_balance,
+        "End Balance": round(end_balance, 2),
+        "Annualized Return (CAGR)": round(cagr(start_balance, end_balance, years) * 100, 2),
+        "Standard Deviation": round(portfolio_volatility(returns_df, weights) * 100, 2),
+        "Best Year": round(returns_df.mean().max() * 252 * 100, 2),
+        "Worst Year": round(returns_df.mean().min() * 252 * 100, 2),
+        "Maximum Drawdown": round(max_drawdown(values) * 100, 2),
+        "Sharpe Ratio": round(sharpe_ratio(returns_df, weights, risk_free_rate), 2),
+    }
+
+    return jsonify(metrics), 200
