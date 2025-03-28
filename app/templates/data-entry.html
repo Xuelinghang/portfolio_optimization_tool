@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Portfolio Data Entry</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #d1f0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .header {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      background-color: white;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 50px;
+    }
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .nav a:hover {
+      color: #2f855a;
+    }
+    .nav span {
+      color: #2d3748;
+      font-weight: bold;
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 10;
+      top: 100%;
+      left: 0;
+      min-width: 160px;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #4a5568;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .content-container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 800px;
+      margin-top: 80px;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #1a3f1a;
+      text-align: center;
+    }
+    .tab {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .tab button {
+      padding: 10px 20px;
+      margin: 0 5px;
+      cursor: pointer;
+      border: none;
+      background-color: #8dbf88;
+      color: #1a3f1a;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .tab button:hover {
+      background-color: #7aae78;
+    }
+    .form-section {
+      background: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 5px;
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    input[type="file"] {
+      padding: 8px;
+      margin: 5px 0 15px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .submit-btn {
+      background-color: #8dbf88;
+      color: #1a3f1a;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 200px;
+    }
+    .submit-btn:hover {
+      background-color: #7aae78;
+    }
+    .small-btn {
+      background-color: hsla(116, 9.50%, 71.00%, 0.68);
+      color: #1a3f1a;
+      padding: 5px 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      min-width: 70px;
+    }
+    .small-btn:hover {
+      background-color: #7aae78;
+    }
+    #portfolioEntries div {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    #portfolioEntries input {
+      padding: 8px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .suggestions {
+      background: #fff;
+      border: 1px solid #ccc;
+      position: absolute;
+      z-index: 20;
+      max-height: 150px;
+      overflow-y: auto;
+      /* Width is set dynamically */
+      top: 35px;
+      left: 0;
+    }
+    .suggestion-item {
+      padding: 5px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover {
+      background-color: #f1f1f1;
+    }
+    #portfolioForm button[type="submit"] {
+      display: block;
+      margin: 20px auto 0 auto;
+    }
+    /* New styling for sample CSV download links */
+    .sample-csv {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    .sample-csv a {
+      margin-right: 20px;
+      text-decoration: none;
+      color: #2f855a;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    .sample-csv a:hover {
+      color: #276749;
+    }
+    .csv-explanation {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #2d3748;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with Logo and Dynamic Navigation -->
+  <div class="header">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" />
+      <div class="logo-text">Portfolio Optimizer</div>
+    </div>
+    <div class="nav">
+      <a href="#" class="hover:text-green-600">Markets</a>
+      <a href="#" class="hover:text-green-600">Tools</a>
+      <div class="dropdown">
+        <a href="#" class="hover:text-green-600">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <span>Hello, {{ username }}!</span>
+        <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}" class="hover:text-green-600">Login</a>
+        <a href="{{ url_for('register_page') }}" class="hover:text-green-600">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Content Container -->
+  <div class="content-container">
+    <h2>Portfolio Data Entry</h2>
+    <div class="tab">
+      <button onclick="showSection('manual')">Manual Entry</button>
+      <button onclick="showSection('csv')">CSV Upload</button>
+    </div>
+
+    <!-- Manual Data Entry Section -->
+    <div id="manual" class="form-section">
+      <h3>Manual Portfolio Entry</h3>
+      <form id="portfolioForm">
+        <label for="portfolioName">Portfolio Name:</label>
+        <input type="text" id="portfolioName" placeholder="Enter portfolio name" required>
+        
+        <!-- Container for dynamic portfolio entries -->
+        <div id="portfolioEntries"></div>
+        
+        <!-- Separate Add Entry button -->
+        <button type="button" id="addEntryBtn" class="small-btn">Add Entry</button>
+        
+        <!-- Submit Portfolio button -->
+        <button type="submit" class="submit-btn">Submit Portfolio</button>
+      </form>
+      <div id="formResult"></div>
+    </div>
+
+    <!-- CSV Upload Section -->
+    <div id="csv" class="form-section" style="display: none;">
+      <h3>CSV Data Upload</h3>
+      <div class="csv-explanation">
+        <p>
+          You can upload your portfolio data using a CSV file. Please ensure your CSV file contains the following columns:
+        </p>
+        <ul>
+          <li><strong>Ticker</strong> or <strong>Company</strong> name</li>
+          <li><strong>Allocation</strong> percentage</li>
+          <!-- Add any other required columns as needed -->
+        </ul>
+        <p>
+          Download the sample CSV files below for reference:
+        </p>
+      </div>
+      <div class="sample-csv">
+        <a href="sample1.csv" download>Download Sample CSV 1</a>
+        <a href="sample2.csv" download>Download Sample CSV 2</a>
+      </div>
+      <input type="file" id="csvFile" accept=".csv">
+      <button id="uploadBtn" class="submit-btn">Upload CSV</button>
+      <div id="csvResult"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module">
+    import { initPortfolioEntries, addEntry, portfolioEntries, parseCSVFile } from "{{ url_for('static', filename='dataEntry.js') }}";
+    
+    // Toggle between Manual and CSV sections
+    window.showSection = function(sectionId) {
+      document.getElementById('manual').style.display = sectionId === 'manual' ? 'block' : 'none';
+      document.getElementById('csv').style.display = sectionId === 'csv' ? 'block' : 'none';
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize with 5 entries
+      initPortfolioEntries();
+      
+      // Add new entry when "Add Entry" is clicked
+      document.getElementById("addEntryBtn").addEventListener("click", addEntry);
+      
+      // Handle portfolio form submission to display a summary
+      document.getElementById("portfolioForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const portfolioName = document.getElementById("portfolioName").value;
+        const resultDiv = document.getElementById("formResult");
+        let resultHTML = `<h3>Portfolio: ${portfolioName}</h3><ul>`;
+        portfolioEntries.forEach((entry, index) => {
+          resultHTML += `<li>Entry ${index + 1}: Ticker/Company: ${entry.ticker || "N/A"}, Allocation: ${entry.allocation || "N/A"}%</li>`;
+        });
+        resultHTML += "</ul>";
+        resultDiv.innerHTML = resultHTML;
+      });
+      
+      // CSV Upload remains unchanged
+      document.getElementById('uploadBtn').addEventListener('click', function() {
+        const fileInput = document.getElementById('csvFile');
+        if (fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          parseCSVFile(file)
+            .then(result => {
+              document.getElementById('csvResult').innerHTML = result;
+            })
+            .catch(err => {
+              document.getElementById('csvResult').textContent = 'Error parsing CSV: ' + err;
+            });
+        } else {
+          document.getElementById('csvResult').textContent = 'Please select a CSV file.';
+        }
+      });
+      
+      // Logout functionality remains unchanged
+      document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+        e.preventDefault();
+        try {
+          const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+          if (response.ok) {
+            window.location.href = '/login-page';
+          }
+        } catch (err) {
+          console.error('Logout error', err);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

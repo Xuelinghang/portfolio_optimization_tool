@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Optimizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeSlideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fade-up {
+      animation: fadeSlideUp 0.8s ease-out forwards;
+    }
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 128, 0, 0.12);
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      top: 100%; /* Directly below the trigger */
+      left: 0;
+      min-width: 160px;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #4a5568;
+      text-decoration: none;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-green-100 text-gray-800">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" class="w-6 h-6" />
+      <span class="font-bold text-green-800 text-lg sm:text-xl">Portfolio Optimizer</span>
+    </div>
+    <div class="space-x-4 sm:space-x-6 font-semibold text-sm sm:text-base flex items-center">
+      <a href="#" class="hover:text-green-600">Markets</a>
+      <a href="#" class="hover:text-green-600">Tools</a>
+      <!-- My Models Dropdown -->
+      <div class="dropdown">
+        <a href="#" class="hover:text-green-600">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <span class="text-green-800 font-bold">Hello, {{ username }}!</span>
+        <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}" class="hover:text-green-600">Login</a>
+        <a href="{{ url_for('register_page') }}" class="bg-green-300 hover:bg-green-400 px-3 py-1 rounded font-bold text-green-900">Sign Up</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Split Layout -->
+  <section class="flex flex-col lg:flex-row items-center justify-center px-6 sm:px-12 py-20 min-h-[90vh] max-w-7xl mx-auto gap-y-12 gap-x-12">
+    <!-- Left: Hero Section -->
+    <div class="flex-1 flex flex-col justify-center items-center text-center lg:text-left lg:items-start animate-fade-up">
+      <div>
+        <h1 style="line-height: 1.25;" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6">
+            Effortlessly<br />Maximize<br />Return<br />..
+        </h1>
+        <a href="{{ url_for('register_page') }}" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded text-lg sm:text-xl font-semibold hover:animate-bounce">
+            Get Started
+        </a>          
+      </div>
+    </div>
+  
+    <!-- Right: Feature Cards -->
+    <div class="flex-1 flex justify-center">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
+          <h2 class="font-bold text-lg mb-2">Efficient Frontier Chart</h2>
+          <p class="text-base text-gray-700">A scatter plot with risk and return, showing the optimal portfolio vs. user's input.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
+          <h2 class="font-bold text-lg mb-2">Backtest Portfolio</h2>
+          <p class="text-base text-gray-700">Compare historical and realized returns with lazy portfolios.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
+          <h2 class="font-bold text-lg mb-2">Adjustable Sliders</h2>
+          <p class="text-base text-gray-700">Tweak allocation and see updated efficient frontier instantly.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
+          <h2 class="font-bold text-lg mb-2">Asset Analytics</h2>
+          <p class="text-base text-gray-700">Find funds by asset class, style, and risk-adjusted performance.</p>
+        </div>
+      </div>
+    </div>
+  
+  </section>  
+
+  <script>
+    // Optionally, add a logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async function() {
+      try {
+        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+        if (response.ok) {
+          window.location.href = '/login-page';
+        }
+      } catch (err) {
+        console.error('Logout error', err);
+      }
+    });
+  </script>
+</body>
+</html>
