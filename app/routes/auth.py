@@ -1,35 +1,13 @@
-from flask import Flask, request, jsonify
-import sqlite3
-import bcrypt
+from flask import Blueprint, request, jsonify
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import create_access_token
+from app import db, bcrypt  # ensure these are initialized in app.py
+from app.models import User  # assuming your User model is in models.py
 
-app = Flask(__name__)
+auth_bp = Blueprint("auth", __name__)
 
-DB_FILE = "users.db"
-
-def init_db():
-    """Initialize the database with a users table if it doesn't exist."""
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL
-            )
-        """)
-        conn.commit()
-
-def hash_password(password):
-    """Hash a password using bcrypt."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-def verify_password(password, hashed_password):
-    """Verify a password against its hashed version."""
-    return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
-
-@app.route("/register", methods=["POST"])
+@auth_bp.route("/register", methods=["POST"])
 def register():
-    """Register a new user with hashed password storage."""
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -37,37 +15,27 @@ def register():
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
 
-    hashed_password = hash_password(password)
-
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_password))
-            conn.commit()
-        return jsonify({"message": "User registered successfully"}), 201
-    except sqlite3.IntegrityError:
+    if User.query.filter_by(username=username).first():
         return jsonify({"error": "Username already exists"}), 400
 
-@app.route("/login", methods=["POST"])
+    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+    new_user = User(username=username, password_hash=hashed_password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User registered successfully"}), 201
+
+@auth_bp.route("/login", methods=["POST"])
 def login():
-    """Validate user credentials."""
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
 
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+    user = User.query.filter_by(username=username).first()
 
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-
-    if result and verify_password(password, result[0]):
-        return jsonify({"message": "Login successful"}), 200
+    if user and bcrypt.check_password_hash(user.password_hash, password):
+        token = create_access_token(identity=user.id)
+        return jsonify({"access_token": token}), 200
     else:
         return jsonify({"error": "Invalid username or password"}), 401
-
-if __name__ == "__main__":
-    init_db()  # Ensure the database is set up
-    app.run(debug=True)
