@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Portfolio Optimizer - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    .header {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      background-color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      overflow-x: hidden;
+      box-sizing: border-box;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 50px;
+      height: 50px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .nav {
+      display: flex;
+      gap: 50px;
+      flex-wrap: wrap;
+    }
+    .nav a {
+      text-decoration: none;
+      color: #0b5d1e;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    .nav a:hover {
+      color: #7aae78;
+    }
+    .left-panel, .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+    .left-panel {
+      background-color: #d1f0e0;
+      text-align: center;
+    }
+    .right-panel {
+      padding: 40px;
+    }
+    h1, h2 {
+      margin-bottom: 20px;
+    }
+    .form-container {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Changed input type from email to text */
+    input[type="text"],
+    input[type="password"] {
+      padding: 10px;
+      margin-bottom: 15px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    .login-btn {
+      background-color: #8dbf88;
+      color: #1a3d1a;
+      padding: 12px;
+      border: none;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .login-btn:hover {
+      background-color: #7aae78;
+    }
+    .error {
+      color: red;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+    .register-link {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header with Logo and Navigation -->
+  <div class="header">
+    <div class="logo">
+      <img src="logo.jpeg" alt="Logo" />
+      <div class="logo-text">Portfolio Optimizer</div>
+    </div>
+    <nav class="nav">
+      <a href="#">Markets</a>
+      <a href="#">Tools</a>
+      <a href="#">My Models</a>
+      <a href="/login-page">Login</a>
+      <a href="/register-page">Sign Up</a>
+    </nav>
+  </div>
+
+  <!-- Left Welcome Panel -->
+  <div class="left-panel">
+    <h1>Welcome to Portfolio Optimizer!<br>
+      Securely manage your investments and optimize your portfolio with ease.
+    </h1>
+  </div>
+
+  <!-- Right Login Panel -->
+  <div class="right-panel">
+    <h2>Log in to get started.</h2>
+    <form id="loginForm" class="form-container">
+      <!-- Updated input: now type="text" with placeholder "Username or Email" -->
+      <input type="text" id="username" placeholder="Username or Email*" required />
+      <input type="password" id="password" placeholder="Password*" required />
+      <button type="submit" class="login-btn">Log in</button>
+      <p class="error" id="errorMsg"></p>
+    </form>
+    <div class="register-link">
+      Do not have an account? <a href="/register-page">Register Now</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      // Now grabbing the value from the updated username field
+      const loginIdentifier = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorMsg = document.getElementById("errorMsg");
+      errorMsg.textContent = "";
+
+      if (!loginIdentifier || !password) {
+        errorMsg.textContent = "Please fill in both fields.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/login", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          // Sending the login identifier as "username"
+          body: JSON.stringify({ username: loginIdentifier, password: password })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          // On successful login, redirect to the index page
+          window.location.href = "/";
+        } else {
+          errorMsg.textContent = data.error || "Login failed.";
+        }
+      } catch (error) {
+        errorMsg.textContent = "An error occurred. Please try again.";
+      }
+    });
+  </script>
+</body>
+</html>
