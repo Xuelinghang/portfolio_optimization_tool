@@ -1,9 +1,7 @@
-# portfolio_api.py
-
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from models import Portfolio, Asset, User  # adjust import path to your structure
+from portfolio_optimization_tool.app.models import Portfolio, Asset, User  # adjust import path to your structure
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
