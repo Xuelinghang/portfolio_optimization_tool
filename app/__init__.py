@@ -14,14 +14,22 @@ bcrypt = Bcrypt()
 jwt = JWTManager()
 
 def create_app():
-    # Create Flask app and set folders for static files and templates
-    app = Flask(__name__, static_folder="static", template_folder="templates")
+    # Determine the project root (one level up from the 'app' folder)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    static_folder = os.path.join(project_root, 'static')
+    template_folder = os.path.join(project_root, 'templates')
+    
+    # Create Flask app with absolute paths for static and templates folders
+    app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
     
     # Application configuration
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///portfolio.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super_secret_key")  # Change this in production
-
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super_secret_key")  # Change for production
+    
+    # Set the secret key for session management
+    app.secret_key = os.getenv("SECRET_KEY", "my_default_secret_key")
+    
     # Initialize extensions with the app
     db.init_app(app)
     bcrypt.init_app(app)

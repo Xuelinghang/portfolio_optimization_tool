@@ -140,16 +140,17 @@
       <div class="dropdown">
         <a href="#" class="hover:text-green-600">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <!-- Use auth blueprint prefix for these endpoints -->
+          <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
       {% if username %}
         <span>Hello, {{ username }}!</span>
         <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
       {% else %}
-        <a href="{{ url_for('login_page') }}" class="hover:text-green-600">Login</a>
-        <a href="{{ url_for('register_page') }}" class="hover:text-green-600">Sign Up</a>
+        <a href="{{ url_for('auth.login_page') }}" class="hover:text-green-600">Login</a>
+        <a href="{{ url_for('auth.register_page') }}" class="hover:text-green-600">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -173,6 +174,7 @@
           <td>{{ portfolio.portfolio_name }}</td>
           <td>{{ portfolio.num_assets }}</td>
           <td>
+            <!-- If these endpoints are defined in another blueprint, adjust the prefix accordingly -->
             <button class="action-btn" onclick="location.href='{{ url_for('open_portfolio', portfolio_id=portfolio.id) }}'">Open</button>
             <button class="action-btn" onclick="location.href='{{ url_for('edit_portfolio', portfolio_id=portfolio.id) }}'">Edit</button>
             <button class="action-btn" onclick="location.href='{{ url_for('download_portfolio', portfolio_id=portfolio.id) }}'">Download</button>

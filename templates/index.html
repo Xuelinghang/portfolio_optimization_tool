@@ -37,7 +37,7 @@
       border: 1px solid #e2e8f0;
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       z-index: 10;
-      top: 100%; /* Directly below the trigger */
+      top: 100%;
       left: 0;
       min-width: 160px;
     }
@@ -60,6 +60,7 @@
   <!-- Navbar -->
   <nav class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
     <div class="flex items-center space-x-2">
+      <!-- Reference your static image: "logo.jpeg" must be in the "static/" folder at project root -->
       <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" class="w-6 h-6" />
       <span class="font-bold text-green-800 text-lg sm:text-xl">Portfolio Optimizer</span>
     </div>
@@ -70,16 +71,19 @@
       <div class="dropdown">
         <a href="#" class="hover:text-green-600">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <!-- Since saved_portfolios and data_entry are in the auth blueprint, we prefix with "auth." -->
+          <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
       {% if username %}
         <span class="text-green-800 font-bold">Hello, {{ username }}!</span>
+        <!-- Logout triggers a POST to /logout. This route is in the auth blueprint at "/", so /logout is correct. -->
         <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
       {% else %}
-        <a href="{{ url_for('login_page') }}" class="hover:text-green-600">Login</a>
-        <a href="{{ url_for('register_page') }}" class="bg-green-300 hover:bg-green-400 px-3 py-1 rounded font-bold text-green-900">Sign Up</a>
+        <!-- For login and register, we call "auth.login_page" and "auth.register_page" -->
+        <a href="{{ url_for('auth.login_page') }}" class="hover:text-green-600">Login</a>
+        <a href="{{ url_for('auth.register_page') }}" class="bg-green-300 hover:bg-green-400 px-3 py-1 rounded font-bold text-green-900">Sign Up</a>
       {% endif %}
     </div>
   </nav>
@@ -92,7 +96,7 @@
         <h1 style="line-height: 1.25;" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6">
             Effortlessly<br />Maximize<br />Return<br />..
         </h1>
-        <a href="{{ url_for('register_page') }}" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded text-lg sm:text-xl font-semibold hover:animate-bounce">
+        <a href="{{ url_for('auth.register_page') }}" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded text-lg sm:text-xl font-semibold hover:animate-bounce">
             Get Started
         </a>          
       </div>
@@ -119,16 +123,19 @@
         </div>
       </div>
     </div>
-  
   </section>  
 
   <script>
-    // Optionally, add a logout handler
-    document.getElementById('logoutButton')?.addEventListener('click', async function() {
+    // Optionally, add a logout handler that posts to /logout
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+      e.preventDefault();
       try {
         const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
         if (response.ok) {
+          // If successful, redirect to the login page
           window.location.href = '/login-page';
+        } else {
+          console.error('Logout failed', response);
         }
       } catch (err) {
         console.error('Logout error', err);

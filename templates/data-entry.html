@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Portfolio Data Entry</title>
   <style>
+    /* Base Styles */
     body {
       margin: 0;
       font-family: Arial, sans-serif;
@@ -15,7 +16,7 @@
       min-height: 100vh;
     }
     .header {
-      position: absolute;
+      position: fixed;
       top: 0;
       width: 100%;
       background-color: white;
@@ -176,6 +177,7 @@
       border-radius: 4px;
       box-sizing: border-box;
     }
+    /* Suggestion list styling for ticker/company search */
     .suggestions {
       background: #fff;
       border: 1px solid #ccc;
@@ -183,9 +185,10 @@
       z-index: 20;
       max-height: 150px;
       overflow-y: auto;
-      /* Width is set dynamically */
       top: 35px;
       left: 0;
+      width: 100%;
+      display: none;
     }
     .suggestion-item {
       padding: 5px;
@@ -233,16 +236,17 @@
       <div class="dropdown">
         <a href="#" class="hover:text-green-600">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <!-- Use the auth blueprint prefix for these endpoints -->
+          <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
       {% if username %}
         <span>Hello, {{ username }}!</span>
         <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
       {% else %}
-        <a href="{{ url_for('login_page') }}" class="hover:text-green-600">Login</a>
-        <a href="{{ url_for('register_page') }}" class="hover:text-green-600">Sign Up</a>
+        <a href="{{ url_for('auth.login_page') }}" class="hover:text-green-600">Login</a>
+        <a href="{{ url_for('auth.register_page') }}" class="hover:text-green-600">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -258,6 +262,15 @@
     <!-- Manual Data Entry Section -->
     <div id="manual" class="form-section">
       <h3>Manual Portfolio Entry</h3>
+      
+      <!-- Ticker/Company Search Section -->
+      <label for="tickerSearch">Ticker/Company Search:</label>
+      <input type="text" id="tickerSearch" placeholder="Enter ticker or company" autocomplete="off">
+      <button id="searchBtn">Search</button>
+      <!-- Suggestions list -->
+      <div id="suggestions" class="suggestions"></div>
+      
+      <!-- Portfolio Form -->
       <form id="portfolioForm">
         <label for="portfolioName">Portfolio Name:</label>
         <input type="text" id="portfolioName" placeholder="Enter portfolio name" required>
@@ -265,7 +278,7 @@
         <!-- Container for dynamic portfolio entries -->
         <div id="portfolioEntries"></div>
         
-        <!-- Separate Add Entry button -->
+        <!-- Add Entry button -->
         <button type="button" id="addEntryBtn" class="small-btn">Add Entry</button>
         
         <!-- Submit Portfolio button -->
@@ -284,7 +297,6 @@
         <ul>
           <li><strong>Ticker</strong> or <strong>Company</strong> name</li>
           <li><strong>Allocation</strong> percentage</li>
-          <!-- Add any other required columns as needed -->
         </ul>
         <p>
           Download the sample CSV files below for reference:
@@ -302,19 +314,20 @@
 
   <!-- Scripts -->
   <script type="module">
+    // Import dataEntry.js module from the static folder
     import { initPortfolioEntries, addEntry, portfolioEntries, parseCSVFile } from "{{ url_for('static', filename='dataEntry.js') }}";
     
-    // Toggle between Manual and CSV sections
+    // Function to toggle between Manual and CSV sections
     window.showSection = function(sectionId) {
       document.getElementById('manual').style.display = sectionId === 'manual' ? 'block' : 'none';
       document.getElementById('csv').style.display = sectionId === 'csv' ? 'block' : 'none';
     };
 
     document.addEventListener("DOMContentLoaded", () => {
-      // Initialize with 5 entries
+      // Initialize portfolio entries (e.g., pre-load 5 blank entries)
       initPortfolioEntries();
       
-      // Add new entry when "Add Entry" is clicked
+      // Add new entry when the "Add Entry" button is clicked
       document.getElementById("addEntryBtn").addEventListener("click", addEntry);
       
       // Handle portfolio form submission to display a summary
@@ -330,7 +343,7 @@
         resultDiv.innerHTML = resultHTML;
       });
       
-      // CSV Upload remains unchanged
+      // CSV Upload functionality
       document.getElementById('uploadBtn').addEventListener('click', function() {
         const fileInput = document.getElementById('csvFile');
         if (fileInput.files.length > 0) {
@@ -344,6 +357,53 @@
             });
         } else {
           document.getElementById('csvResult').textContent = 'Please select a CSV file.';
+        }
+      });
+      
+      // Ticker/Company Search functionality
+      document.getElementById('searchBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('tickerSearch').value.trim();
+        if (query.length > 0) {
+          // Replace 'demo' with your actual Alpha Vantage API key when available
+          const apiKey = 'CSVWIRSNGKIT4MB7';
+          const apiUrl = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=${apiKey}`;
+          fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+              const suggestionsDiv = document.getElementById('suggestions');
+              suggestionsDiv.innerHTML = ''; // Clear previous suggestions
+              if (data.bestMatches && data.bestMatches.length > 0) {
+                data.bestMatches.forEach(match => {
+                  const symbol = match["1. symbol"];
+                  const name = match["2. name"];
+                  const item = document.createElement('div');
+                  item.className = 'suggestion-item';
+                  item.textContent = `${symbol} - ${name}`;
+                  // When a suggestion is clicked, set the search input and hide suggestions
+                  item.addEventListener('click', function() {
+                    document.getElementById('tickerSearch').value = symbol;
+                    suggestionsDiv.style.display = 'none';
+                  });
+                  suggestionsDiv.appendChild(item);
+                });
+                suggestionsDiv.style.display = 'block';
+              } else {
+                suggestionsDiv.style.display = 'none';
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching company data:', error);
+            });
+        }
+      });
+      
+      // Hide suggestion list when clicking outside the search input and suggestion list
+      document.addEventListener('click', function(e) {
+        const suggestionsDiv = document.getElementById('suggestions');
+        const searchInput = document.getElementById('tickerSearch');
+        if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+          suggestionsDiv.style.display = 'none';
         }
       });
       
