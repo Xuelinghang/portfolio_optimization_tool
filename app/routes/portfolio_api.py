@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from portfolio_optimization_tool.app.models import Portfolio, Asset, User  # adjust import path to your structure
+from app.models import Portfolio, Asset
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
@@ -86,9 +86,12 @@ def simulate_market_data():
 
     import random
     simulated = {
-        p.asset.symbol: {
-            "current_price": round(random.uniform(50, 500), 2),
-            "daily_change": round(random.uniform(-5, 5), 2)
-        } for p in portfolios
+        "simulated_data": [
+            {
+                "symbol": "SIM",
+                "current_price": round(random.uniform(50, 500), 2),
+                "daily_change": round(random.uniform(-5, 5), 2)
+            }
+        ]
     }
     return jsonify(simulated), 200

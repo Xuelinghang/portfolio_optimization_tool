@@ -27,18 +27,18 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    # Register Blueprints from the routes package
+    # Register Blueprints from the routes package.
+    # Auth blueprint is registered without a prefix so that its routes are at the root.
     from app.routes.auth import auth_bp
     from app.routes.portfolio_api import portfolio_bp
     from app.routes.portfolio_metrics import metrics_bp
-    # Register market_data blueprint if available (optional)
     try:
         from app.routes.market_data import market_bp
         app.register_blueprint(market_bp, url_prefix="/market")
     except ImportError:
         pass
 
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(auth_bp)  # Now routes like "/" or "/login-page" are at the root.
     app.register_blueprint(portfolio_bp, url_prefix="/portfolio")
     app.register_blueprint(metrics_bp, url_prefix="/metrics")
 

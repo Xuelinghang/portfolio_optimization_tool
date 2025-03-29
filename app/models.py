@@ -5,6 +5,7 @@ class User(db.Model):
     """User model for storing user accounts."""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)  # Added email field
     password_hash = db.Column(db.String(100), nullable=False)
     
     # Relationships
@@ -32,7 +33,7 @@ class Portfolio(db.Model):
     purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
 
 class MarketData(db.Model):
-    """MarketData model to store price data for assets."""
+    """Unified MarketData model to store price data for assets."""
     id = db.Column(db.Integer, primary_key=True)
     asset_id = db.Column(db.Integer, db.ForeignKey("asset.id"), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
