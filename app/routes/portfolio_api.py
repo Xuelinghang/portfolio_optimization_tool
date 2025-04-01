@@ -1,14 +1,16 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, session, redirect, url_for
 from app import db
 from app.models import Portfolio, Asset
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
 @portfolio_bp.route("/portfolio/manual", methods=["POST"])
-@jwt_required()
 def submit_manual_entry():
-    user_id = get_jwt_identity()
+    # Check if user is logged in
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = session["user_id"]
+
     data = request.get_json()
     symbol = data.get("asset_symbol")
     quantity = data.get("quantity")
@@ -31,9 +33,11 @@ def submit_manual_entry():
     return jsonify({"message": "Asset added to portfolio"}), 201
 
 @portfolio_bp.route("/portfolio/upload", methods=["POST"])
-@jwt_required()
 def upload_csv():
-    user_id = get_jwt_identity()
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = session["user_id"]
+
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -77,13 +81,10 @@ def upload_csv():
         return jsonify({"error": str(e)}), 500
 
 @portfolio_bp.route("/portfolio/simulate", methods=["GET"])
-@jwt_required()
 def simulate_market_data():
-    user_id = get_jwt_identity()
-    portfolios = Portfolio.query.filter_by(user_id=user_id).all()
-    if not portfolios:
-        return jsonify({"error": "No assets found in portfolio"}), 400
-
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    # For demo purposes, we're returning a simulated response.
     import random
     simulated = {
         "simulated_data": [

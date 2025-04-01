@@ -1,5 +1,4 @@
-from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, jsonify, session
 from app import db
 from app.models import Portfolio, MarketData
 import numpy as np
@@ -9,9 +8,10 @@ import datetime
 metrics_bp = Blueprint("metrics", __name__)
 
 @metrics_bp.route("/portfolio/metrics", methods=["GET"])
-@jwt_required()
 def calculate_portfolio_metrics():
-    user_id = get_jwt_identity()
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = session["user_id"]
 
     # Step 1: Get user portfolio
     portfolios = Portfolio.query.filter_by(user_id=user_id).all()
@@ -23,10 +23,7 @@ def calculate_portfolio_metrics():
 
     # Step 2: Get recent price history from MarketData (or mock for now)
     data = {}
-    today = datetime.date.today()
-
     for asset in assets:
-        # Simulate 252 days of returns (for demo; replace with real DB prices)
         np.random.seed(hash(asset) % 10000)
         daily_returns = np.random.normal(0.0005, 0.01, 252)
         data[asset] = daily_returns

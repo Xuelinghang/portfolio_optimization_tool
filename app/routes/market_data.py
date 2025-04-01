@@ -1,5 +1,4 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, request, jsonify, session
 from app import db
 from app.models import MarketData
 from datetime import datetime
@@ -7,9 +6,11 @@ from datetime import datetime
 market_bp = Blueprint("market", __name__)
 
 @market_bp.route("/", methods=["GET"])
-@jwt_required()
 def get_all_market_data():
-    """Retrieve all market data entries."""
+    # Optionally, if you want to restrict access:
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = MarketData.query.all()
     results = []
     for entry in data:
@@ -22,9 +23,10 @@ def get_all_market_data():
     return jsonify(results), 200
 
 @market_bp.route("/<int:asset_id>", methods=["GET"])
-@jwt_required()
 def get_market_data_by_asset(asset_id):
-    """Retrieve market data for a specific asset."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = MarketData.query.filter_by(asset_id=asset_id).all()
     results = []
     for entry in data:
@@ -37,9 +39,10 @@ def get_market_data_by_asset(asset_id):
     return jsonify(results), 200
 
 @market_bp.route("/", methods=["POST"])
-@jwt_required()
 def add_market_data():
-    """Add a new market data entry."""
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json()
     asset_id = data.get("asset_id")
     price = data.get("price")
@@ -48,7 +51,6 @@ def add_market_data():
     if not asset_id or price is None:
         return jsonify({"error": "asset_id and price are required"}), 400
 
-    # If a date is provided, parse it; otherwise, use current timestamp.
     try:
         date_obj = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.utcnow()
     except ValueError:
