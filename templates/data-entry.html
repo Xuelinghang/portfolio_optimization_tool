@@ -1,20 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Portfolio Data Entry</title>
   <style>
-    /* Base Styles */
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #d1f0e0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
+    /* Header and Navigation (same as saved-portfolios page) */
     .header {
       position: fixed;
       top: 0;
@@ -87,83 +77,103 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    
+    /* Global Page Styling */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #d1f0e0; /* Greenish background */
+      padding-top: 70px; /* Space for the fixed header */
+    }
     .content-container {
       background: white;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       width: 800px;
-      margin-top: 80px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: 80px auto 0 auto; /* Ensure container sits below header */
     }
     h2 {
-      margin-bottom: 20px;
-      color: #1a3f1a;
       text-align: center;
-    }
-    .tab {
+      color: #1a3f1a;
       margin-bottom: 20px;
+    }
+    
+    /* Tab Buttons */
+    .tab {
       display: flex;
       justify-content: center;
+      margin-bottom: 20px;
     }
     .tab button {
       padding: 10px 20px;
       margin: 0 5px;
-      cursor: pointer;
       border: none;
-      background-color: #8dbf88;
+      background-color: #8dbf88; /* Green buttons */
       color: #1a3f1a;
       border-radius: 5px;
       font-weight: bold;
+      cursor: pointer;
     }
-    .tab button:hover {
+    .tab button.active {
       background-color: #7aae78;
     }
-    .form-section {
-      background: #f9f9f9;
-      border: 1px solid #ccc;
-      padding: 20px;
-      border-radius: 5px;
+    
+    /* Sections */
+    .section {
+      display: none;
     }
+    .section.active {
+      display: block;
+    }
+    
+    /* Form Elements */
     label {
       font-weight: bold;
+      display: block;
+      margin-top: 10px;
     }
     input[type="text"],
     input[type="number"],
-    select,
-    input[type="file"] {
+    input[type="file"],
+    select {
       padding: 8px;
-      margin: 5px 0 15px;
       width: 100%;
+      margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 4px;
       box-sizing: border-box;
     }
-    .submit-btn {
-      background-color: #8dbf88;
-      color: #1a3f1a;
+    button.submit-btn {
       padding: 10px 15px;
       border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      background-color: #8dbf88;
+      color: #1a3f1a;
       font-weight: bold;
-      width: 200px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 20px auto 0 auto;
+      display: block;
     }
-    .submit-btn:hover {
+    button.submit-btn:hover {
       background-color: #7aae78;
     }
-    .small-btn {
-      background-color: hsla(116, 9.50%, 71.00%, 0.68);
-      color: #1a3f1a;
+    button.small-btn {
       padding: 5px 8px;
       border: 1px solid #ccc;
       border-radius: 5px;
-      cursor: pointer;
+      background-color: #8dbf88;
+      color: #1a3f1a;
       font-weight: bold;
+      cursor: pointer;
+      margin-right: 10px;
       min-width: 70px;
     }
-    .small-btn:hover {
+    button.small-btn:hover {
       background-color: #7aae78;
     }
+    
+    /* Portfolio Entries */
     #portfolioEntries div {
       margin-bottom: 10px;
       display: flex;
@@ -177,17 +187,18 @@
       border-radius: 4px;
       box-sizing: border-box;
     }
-    /* Suggestion list styling for ticker/company search */
-    .suggestions {
+    
+    /* Suggestions dropdown */
+    .suggestions-row {
       background: #fff;
       border: 1px solid #ccc;
       position: absolute;
       z-index: 20;
       max-height: 150px;
       overflow-y: auto;
-      top: 35px;
+      top: 40px;
       left: 0;
-      width: 100%;
+      width: 200px;
       display: none;
     }
     .suggestion-item {
@@ -195,13 +206,17 @@
       cursor: pointer;
     }
     .suggestion-item:hover {
-      background-color: #f1f1f1;
+      background-color: #f0f0f0;
     }
-    #portfolioForm button[type="submit"] {
-      display: block;
-      margin: 20px auto 0 auto;
+    
+    /* CSV Upload Section */
+    .csv-section {
+      background: #f1f1f1;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
     }
-    /* New styling for sample CSV download links */
     .sample-csv {
       margin-top: 10px;
       font-size: 0.9em;
@@ -224,10 +239,10 @@
   </style>
 </head>
 <body>
-  <!-- Header with Logo and Dynamic Navigation -->
+  <!-- Header -->
   <div class="header">
     <div class="logo">
-      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" />
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
       <div class="logo-text">Portfolio Optimizer</div>
     </div>
     <div class="nav">
@@ -236,7 +251,6 @@
       <div class="dropdown">
         <a href="#" class="hover:text-green-600">My Models</a>
         <div class="dropdown-content">
-          <!-- Use the auth blueprint prefix for these endpoints -->
           <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
           <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
         </div>
@@ -251,175 +265,224 @@
     </div>
   </div>
 
-  <!-- Content Container -->
+  <!-- Main Content Container -->
   <div class="content-container">
     <h2>Portfolio Data Entry</h2>
+    
+    <!-- Tab Buttons -->
     <div class="tab">
-      <button onclick="showSection('manual')">Manual Entry</button>
-      <button onclick="showSection('csv')">CSV Upload</button>
+      <button id="manualTab" class="active">Manual Input</button>
+      <button id="csvTab">CSV Upload</button>
     </div>
 
-    <!-- Manual Data Entry Section -->
-    <div id="manual" class="form-section">
-      <h3>Manual Portfolio Entry</h3>
-      
-      <!-- Ticker/Company Search Section -->
-      <label for="tickerSearch">Ticker/Company Search:</label>
-      <input type="text" id="tickerSearch" placeholder="Enter ticker or company" autocomplete="off">
-      <button id="searchBtn">Search</button>
-      <!-- Suggestions list -->
-      <div id="suggestions" class="suggestions"></div>
-      
-      <!-- Portfolio Form -->
+    <!-- Manual Input Section -->
+    <div id="manualSection" class="section active">
       <form id="portfolioForm">
         <label for="portfolioName">Portfolio Name:</label>
         <input type="text" id="portfolioName" placeholder="Enter portfolio name" required>
         
-        <!-- Container for dynamic portfolio entries -->
+        <!-- Container for portfolio entries -->
         <div id="portfolioEntries"></div>
         
-        <!-- Add Entry button -->
         <button type="button" id="addEntryBtn" class="small-btn">Add Entry</button>
-        
-        <!-- Submit Portfolio button -->
         <button type="submit" class="submit-btn">Submit Portfolio</button>
       </form>
-      <div id="formResult"></div>
     </div>
 
     <!-- CSV Upload Section -->
-    <div id="csv" class="form-section" style="display: none;">
-      <h3>CSV Data Upload</h3>
-      <div class="csv-explanation">
-        <p>
-          You can upload your portfolio data using a CSV file. Please ensure your CSV file contains the following columns:
-        </p>
-        <ul>
-          <li><strong>Ticker</strong> or <strong>Company</strong> name</li>
-          <li><strong>Allocation</strong> percentage</li>
-        </ul>
-        <p>
-          Download the sample CSV files below for reference:
-        </p>
-      </div>
+    <div id="csvSection" class="section">
+      <label for="csvFile">Upload CSV File:</label>
+      <input type="file" id="csvFile" accept=".csv">
+      <button type="button" id="uploadCsvBtn" class="small-btn">Upload CSV</button>
       <div class="sample-csv">
         <a href="sample1.csv" download>Download Sample CSV 1</a>
         <a href="sample2.csv" download>Download Sample CSV 2</a>
       </div>
-      <input type="file" id="csvFile" accept=".csv">
-      <button id="uploadBtn" class="submit-btn">Upload CSV</button>
+      <div class="csv-explanation">
+        <p>Please ensure your CSV file contains the following columns:</p>
+        <ul>
+          <li><strong>Ticker</strong> or <strong>Company</strong> name</li>
+          <li><strong>Allocation</strong> percentage</li>
+        </ul>
+      </div>
       <div id="csvResult"></div>
     </div>
   </div>
+  
+  <!-- Global variable for editing -->
+  {% if portfolio %}
+    <script>
+      const editingPortfolioId = {{ portfolio.id }};
+    </script>
+  {% else %}
+    <script>
+      const editingPortfolioId = null;
+    </script>
+  {% endif %}
 
-  <!-- Scripts -->
-  <script type="module">
-    // Import dataEntry.js module from the static folder
-    import { initPortfolioEntries, addEntry, portfolioEntries, parseCSVFile } from "{{ url_for('static', filename='dataEntry.js') }}";
-    
-    // Function to toggle between Manual and CSV sections
-    window.showSection = function(sectionId) {
-      document.getElementById('manual').style.display = sectionId === 'manual' ? 'block' : 'none';
-      document.getElementById('csv').style.display = sectionId === 'csv' ? 'block' : 'none';
-    };
+  <!-- Tab switching logic -->
+  <script>
+    const manualTab = document.getElementById("manualTab");
+    const csvTab = document.getElementById("csvTab");
+    const manualSection = document.getElementById("manualSection");
+    const csvSection = document.getElementById("csvSection");
 
-    document.addEventListener("DOMContentLoaded", () => {
-      // Initialize portfolio entries (e.g., pre-load 5 blank entries)
-      initPortfolioEntries();
+    manualTab.addEventListener("click", () => {
+      manualTab.classList.add("active");
+      csvTab.classList.remove("active");
+      manualSection.classList.add("active");
+      csvSection.classList.remove("active");
+    });
+
+    csvTab.addEventListener("click", () => {
+      csvTab.classList.add("active");
+      manualTab.classList.remove("active");
+      csvSection.classList.add("active");
+      manualSection.classList.remove("active");
+    });
+  </script>
+  
+  <!-- Module scripts for handling portfolio entries and CSV upload -->
+  {% if portfolio and portfolio.portfolio_data %}
+    <script type="module">
+      import { initPortfolioEntries, renderPortfolioEntries, portfolioEntries, addEntry, parseCSVFile } from "{{ url_for('static', filename='dataEntry.js') }}";
       
-      // Add new entry when the "Add Entry" button is clicked
-      document.getElementById("addEntryBtn").addEventListener("click", addEntry);
+      let existingEntries;
+      try {
+        existingEntries = JSON.parse({{ portfolio.portfolio_data | tojson }});
+      } catch (e) {
+        console.error("Error parsing portfolio data:", e);
+        existingEntries = [];
+      }
       
-      // Handle portfolio form submission to display a summary
-      document.getElementById("portfolioForm").addEventListener("submit", function(e) {
+      if (existingEntries && existingEntries.length > 0) {
+        document.getElementById("portfolioName").value = "{{ portfolio.portfolio_name }}";
+        portfolioEntries.splice(0, portfolioEntries.length, ...existingEntries);
+        renderPortfolioEntries();
+      } else {
+        initPortfolioEntries();
+      }
+      
+      document.getElementById("addEntryBtn").addEventListener("click", () => {
+        addEntry();
+      });
+      
+      document.getElementById("uploadCsvBtn").addEventListener("click", async () => {
+        const fileInput = document.getElementById("csvFile");
+        const csvResult = document.getElementById("csvResult");
+        if (fileInput.files.length === 0) {
+          csvResult.textContent = "Please select a CSV file.";
+          return;
+        }
+        const file = fileInput.files[0];
+        try {
+          const message = await parseCSVFile(file);
+          csvResult.textContent = message;
+          renderPortfolioEntries();
+        } catch (err) {
+          csvResult.textContent = "Error parsing CSV: " + err;
+        }
+      });
+      
+      document.getElementById("portfolioForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const portfolioName = document.getElementById("portfolioName").value;
-        const resultDiv = document.getElementById("formResult");
-        let resultHTML = `<h3>Portfolio: ${portfolioName}</h3><ul>`;
-        portfolioEntries.forEach((entry, index) => {
-          resultHTML += `<li>Entry ${index + 1}: Ticker/Company: ${entry.ticker || "N/A"}, Allocation: ${entry.allocation || "N/A"}%</li>`;
-        });
-        resultHTML += "</ul>";
-        resultDiv.innerHTML = resultHTML;
+        const url = editingPortfolioId 
+                      ? `/update-portfolio/${editingPortfolioId}` 
+                      : `/save-portfolio`;
+        const dataToSend = {
+          portfolioName: portfolioName,
+          portfolioData: portfolioEntries
+        };
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataToSend)
+          });
+          const result = await response.json();
+          if (response.ok) {
+            alert(result.message || "Portfolio saved successfully!");
+            window.location.href = "/saved-portfolios";
+          } else {
+            alert(result.error || "Error saving/updating portfolio.");
+          }
+        } catch (error) {
+          console.error("Submit error:", error);
+          alert("An error occurred while saving/updating the portfolio.");
+        }
+      });
+    </script>
+  {% else %}
+    <script type="module">
+      import { initPortfolioEntries, addEntry, parseCSVFile, portfolioEntries } from "{{ url_for('static', filename='dataEntry.js') }}";
+      initPortfolioEntries();
+      
+      document.getElementById("addEntryBtn").addEventListener("click", () => {
+        addEntry();
       });
       
-      // CSV Upload functionality
-      document.getElementById('uploadBtn').addEventListener('click', function() {
-        const fileInput = document.getElementById('csvFile');
-        if (fileInput.files.length > 0) {
-          const file = fileInput.files[0];
-          parseCSVFile(file)
-            .then(result => {
-              document.getElementById('csvResult').innerHTML = result;
-            })
-            .catch(err => {
-              document.getElementById('csvResult').textContent = 'Error parsing CSV: ' + err;
-            });
-        } else {
-          document.getElementById('csvResult').textContent = 'Please select a CSV file.';
+      document.getElementById("uploadCsvBtn").addEventListener("click", async () => {
+        const fileInput = document.getElementById("csvFile");
+        const csvResult = document.getElementById("csvResult");
+        if (fileInput.files.length === 0) {
+          csvResult.textContent = "Please select a CSV file.";
+          return;
+        }
+        const file = fileInput.files[0];
+        try {
+          const message = await parseCSVFile(file);
+          csvResult.textContent = message;
+          renderPortfolioEntries();
+        } catch (err) {
+          csvResult.textContent = "Error parsing CSV: " + err;
         }
       });
       
-      // Ticker/Company Search functionality
-      document.getElementById('searchBtn').addEventListener('click', function(e) {
+      document.getElementById("portfolioForm").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const query = document.getElementById('tickerSearch').value.trim();
-        if (query.length > 0) {
-          // Replace 'demo' with your actual Alpha Vantage API key when available
-          const apiKey = 'CSVWIRSNGKIT4MB7';
-          const apiUrl = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=${apiKey}`;
-          fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-              const suggestionsDiv = document.getElementById('suggestions');
-              suggestionsDiv.innerHTML = ''; // Clear previous suggestions
-              if (data.bestMatches && data.bestMatches.length > 0) {
-                data.bestMatches.forEach(match => {
-                  const symbol = match["1. symbol"];
-                  const name = match["2. name"];
-                  const item = document.createElement('div');
-                  item.className = 'suggestion-item';
-                  item.textContent = `${symbol} - ${name}`;
-                  // When a suggestion is clicked, set the search input and hide suggestions
-                  item.addEventListener('click', function() {
-                    document.getElementById('tickerSearch').value = symbol;
-                    suggestionsDiv.style.display = 'none';
-                  });
-                  suggestionsDiv.appendChild(item);
-                });
-                suggestionsDiv.style.display = 'block';
-              } else {
-                suggestionsDiv.style.display = 'none';
-              }
-            })
-            .catch(error => {
-              console.error('Error fetching company data:', error);
-            });
+        const portfolioName = document.getElementById("portfolioName").value;
+        const dataToSend = {
+          portfolioName: portfolioName,
+          portfolioData: portfolioEntries
+        };
+        try {
+          const response = await fetch("/save-portfolio", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataToSend)
+          });
+          const result = await response.json();
+          if (response.ok) {
+            alert(result.message || "Portfolio saved successfully!");
+            window.location.href = "/saved-portfolios";
+          } else {
+            alert(result.error || "Error saving portfolio.");
+          }
+        } catch (error) {
+          console.error("Submit error:", error);
+          alert("An error occurred while saving the portfolio.");
         }
       });
-      
-      // Hide suggestion list when clicking outside the search input and suggestion list
-      document.addEventListener('click', function(e) {
-        const suggestionsDiv = document.getElementById('suggestions');
-        const searchInput = document.getElementById('tickerSearch');
-        if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
-          suggestionsDiv.style.display = 'none';
-        }
-      });
-      
-      // Logout functionality remains unchanged
-      document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+    </script>
+  {% endif %}
+  
+  <!-- (Optional) Logout script if not already added in header -->
+  <script>
+    const logoutBtn = document.getElementById("logoutButton");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async function(e) {
         e.preventDefault();
         try {
-          const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+          const response = await fetch("/logout", { method: "POST", credentials: "same-origin" });
           if (response.ok) {
-            window.location.href = '/login-page';
+            window.location.href = "/login-page";
           }
         } catch (err) {
-          console.error('Logout error', err);
+          console.error("Logout error:", err);
         }
       });
-    });
+    }
   </script>
 </body>
 </html>

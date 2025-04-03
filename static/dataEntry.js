@@ -1,7 +1,10 @@
+// dataEntry.js
+
 export let portfolioEntries = [];
 
 export function initPortfolioEntries() {
   portfolioEntries = [];
+  // Initialize with 5 empty entries
   for (let i = 0; i < 5; i++) {
     portfolioEntries.push({ ticker: "", allocation: "" });
   }
@@ -18,7 +21,7 @@ export function renderPortfolioEntries() {
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.marginBottom = "10px";
-    row.style.position = "relative";
+    row.style.position = "relative"; // For suggestions positioning
 
     // Ticker/Company Input
     const tickerInput = document.createElement("input");
@@ -32,24 +35,17 @@ export function renderPortfolioEntries() {
     tickerInput.style.flex = "1";
     tickerInput.addEventListener("input", (e) => {
       portfolioEntries[index].ticker = e.target.value;
-      // Automatically refresh the suggestion list on every character change.
-      searchCompanies(tickerInput, index, row);
     });
 
     // Search Button
     const searchBtn = document.createElement("button");
     searchBtn.textContent = "Search";
-    searchBtn.style.padding = "5px 8px";
+    searchBtn.className = "small-btn";
     searchBtn.style.marginRight = "10px";
-    searchBtn.style.border = "1px solid #ccc";
-    searchBtn.style.borderRadius = "4px";
-    searchBtn.style.cursor = "pointer";
-    searchBtn.style.backgroundColor = "#d3e5d1";
-    searchBtn.style.fontWeight = "bold";
     searchBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      e.stopPropagation(); // Prevent event from bubbling to the document-level handler.
-      searchCompanies(tickerInput, index, row);
+      e.stopPropagation();
+      searchAlphaVantage(tickerInput, index, row);
     });
 
     // Allocation Input
@@ -69,90 +65,65 @@ export function renderPortfolioEntries() {
     // Delete Button
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Delete";
-    deleteBtn.style.padding = "5px 8px";
+    deleteBtn.className = "small-btn";
     deleteBtn.style.marginLeft = "10px";
-    deleteBtn.style.border = "1px solid #ccc";
-    deleteBtn.style.borderRadius = "4px";
-    deleteBtn.style.cursor = "pointer";
-    deleteBtn.style.backgroundColor = "#d3e5d1";
-    deleteBtn.style.fontWeight = "bold";
     deleteBtn.addEventListener("click", () => {
       deleteEntry(index);
     });
+
+    // Suggestions container for this row
+    const suggestionsContainer = document.createElement("div");
+    suggestionsContainer.className = "suggestions-row";
+    suggestionsContainer.style.position = "absolute";
+    suggestionsContainer.style.top = "40px";
+    suggestionsContainer.style.left = "0";
+    suggestionsContainer.style.width = tickerInput.offsetWidth + "px";
+    suggestionsContainer.style.display = "none";
 
     row.appendChild(tickerInput);
     row.appendChild(searchBtn);
     row.appendChild(allocationInput);
     row.appendChild(deleteBtn);
+    row.appendChild(suggestionsContainer);
     container.appendChild(row);
   });
 }
 
-function searchCompanies(tickerInput, index, row) {
+function searchAlphaVantage(tickerInput, index, row) {
   const query = tickerInput.value.trim();
-
-  // Remove any previous suggestion box in this row
-  const oldSuggestion = row.querySelector(".suggestions");
-  if (oldSuggestion) {
-    oldSuggestion.remove();
-  }
-
   if (!query) return;
 
-  const apiUrl = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=EC5NXFAP19U52ZVD`;
+  // Replace with your actual Alpha Vantage API key
+  const apiKey = "CSVWIRSNGKIT4MB7";
+  const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=${apiKey}`;
 
-  fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-      const matches = data.bestMatches || [];
-      if (!matches.length) return;
-
-      const suggestionDiv = document.createElement("div");
-      suggestionDiv.className = "suggestions";
-      suggestionDiv.style.position = "absolute";
-      suggestionDiv.style.background = "white";
-      suggestionDiv.style.border = "1px solid #ccc";
-      suggestionDiv.style.top = "100%";
-      suggestionDiv.style.left = "0";
-      suggestionDiv.style.zIndex = "20";
-      // Set suggestion width equal to the ticker input's width.
-      suggestionDiv.style.width = tickerInput.offsetWidth + "px";
-      suggestionDiv.style.maxHeight = "150px";
-      suggestionDiv.style.overflowY = "auto";
-      suggestionDiv.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-      suggestionDiv.style.marginTop = "5px";
-
-      // Ensure suggestions stack vertically.
-      suggestionDiv.style.display = "flex";
-      suggestionDiv.style.flexDirection = "column";
-      suggestionDiv.style.alignItems = "flex-start";
-
-      matches.forEach(result => {
-        const symbol = result["1. symbol"];
-        const name = result["2. name"];
-        const item = document.createElement("div");
-        item.textContent = `${symbol} - ${name}`;
-        item.style.display = "block";
-        item.style.padding = "6px";
-        item.style.cursor = "pointer";
-        item.addEventListener("mouseover", () => {
-          item.style.backgroundColor = "#f1f1f1";
+  fetch(url)
+    .then((response) => response.json())
+    .then((data) => {
+      const suggestionsContainer = row.querySelector(".suggestions-row");
+      suggestionsContainer.style.width = tickerInput.offsetWidth + "px";
+      suggestionsContainer.innerHTML = "";
+      if (data.bestMatches && data.bestMatches.length > 0) {
+        data.bestMatches.forEach((match) => {
+          const symbol = match["1. symbol"];
+          const name = match["2. name"];
+          const item = document.createElement("div");
+          item.className = "suggestion-item";
+          item.textContent = `${symbol} - ${name}`;
+          item.addEventListener("click", () => {
+            portfolioEntries[index].ticker = symbol;
+            tickerInput.value = symbol;
+            suggestionsContainer.style.display = "none";
+          });
+          suggestionsContainer.appendChild(item);
         });
-        item.addEventListener("mouseout", () => {
-          item.style.backgroundColor = "white";
-        });
-        item.addEventListener("click", () => {
-          portfolioEntries[index].ticker = symbol;
-          tickerInput.value = symbol;
-          suggestionDiv.remove();
-        });
-        suggestionDiv.appendChild(item);
-      });
-
-      row.appendChild(suggestionDiv);
+        suggestionsContainer.style.display = "block";
+      } else {
+        suggestionsContainer.style.display = "none";
+      }
     })
-    .catch(err => {
-      console.error("Error fetching company data:", err);
+    .catch((error) => {
+      console.error("Error fetching company data:", error);
     });
 }
 
@@ -161,49 +132,135 @@ export function addEntry() {
   renderPortfolioEntries();
 }
 
-export function deleteEntry(index) {
-  portfolioEntries.splice(index, 1);
+export function deleteEntry(i) {
+  portfolioEntries.splice(i, 1);
   renderPortfolioEntries();
 }
 
+// Modified CSV parsing function
 export function parseCSVFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = function(e) {
       try {
-        const rows = e.target.result.split("\n").filter(row => row.trim() !== "");
-        const headers = rows[0].split(",");
-        for (let i = 1; i < rows.length; i++) {
-          const values = rows[i].split(",");
-          let asset = {};
-          headers.forEach((header, idx) => {
-            asset[header.trim()] = (header.trim() === "quantity" || header.trim() === "purchasePrice")
-              ? Number(values[idx])
-              : values[idx].trim();
-          });
-          portfolioEntries.push(asset);
+        const text = e.target.result;
+        const rows = parseCSV(text);
+        const headers = rows[0].map(h => h.toLowerCase());
+        
+        // Validate CSV structure
+        if (!headers.includes('symbol')) {
+          throw new Error('CSV must contain "Symbol" column');
         }
+        
+        const isPercentage = headers.includes('weight');
+        const isDollar = headers.includes('balance');
+        
+        if (!isPercentage && !isDollar) {
+          throw new Error('CSV must contain either "Weight" or "Balance" column');
+        }
+
+        // Clear existing entries
+        portfolioEntries.length = 0;
+        
+        // Process rows
+        let totalBalance = 0;
+        const balances = [];
+        
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          const symbol = row[headers.indexOf('symbol')];
+          
+          if (isPercentage) {
+            const weight = parsePercentage(row[headers.indexOf('weight')]);
+            portfolioEntries.push({
+              ticker: symbol,
+              allocation: weight
+            });
+          } else if (isDollar) {
+            const balance = parseDollar(row[headers.indexOf('balance')]);
+            balances.push(balance);
+            totalBalance += balance;
+          }
+        }
+
+        // Convert dollar balances to percentages
+        if (isDollar) {
+          balances.forEach((balance, index) => {
+            const allocation = (balance / totalBalance) * 100;
+            portfolioEntries.push({
+              ticker: rows[index + 1][headers.indexOf('symbol')],
+              allocation: Number(allocation.toFixed(2))
+            });
+          });
+        }
+
+        validatePortfolio();
         renderPortfolioEntries();
-        resolve("CSV Parsed and entries added.");
+        resolve(`${rows.length - 1} assets imported successfully`);
       } catch (err) {
+        portfolioEntries.length = 0;
         reject(err);
       }
     };
-    reader.onerror = function(err) {
-      reject(err);
-    };
+    reader.onerror = reject;
     reader.readAsText(file);
   });
 }
 
-// Single document-level click handler to remove any open suggestion lists
+function parseCSV(text) {
+  return text.split(/\r?\n/)
+    .filter(row => row.trim() !== '')
+    .map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+      .map(cell => cell.replace(/^"|"$/g, '').trim()));
+}
+
+function parsePercentage(value) {
+  const cleanValue = value.replace(/%/g, '');
+  const num = Number(cleanValue);
+  if (isNaN(num)) throw new Error(`Invalid percentage: ${value}`);
+  return num;
+}
+
+function parseDollar(value) {
+  const cleanValue = value.replace(/[$,]/g, '');
+  const num = Number(cleanValue);
+  if (isNaN(num)) throw new Error(`Invalid dollar amount: ${value}`);
+  return num;
+}
+
+function validatePortfolio() {
+  // Check allocation sum
+  const totalAllocation = portfolioEntries.reduce((sum, entry) => 
+    sum + entry.allocation, 0);
+  
+  if (Math.abs(totalAllocation - 100) > 1) {
+    throw new Error(`Total allocation ${totalAllocation.toFixed(2)}% (must be 100%)`);
+  }
+
+  // Check duplicate symbols
+  const symbols = new Set();
+  portfolioEntries.forEach(entry => {
+    if (symbols.has(entry.ticker)) {
+      throw new Error(`Duplicate symbol: ${entry.ticker}`);
+    }
+    symbols.add(entry.ticker);
+  });
+}
+
+// Hide suggestions when clicking outside
 document.addEventListener("click", function(e) {
-  const suggestions = document.querySelectorAll(".suggestions");
-  suggestions.forEach(suggestion => {
-    const parentRow = suggestion.parentNode;
-    const input = parentRow.querySelector("input[type='text']");
-    if (input && !input.contains(e.target) && !suggestion.contains(e.target)) {
-      suggestion.remove();
+  const suggestionBoxes = document.querySelectorAll(".suggestions-row");
+  suggestionBoxes.forEach((box) => {
+    if (!box.contains(e.target)) {
+      box.style.display = "none";
     }
   });
 });
+
+// Optionally expose functions globally if needed
+window.renderPortfolioEntries = renderPortfolioEntries;
+window.initPortfolioEntries = initPortfolioEntries;
+window.portfolioEntries = portfolioEntries;
+window.addEntry = addEntry;
+window.parseCSVFile = parseCSVFile;
+window.deleteEntry = deleteEntry;
