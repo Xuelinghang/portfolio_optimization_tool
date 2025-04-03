@@ -2,7 +2,6 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -11,7 +10,6 @@ load_dotenv()
 # Initialize extensions
 db = SQLAlchemy()
 bcrypt = Bcrypt()
-jwt = JWTManager()
 
 def create_app():
     # Determine the project root (one level up from the 'app' folder)
@@ -25,7 +23,6 @@ def create_app():
     # Application configuration
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///portfolio.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super_secret_key")  # Change for production
     
     # Set the secret key for session management
     app.secret_key = os.getenv("SECRET_KEY", "my_default_secret_key")
@@ -33,10 +30,8 @@ def create_app():
     # Initialize extensions with the app
     db.init_app(app)
     bcrypt.init_app(app)
-    jwt.init_app(app)
 
     # Register Blueprints from the routes package.
-    # Auth blueprint is registered without a prefix so that its routes are at the root.
     from app.routes.auth import auth_bp
     from app.routes.portfolio_api import portfolio_bp
     from app.routes.portfolio_metrics import metrics_bp

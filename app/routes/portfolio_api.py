@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # app/routes/portfolio_api.py
 import os
 import json
@@ -11,6 +12,9 @@ from flask import (
 from werkzeug.utils import secure_filename
 import pandas as pd
 
+=======
+from flask import Blueprint, request, jsonify, session, redirect, url_for
+>>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
 from app import db
 from app.models import Portfolio, Asset
 
@@ -20,10 +24,18 @@ portfolio_bp = Blueprint("portfolio", __name__)
 
 @portfolio_bp.route("/portfolio/manual", methods=["POST"])
 def submit_manual_entry():
+<<<<<<< HEAD
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
     user_id = session["user_id"]
+=======
+    # Check if user is logged in
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_id = session["user_id"]
+
+>>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
     data = request.get_json()
     symbol = data.get("asset_symbol")
     quantity = data.get("quantity")
@@ -50,7 +62,10 @@ def submit_manual_entry():
 def upload_csv():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
     user_id = session["user_id"]
 
     if "file" not in request.files:
@@ -96,12 +111,17 @@ def upload_csv():
 def simulate_market_data():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+<<<<<<< HEAD
 
     user_id = session["user_id"]
     portfolios = Portfolio.query.filter_by(user_id=user_id).all()
     if not portfolios:
         return jsonify({"error": "No assets found in portfolio"}), 400
 
+=======
+    # For demo purposes, we're returning a simulated response.
+    import random
+>>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
     simulated = {
         "simulated_data": [
             {
