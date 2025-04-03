@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Analysis Selection</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    @keyframes fadeSlideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f9f7;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .animate-fade-up {
+      animation: fadeSlideUp 0.8s ease-out forwards;
+    }
+    
+    .card {
+      transition: all 0.3s ease;
+      background-color: white;
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 128, 0, 0.05);
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(0, 128, 0, 0.15);
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+    
+    .card:hover::before {
+      width: 7px;
+    }
+    
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      top: 100%;
+      left: 0;
+      min-width: 180px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .dropdown-content a {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: #4a5568;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+    }
+    
+    .dropdown-content a:hover {
+      background-color: #f8f9fa;
+      color: #2E7D32;
+      border-left: 3px solid #4CAF50;
+      padding-left: 1.5rem;
+    }
+    
+    .dropdown:hover .dropdown-content {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .header {
+      background-color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 10px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo img {
+      width: 32px;
+      height: 32px;
+      margin-right: 12px;
+      border-radius: 6px;
+    }
+    
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0b5d1e;
+      letter-spacing: -0.5px;
+    }
+    
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+    
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
+    }
+    
+    .nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #2E7D32;
+      transition: width 0.3s ease;
+    }
+    
+    .nav a:hover {
+      color: #2E7D32;
+    }
+    
+    .nav a:hover::after {
+      width: 100%;
+    }
+    
+    .nav span {
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 30px;
+      min-height: calc(100vh - 70px);
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 128, 0, 0.1);
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      background-color: #3d8b40;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 128, 0, 0.15);
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      color: #4CAF50;
+      border: 2px solid #4CAF50;
+    }
+    
+    .btn-outline:hover {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .page-title {
+      position: relative;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .page-title::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(to right, #4CAF50, #81C784);
+      border-radius: 2px;
+    }
+    
+    .section-card {
+      background-color: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      margin-bottom: 40px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      color: #d1d5db;
+      margin-bottom: 20px;
+    }
+    
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+    }
+    
+    .back-link {
+      display: flex;
+      align-items: center;
+      color: #4CAF50;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .back-link:hover {
+      color: #3d8b40;
+    }
+    
+    .back-link svg {
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
+    </div>
+    <div class="nav">
+      <a href="#">Markets</a>
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content animate-fade-up">
+    <div style="max-width: 1000px; width: 100%;">
+      <h1 class="page-title" style="font-size: 2.5rem; font-weight: 700; color: #2E7D32;">Portfolio Analysis</h1>
+      
+      <div class="section-card">
+        
+        <h2 style="font-size: 1.5rem; font-weight: 600; color: #2d3748; margin-bottom: 1.5rem;">Select a Portfolio to Analyze</h2>
+        
+        {% if portfolios %}
+            <div class="portfolio-grid">
+                {% for portfolio in portfolios %}
+                <div class="card">
+                    <div style="position: relative; z-index: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <h3 style="font-size: 1.25rem; font-weight: 600; color: #1a202c;">{{ portfolio.portfolio_name }}</h3>
+                            <div style="background-color: rgba(76, 175, 80, 0.1); color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                                Portfolio
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 16px 0; padding: 12px; background-color: rgba(245, 248, 250, 0.8); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 8px; color: #2E7D32;">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <p style="color: #4a5568; font-size: 0.875rem;">Created: {{ portfolio.purchase_date.strftime('%Y-%m-%d') }}</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                            <a href="{{ url_for('view_dashboard', portfolio_id=portfolio.id) }}" class="btn" style="display: flex; align-items: center; font-size: 0.875rem; padding: 10px 16px;">
+                                <span>Analyze Portfolio</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-left: 6px;">
+                                    <path d="M5 12h14"></path>
+                                    <path d="M12 5l7 7-7 7"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 64px; height: 64px; color: #d1d5db; margin: 0 auto;">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.29 7 12 12 20.71 7"></polyline>
+                        <line x1="12" y1="22" x2="12" y2="12"></line>
+                    </svg>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 600; color: #2d3748; margin-bottom: 12px;">No Portfolios Found</h3>
+                <p style="color: #6b7280; margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">You don't have any saved portfolios yet. Create a new portfolio to get started with your analysis.</p>
+                <a href="{{ url_for('data_entry') }}" class="btn">
+                    Create New Portfolio
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="action-bar">
+        <a href="{{ url_for('index') }}" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Home
+        </a>
+        
+        <a href="{{ url_for('data_entry') }}" class="btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Create New Portfolio
+        </a>
+    </div>
+</div>
+
+  <script>
+    // Logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+        if (response.ok) {
+          window.location.href = '/login-page';
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    });
+  </script>
+</body>
+</html>

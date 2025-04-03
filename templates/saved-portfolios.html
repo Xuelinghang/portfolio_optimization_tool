@@ -4,186 +4,538 @@
   <meta charset="UTF-8">
   <title>My Saved Portfolios - Portfolio Optimizer</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #d1f0e0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 100px;
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f9f7;
+      color: #333;
+      line-height: 1.6;
     }
+    
     .header {
-      position: fixed;
-      top: 0;
-      width: 100%;
       background-color: white;
-      padding: 10px 20px;
-      box-sizing: border-box;
+      padding: 15px 30px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 10px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
+    
     .logo {
       display: flex;
       align-items: center;
     }
+    
     .logo img {
-      width: 30px;
-      height: 30px;
-      margin-right: 8px;
+      width: 32px;
+      height: 32px;
+      margin-right: 12px;
+      border-radius: 6px;
     }
+    
     .logo-text {
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 20px;
+      font-weight: 700;
       color: #0b5d1e;
+      letter-spacing: -0.5px;
     }
+    
     .nav {
       display: flex;
       align-items: center;
-      gap: 50px;
-      font-size: 0.9rem;
+      gap: 30px;
     }
+    
     .nav a {
       color: #4a5568;
       font-weight: 600;
       text-decoration: none;
-      transition: color 0.3s ease;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
     }
+    
+    .nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #2E7D32;
+      transition: width 0.3s ease;
+    }
+    
     .nav a:hover {
-      color: #2f855a;
+      color: #2E7D32;
     }
+    
+    .nav a:hover::after {
+      width: 100%;
+    }
+    
     .nav span {
       color: #2d3748;
-      font-weight: bold;
+      font-weight: 600;
     }
+    
     .dropdown {
       position: relative;
       display: inline-block;
     }
+    
     .dropdown-content {
       display: none;
       position: absolute;
       background-color: white;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
       z-index: 10;
       top: 100%;
       left: 0;
-      min-width: 160px;
+      min-width: 180px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
     }
+    
     .dropdown-content a {
       display: block;
-      padding: 0.5rem 1rem;
+      padding: 0.75rem 1.25rem;
       color: #4a5568;
       text-decoration: none;
-      transition: background-color 0.3s ease;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
     }
+    
     .dropdown-content a:hover {
-      background-color: #f1f1f1;
+      background-color: #f8f9fa;
+      color: #2E7D32;
+      border-left: 3px solid #4CAF50;
+      padding-left: 1.5rem;
     }
+    
     .dropdown:hover .dropdown-content {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
+    
     .content-container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 90%;
-      max-width: 1000px;
-      margin-top: 80px;
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 40px;
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
-    h2 {
+    
+    .page-title {
+      position: relative;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      color: #2E7D32;
+      font-size: 2.25rem;
+      font-weight: 700;
       text-align: center;
-      margin-bottom: 20px;
-      color: #1a3f1a;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    
+    .page-title::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(to right, #4CAF50, #81C784);
+      border-radius: 2px;
     }
-    th, td {
-      padding: 10px;
-      text-align: left;
-      border: 1px solid #ccc;
-    }
-    th {
-      background-color: #f1f1f1;
-    }
-    .action-btn {
-      padding: 5px 10px;
-      margin-right: 5px;
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      background-color: #4CAF50;
+      color: white;
       border: none;
-      border-radius: 3px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
       cursor: pointer;
-      font-weight: bold;
-      background-color: #8dbf88;
-      color: #1a3f1a;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 128, 0, 0.1);
+      font-family: 'Inter', sans-serif;
     }
-    .action-btn:hover {
-      background-color: #7aae78;
+    
+    .btn:hover {
+      background-color: #3d8b40;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 128, 0, 0.15);
+    }
+    
+    .btn-secondary {
+      background-color: #f8f9fa;
+      color: #4a5568;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e9ecef;
+      color: #2d3748;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 0.875rem;
+    }
+    
+    .btn svg {
+      margin-right: 8px;
+    }
+    
+    .refresh-section {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .refresh-btn {
+      background-color: #2E7D32;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2);
+    }
+    
+    .refresh-btn:hover {
+      background-color: #1b5e20;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(46, 125, 50, 0.25);
+    }
+    
+    .refresh-icon {
+      margin-right: 8px;
+      transition: transform 0.5s ease;
+    }
+    
+    .spinning {
+      animation: spin 1.5s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .status-message {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #2f855a;
+      transition: all 0.3s ease;
+    }
+    
+    .portfolio-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .portfolio-table thead th {
+      background-color: #f1f7f1;
+      color: #2d3748;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+      padding: 15px;
+      text-align: left;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .portfolio-table tbody tr {
+      transition: all 0.2s ease;
+    }
+    
+    .portfolio-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .portfolio-table tbody td {
+      padding: 15px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #4a5568;
+    }
+    
+    .portfolio-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .btn-view {
+      background-color: #ebf8ff;
+      color: #3182ce;
+    }
+    
+    .btn-view:hover {
+      background-color: #bee3f8;
+    }
+    
+    .btn-edit {
+      background-color: #e6fffa;
+      color: #319795;
+    }
+    
+    .btn-edit:hover {
+      background-color: #b2f5ea;
+    }
+    
+    .btn-download {
+      background-color: #edf2ff;
+      color: #4c6ef5;
+    }
+    
+    .btn-download:hover {
+      background-color: #dbe4ff;
+    }
+    
+    .btn-delete {
+      background-color: #fff5f5;
+      color: #e53e3e;
+    }
+    
+    .btn-delete:hover {
+      background-color: #fed7d7;
+    }
+    
+    .action-btn svg {
+      margin-right: 6px;
+      width: 16px;
+      height: 16px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #718096;
+    }
+    
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      color: #a0aec0;
+      margin-bottom: 20px;
+    }
+    
+    .empty-state h3 {
+      font-size: 1.25rem;
+      color: #4a5568;
+      margin-bottom: 10px;
+    }
+    
+    .empty-state p {
+      margin-bottom: 20px;
+    }
+    
+    .create-portfolio-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .create-portfolio-btn:hover {
+      background-color: #3d8b40;
+      transform: translateY(-2px);
+    }
+    
+    .create-portfolio-btn svg {
+      margin-right: 8px;
+      color: white;
     }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="logo">
-      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
-      <div class="logo-text">Portfolio Optimizer</div>
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
     </div>
     <div class="nav">
-      <a href="#" class="hover:text-green-600">Markets</a>
-      <a href="#" class="hover:text-green-600">Tools</a>
+      <a href="#">Markets</a>
       <div class="dropdown">
-        <a href="#" class="hover:text-green-600">My Models</a>
+        <a href="#">Tools</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
       {% if username %}
-        <span>Hello, {{ username }}!</span>
-        <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
       {% else %}
-        <a href="{{ url_for('auth.login_page') }}" class="hover:text-green-600">Login</a>
-        <a href="{{ url_for('auth.register_page') }}" class="hover:text-green-600">Sign Up</a>
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
       {% endif %}
     </div>
   </div>
   
   <div class="content-container">
-    <h2>My Saved Portfolios</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Portfolio Name</th>
-          <th>Number of Assets</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for portfolio in portfolios %}
-        <tr id="portfolio-row-{{ portfolio.id }}">
-          <td>{{ loop.index }}</td>
-          <td>{{ portfolio.portfolio_name }}</td>
-          <td>{{ portfolio.num_assets }}</td>
-          <td>
-            <button class="action-btn" onclick="location.href='{{ url_for('portfolio.open_portfolio', portfolio_id=portfolio.id) }}'">Open</button>
-            <button class="action-btn" onclick="location.href='{{ url_for('portfolio.edit_portfolio', portfolio_id=portfolio.id) }}'">Edit</button>
-            <button class="action-btn download-btn" data-portfolio-id="{{ portfolio.id }}">Download</button>
-            <button class="action-btn delete-btn" data-portfolio-id="{{ portfolio.id }}">Delete</button>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" style="text-align: center;">No portfolios found.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <h1 class="page-title">My Saved Portfolios</h1>
+    
+    <div class="refresh-section">
+      <button id="refresh-market-data" class="refresh-btn">
+        <span id="refresh-icon" class="refresh-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </span>
+        Refresh Market Data
+      </button>
+      <div id="refresh-status" class="status-message" style="display: none;"></div>
+    </div>
+    
+    {% if portfolios %}
+      <div class="portfolio-table-container">
+        <table class="portfolio-table">
+          <thead>
+            <tr>
+              <th width="5%">#</th>
+              <th width="25%">Portfolio Name</th>
+              <th width="15%">Number of Assets</th>
+              <th width="15%">Date Created</th>
+              <th width="40%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for portfolio in portfolios %}
+            <tr id="portfolio-row-{{ portfolio.id }}">
+              <td>{{ loop.index }}</td>
+              <td>{{ portfolio.portfolio_name }}</td>
+              <td>{{ portfolio.num_assets }}</td>
+              <td>{{ portfolio.created_at.strftime('%Y-%m-%d') }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="action-btn btn-view" onclick="location.href='{{ url_for('view_dashboard', portfolio_id=portfolio.id) }}'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    View Analysis
+                  </button>
+                  
+                  <button class="action-btn btn-edit" onclick="location.href='{{ url_for('data_entry') }}?portfolio_id={{ portfolio.id }}'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit
+                  </button>
+                  
+                  <button class="action-btn btn-download download-btn" data-portfolio-id="{{ portfolio.id }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download
+                  </button>
+                  
+                  <button class="action-btn btn-delete delete-btn" data-portfolio-id="{{ portfolio.id }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <h3>No Portfolios Found</h3>
+        <p>You haven't created any portfolios yet. Create your first portfolio to start tracking your investments.</p>
+        <a href="{{ url_for('data_entry') }}" class="create-portfolio-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Create New Portfolio
+        </a>
+      </div>
+    {% endif %}
   </div>
   
   <script>
@@ -235,17 +587,78 @@
             method: 'POST',
             credentials: 'same-origin'
           });
-          const data = await response.json();
           if (response.ok) {
-            alert(data.message);
             document.getElementById(`portfolio-row-${portfolioId}`).remove();
           } else {
-            alert(data.error || "Error deleting portfolio.");
+            alert("Error deleting portfolio.");
           }
         } catch (error) {
           console.error('Delete error:', error);
         }
       });
+    });
+    
+    // Refresh Market Data
+    document.getElementById('refresh-market-data').addEventListener('click', async function() {
+      // Disable button and show loading state
+      this.disabled = true;
+      const refreshIcon = document.querySelector('.refresh-icon svg');
+      const refreshStatus = document.getElementById('refresh-status');
+      
+      // Add spinning class for animation
+      refreshIcon.classList.add('spinning');
+      
+      // Show status message
+      refreshStatus.style.display = "block";
+      refreshStatus.textContent = "Refreshing market data... This may take a moment.";
+      
+      try {
+        const response = await fetch('/refresh-market-data');
+        const result = await response.json();
+        
+        if (response.ok) {
+          refreshStatus.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            ${result.message} <span style="opacity: 0.7;">(${result.timestamp})</span>
+          `;
+          
+          // Offer option to view analytics with refreshed data
+          setTimeout(() => {
+            const shouldReload = confirm("Market data updated successfully! Would you like to view your portfolios with the latest market data?");
+            if (shouldReload) {
+              window.location.reload();
+            }
+          }, 500);
+        } else {
+          refreshStatus.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Error: ${result.message || 'Failed to refresh market data'}
+          `;
+          refreshStatus.style.color = "#e53e3e";
+        }
+      } catch (error) {
+        console.error('Refresh error:', error);
+        refreshStatus.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          Error refreshing market data. Please try again.
+        `;
+        refreshStatus.style.color = "#e53e3e";
+      } finally {
+        // Reset button state
+        this.disabled = false;
+        refreshIcon.classList.remove('spinning');
+      }
     });
   </script>
 </body>

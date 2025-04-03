@@ -4,9 +4,17 @@
   <meta charset="UTF-8" />
   <title>Register - Portfolio Optimizer</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', sans-serif;
       display: flex;
       height: 100vh;
     }
@@ -20,8 +28,9 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-      overflow-x: hidden;
+      overflow-x: visible;
       box-sizing: border-box;
+      z-index: 1000;
     }
 
     .logo {
@@ -40,17 +49,81 @@
     }
     .nav {
       display: flex;
-      gap: 50px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 30px;
     }
+    
     .nav a {
+      color: #4a5568;
+      font-weight: 600;
       text-decoration: none;
-      color: #0b5d1e;
-      font-weight: bold;
-      transition: color 0.3s ease;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
     }
+    
+    .nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #2E7D32;
+      transition: width 0.3s ease;
+    }
+    
     .nav a:hover {
-      color: #7aae78;
+      color: #2E7D32;
+    }
+    
+    .nav a:hover::after {
+      width: 100%;
+    }
+    
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 1100;
+      top: 100%;
+      left: 0;
+      min-width: 180px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .dropdown-content a {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: #4a5568;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+    }
+    
+    .dropdown-content a:hover {
+      background-color: #f8f9fa;
+      color: #2E7D32;
+      border-left: 3px solid #4CAF50;
+      padding-left: 1.5rem;
+    }
+    
+    .dropdown:hover .dropdown-content {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
     .left-panel, .right-panel {
       flex: 1;
@@ -119,16 +192,30 @@
   <!-- Header with Logo and Navigation -->
   <div class="header">
     <div class="logo">
-      <img src="logo.jpeg" alt="Logo" />
-      <div class="logo-text">Portfolio Optimizer</div>
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" />
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
     </div>
-    <nav class="nav">
+    <div class="nav">
       <a href="#">Markets</a>
-      <a href="#">Tools</a>
-      <a href="#">My Models</a>
-      <a href="/login-page">Login</a>
-      <a href="/register-page">Sign Up</a>
-    </nav>
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      <a href="{{ url_for('login_page') }}">Login</a>
+      <a href="{{ url_for('register_page') }}">Sign Up</a>
+    </div>
   </div>
 
   <!-- Left Welcome Panel -->

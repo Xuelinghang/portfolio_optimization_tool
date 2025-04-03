@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Efficient Frontier | Portfolio Optimizer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f9f7;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .form-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 40px;
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .header {
+      background-color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 10px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo img {
+      width: 32px;
+      height: 32px;
+      margin-right: 12px;
+      border-radius: 6px;
+    }
+    
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0b5d1e;
+      letter-spacing: -0.5px;
+    }
+    
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+    
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
+    }
+    
+    .nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #2E7D32;
+      transition: width 0.3s ease;
+    }
+    
+    .nav a:hover {
+      color: #2E7D32;
+    }
+    
+    .nav a:hover::after {
+      width: 100%;
+    }
+    
+    .nav span {
+      color: #2d3748;
+      font-weight: 600;
+    }
+    
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      top: 100%;
+      left: 0;
+      min-width: 180px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .dropdown-content a {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: #4a5568;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+    }
+    
+    .dropdown-content a:hover {
+      background-color: #f8f9fa;
+      color: #2E7D32;
+      border-left: 3px solid #4CAF50;
+      padding-left: 1.5rem;
+    }
+    
+    .dropdown:hover .dropdown-content {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .page-title {
+      position: relative;
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      color: #2E7D32;
+      font-size: 2.25rem;
+      font-weight: 700;
+    }
+    
+    .page-title::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(to right, #4CAF50, #81C784);
+      border-radius: 2px;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title svg {
+      margin-right: 10px;
+      color: #4CAF50;
+    }
+    
+    .section-description {
+      color: #6b7280;
+      margin-bottom: 20px;
+      font-size: 1rem;
+    }
+    
+    .form-section {
+      margin-bottom: 40px;
+      background-color: #f9fbfa;
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px solid rgba(76, 175, 80, 0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 0.95rem;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background-color: white;
+      color: #4a5568;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    }
+    
+    .date-inputs {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    
+    .date-inputs .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .radio-option {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    
+    .radio-option:hover {
+      background-color: rgba(76, 175, 80, 0.05);
+    }
+    
+    .radio-option input[type="radio"] {
+      margin-right: 10px;
+      accent-color: #4CAF50;
+      width: 18px;
+      height: 18px;
+    }
+    
+    .radio-option label {
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+    
+    .portfolio-selection {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      display: none;
+    }
+    
+    .input-hint {
+      font-size: 0.875rem;
+      color: #718096;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .input-hint svg {
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 128, 0, 0.1);
+    }
+    
+    .btn:hover {
+      background-color: #3d8b40;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 128, 0, 0.15);
+    }
+    
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 0.875rem;
+    }
+    
+    .btn svg {
+      margin-right: 8px;
+    }
+    
+    .alert {
+      padding: 16px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .alert svg {
+      margin-right: 12px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    
+    .alert-success {
+      background-color: #e6f4ea;
+      color: #1e4620;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .alert-danger {
+      background-color: #fae9eb;
+      color: #731c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .alert-warning {
+      background-color: #fff8e6;
+      color: #805d14;
+      border: 1px solid #ffe4b2;
+    }
+    
+    .ticker-entry {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 12px;
+      position: relative;
+    }
+    
+    .ticker-input {
+      flex: 2;
+    }
+    
+    .allocation-input {
+      flex: 1;
+    }
+    
+    .remove-btn {
+      background-color: #ff5a5a;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    .remove-btn:hover {
+      background-color: #e04747;
+      transform: scale(1.05);
+    }
+    
+    .suggestions-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: calc(100% - 48px - 12px);
+      max-height: 200px;
+      overflow-y: auto;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .suggestion-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      transition: all 0.2s ease;
+    }
+    
+    .suggestion-item:hover {
+      background-color: #f8fafc;
+    }
+    
+    .actions-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 40px;
+    }
+    
+    .back-link {
+      display: flex;
+      align-items: center;
+      color: #4CAF50;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      padding: 8px 0;
+    }
+    
+    .back-link:hover {
+      color: #3d8b40;
+    }
+    
+    .back-link svg {
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
+    </div>
+    <div class="nav">
+      <a href="#">Markets</a>
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-container">
+    <h1 class="page-title">Efficient Frontier Analysis</h1>
+    
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="alert alert-{{ category }}">
+        {% if category == 'success' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        {% elif category == 'danger' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        {% elif category == 'warning' %}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        {% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+    
+    <form action="{{ url_for('efficient_frontier.calculate_efficient_frontier') }}" method="post">
+      <div class="form-section">
+        <h2 class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Date Range
+        </h2>
+        <p class="section-description">Select the time period for your efficient frontier analysis. Historical data within this range will be used to calculate optimal portfolios.</p>
+        
+        <div class="date-inputs">
+          <div class="form-group">
+            <label for="start_year">Start Year:</label>
+            <select id="start_year" name="start_year" required>
+              {% for year in range(2010, 2026) %}
+                <option value="{{ year }}">{{ year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="start_month">Start Month:</label>
+            <select id="start_month" name="start_month">
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="date-inputs">
+          <div class="form-group">
+            <label for="end_year">End Year:</label>
+            <select id="end_year" name="end_year" required>
+              {% for year in range(2010, 2026) %}
+                <option value="{{ year }}" {% if year == 2025 %}selected{% endif %}>{{ year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="end_month">End Month:</label>
+            <select id="end_month" name="end_month">
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="input-hint">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Longer time periods provide more data points but may include market conditions that are less relevant to current environment.
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h2 class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.29 7 12 12 20.71 7"></polyline>
+            <line x1="12" y1="22" x2="12" y2="12"></line>
+          </svg>
+          Portfolio Selection
+        </h2>
+        <p class="section-description">Choose whether to use one of your existing portfolios or create a custom asset mix for the efficient frontier analysis.</p>
+        
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="existing_portfolio" name="portfolio_option" value="existing" checked>
+            <label for="existing_portfolio">Use an existing portfolio</label>
+          </div>
+          
+          <div class="radio-option">
+            <input type="radio" id="new_portfolio" name="portfolio_option" value="new">
+            <label for="new_portfolio">Create a new portfolio with custom tickers</label>
+          </div>
+        </div>
+        
+        <div class="portfolio-selection" id="existing_portfolio_selection" style="display: block;">
+          <div class="form-group">
+            <label for="portfolio_id">Select Portfolio:</label>
+            <select id="portfolio_id" name="portfolio_id" required>
+              {% for portfolio in portfolios %}
+                <option value="{{ portfolio.id }}">{{ portfolio.portfolio_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
+        <div class="portfolio-selection" id="new_portfolio_selection">
+          <div class="form-group">
+            <div id="portfolio-entries">
+              <!-- Portfolio entries will be dynamically added here -->
+            </div>
+            <button type="button" id="add-ticker-btn" class="btn btn-small">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Asset
+            </button>
+            <div class="input-hint">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Enter ticker symbols (e.g., AAPL, MSFT, SPY). Type at least 2 characters to search for available tickers.
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div class="actions-container">
+        <a href="{{ url_for('index') }}" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to Home
+        </a>
+        
+        <button type="submit" class="btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+          </svg>
+          Calculate Efficient Frontier
+        </button>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    // Portfolio entries array
+    let portfolioEntries = [];
+    
+    // Initialize with 5 empty entries
+    for (let i = 0; i < 5; i++) {
+      portfolioEntries.push({ ticker: "", allocation: "" });
+    }
+    
+    // Show/hide portfolio selections based on radio button choice
+    document.querySelectorAll('input[name="portfolio_option"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        document.getElementById('existing_portfolio_selection').style.display = 
+          (this.value === 'existing') ? 'block' : 'none';
+          
+        document.getElementById('new_portfolio_selection').style.display = 
+          (this.value === 'new') ? 'block' : 'none';
+      });
+    });
+    
+    // Render portfolio entries when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      renderPortfolioEntries();
+      
+      // Add ticker button event
+      document.getElementById('add-ticker-btn').addEventListener('click', function() {
+        portfolioEntries.push({ ticker: "", allocation: "" });
+        renderPortfolioEntries();
+      });
+      
+      // Form submission handling
+      document.querySelector('form').addEventListener('submit', function(e) {
+        // If using new portfolio option
+        if (document.getElementById('new_portfolio').checked) {
+          e.preventDefault();
+          
+          // Create hidden input for tickers
+          const tickersInput = document.createElement('input');
+          tickersInput.type = 'hidden';
+          tickersInput.name = 'tickers';
+          
+          // Collect all ticker values
+          const tickers = portfolioEntries
+            .filter(entry => entry.ticker.trim()) // Filter out empty entries
+            .map(entry => entry.ticker.trim())
+            .join(',');
+          
+          if (!tickers) {
+            alert('Please enter at least one ticker symbol');
+            return;
+          }
+          
+          tickersInput.value = tickers;
+          this.appendChild(tickersInput);
+          
+          // Submit the form
+          this.submit();
+        }
+      });
+    });
+    
+    // Render portfolio entries function
+    function renderPortfolioEntries() {
+      const container = document.getElementById('portfolio-entries');
+      container.innerHTML = '';
+      
+      portfolioEntries.forEach((entry, index) => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'ticker-entry';
+        
+        // Ticker input
+        const tickerInput = document.createElement('input');
+        tickerInput.type = 'text';
+        tickerInput.className = 'ticker-input';
+        tickerInput.placeholder = 'Ticker Symbol';
+        tickerInput.value = entry.ticker;
+        tickerInput.dataset.index = index;
+        
+        // Input event listener for ticker search
+        tickerInput.addEventListener('input', async function() {
+          const index = parseInt(this.dataset.index);
+          portfolioEntries[index].ticker = this.value;
+          
+          if (this.value.trim().length >= 2) {
+            await searchAlphaVantage(this);
+          }
+        });
+        
+        // Allocation input
+        const allocationInput = document.createElement('input');
+        allocationInput.type = 'number';
+        allocationInput.className = 'allocation-input';
+        allocationInput.placeholder = 'Weight %';
+        allocationInput.min = '0';
+        allocationInput.max = '100';
+        allocationInput.value = entry.allocation;
+        allocationInput.dataset.index = index;
+        
+        allocationInput.addEventListener('input', function() {
+          const index = parseInt(this.dataset.index);
+          portfolioEntries[index].allocation = this.value;
+        });
+        
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = 'X';
+        removeBtn.dataset.index = index;
+        
+        removeBtn.addEventListener('click', function() {
+          const index = parseInt(this.dataset.index);
+          portfolioEntries.splice(index, 1);
+          renderPortfolioEntries();
+        });
+        
+        // Append elements to entry div
+        entryDiv.appendChild(tickerInput);
+        entryDiv.appendChild(allocationInput);
+        entryDiv.appendChild(removeBtn);
+        
+        // Append entry to container
+        container.appendChild(entryDiv);
+      });
+    }
+    
+    // Search for stock tickers using Alpha Vantage API
+    async function searchAlphaVantage(tickerInput) {
+      const ticker = tickerInput.value.trim().toUpperCase();
+      if (!ticker) return;
+      
+      try {
+        const response = await fetch(`/search-ticker?keyword=${ticker}`);
+        if (!response.ok) throw new Error('Search failed');
+        
+        const data = await response.json();
+        
+        // Create and show suggestions dropdown
+        // Remove any existing dropdowns first
+        const existingDropdowns = document.querySelectorAll('.suggestions-dropdown');
+        existingDropdowns.forEach(el => el.remove());
+        
+        // Create new dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'suggestions-dropdown';
+        
+        // Position dropdown relative to input
+        const inputRect = tickerInput.getBoundingClientRect();
+        dropdown.style.width = inputRect.width + 'px';
+        
+        // Add suggestions to dropdown
+        if (!data || data.length === 0) {
+          const item = document.createElement('div');
+          item.className = 'suggestion-item';
+          item.textContent = 'No results found';
+          dropdown.appendChild(item);
+        } else {
+          data.forEach(result => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.textContent = `${result.symbol} - ${result.name}`;
+            item.addEventListener('click', () => {
+              tickerInput.value = result.symbol;
+              const index = parseInt(tickerInput.dataset.index);
+              portfolioEntries[index].ticker = result.symbol;
+              dropdown.remove();
+            });
+            dropdown.appendChild(item);
+          });
+        }
+        
+        // Append dropdown to ticker input parent
+        tickerInput.parentNode.appendChild(dropdown);
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function closeDropdown(e) {
+          if (!dropdown.contains(e.target) && e.target !== tickerInput) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+          }
+        });
+      } catch (error) {
+        console.error('Ticker search error:', error);
+      }
+    }
+    
+    // Logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+        if (response.ok) {
+          window.location.href = '/login-page';
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    });
+  </script>
+</body>
+</html>

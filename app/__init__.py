@@ -32,12 +32,20 @@ def create_app():
     bcrypt.init_app(app)
 
     # Register Blueprints from the routes package.
+    # Auth blueprint is registered without a prefix so that its routes are at the root.
     from app.routes.auth import auth_bp
     from app.routes.portfolio_api import portfolio_bp
     from app.routes.portfolio_metrics import metrics_bp
+    
     try:
         from app.routes.market_data import market_bp
         app.register_blueprint(market_bp, url_prefix="/market")
+    except ImportError:
+        pass
+        
+    try:
+        from app.routes.efficient_frontier import efficient_frontier_bp
+        app.register_blueprint(efficient_frontier_bp)
     except ImportError:
         pass
 

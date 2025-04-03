@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Efficient Frontier Results | Portfolio Optimizer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f9f0;
+    }
+    .results-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .nav a:hover {
+      color: #2f855a;
+    }
+    .nav span {
+      color: #2d3748;
+      font-weight: bold;
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      top: 100%;
+      left: 0;
+      min-width: 160px;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #4a5568;
+      text-decoration: none;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    h1, h2, h3 {
+      color: #2f855a;
+    }
+    .section {
+      margin-bottom: 30px;
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 128, 0, 0.1);
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #666;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      border-radius: 5px 5px 0 0;
+      margin-right: 5px;
+    }
+    .tab.active {
+      background-color: white;
+      color: #2f855a;
+      border-bottom: 1px solid white;
+      position: relative;
+      bottom: -1px;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .portfolio-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .portfolio-table th,
+    .portfolio-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .portfolio-table th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+    }
+    .portfolio-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .pie-chart {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
+    .metric-card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      background-color: #f9f9f9;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2f855a;
+    }
+    .metric-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn-primary {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #45a049;
+    }
+    .btn-secondary {
+      background-color: #eee;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background-color: #ddd;
+    }
+    .correlation-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .correlation-table th,
+    .correlation-table td {
+      padding: 8px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    .correlation-table th {
+      background-color: #f5f5f5;
+    }
+    .correlation-cell {
+      width: 60px;
+    }
+    .chart-container {
+      margin-top: 20px;
+      margin-bottom: 30px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
+    </div>
+    <div class="nav">
+      <a href="#">Markets</a>
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="results-container">
+    <h1>Efficient Frontier Analysis</h1>
+    <p>Analysis period: {{ start_date }} to {{ end_date }}</p>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="summary">Summary</div>
+      <div class="tab" data-tab="assets">Assets</div>
+      <div class="tab" data-tab="portfolios">Portfolios</div>
+    </div>
+    
+    <!-- Summary Tab -->
+    <div class="tab-content active" id="summary-tab">
+      <div class="section">
+        <h2>Efficient Frontier</h2>
+        <div class="chart-container">
+          {{ efficient_frontier_chart|safe }}
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Portfolio Transition Map</h2>
+        <div class="chart-container">
+          {{ transition_map_chart|safe }}
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Performance Summary</h2>
+        <div class="metrics-grid">
+          <!-- Equal Weight Portfolio -->
+          <div class="metric-card">
+            <div class="metric-label">Equal Weight Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(equal_weight_portfolio.return) }}%</div>
+            <div class="metric-label">Expected Return</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Equal Weight Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(equal_weight_portfolio.risk) }}%</div>
+            <div class="metric-label">Standard Deviation</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Equal Weight Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(equal_weight_portfolio.sharpe) }}</div>
+            <div class="metric-label">Sharpe Ratio</div>
+          </div>
+          
+          <!-- Tangency Portfolio -->
+          <div class="metric-card">
+            <div class="metric-label">Tangency Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(tangency_portfolio.return) }}%</div>
+            <div class="metric-label">Expected Return</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tangency Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(tangency_portfolio.risk) }}%</div>
+            <div class="metric-label">Standard Deviation</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tangency Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(tangency_portfolio.sharpe) }}</div>
+            <div class="metric-label">Sharpe Ratio</div>
+          </div>
+          
+          <!-- Max Information Ratio Portfolio -->
+          <div class="metric-card">
+            <div class="metric-label">Max Information Ratio Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(max_info_portfolio.return) }}%</div>
+            <div class="metric-label">Expected Return</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Max Information Ratio Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(max_info_portfolio.tracking_error) }}%</div>
+            <div class="metric-label">Tracking Error</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Max Information Ratio Portfolio</div>
+            <div class="metric-value">{{ "%.2f"|format(max_info_portfolio.info_ratio) }}</div>
+            <div class="metric-label">Information Ratio</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Portfolio Comparison</h2>
+        <!-- Portfolio Comparison Table -->
+        <table class="portfolio-table">
+          <thead>
+            <tr>
+              <th>Portfolio</th>
+              <th>Expected Return</th>
+              <th>Standard Deviation</th>
+              <th>Sharpe Ratio</th>
+              <th>Expected Active Return</th>
+              <th>Tracking Error</th>
+              <th>Information Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Equal Weight</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.return) }}%</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.risk) }}%</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.sharpe) }}</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.active_return) }}%</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.tracking_error) }}%</td>
+              <td>{{ "%.2f"|format(equal_weight_portfolio.info_ratio) }}</td>
+            </tr>
+            <tr>
+              <td>Tangency Portfolio</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.return) }}%</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.risk) }}%</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.sharpe) }}</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.active_return) }}%</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.tracking_error) }}%</td>
+              <td>{{ "%.2f"|format(tangency_portfolio.info_ratio) }}</td>
+            </tr>
+            <tr>
+              <td>Max Information Ratio</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.return) }}%</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.risk) }}%</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.sharpe) }}</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.active_return) }}%</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.tracking_error) }}%</td>
+              <td>{{ "%.2f"|format(max_info_portfolio.info_ratio) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Assets Tab -->
+    <div class="tab-content" id="assets-tab">
+      <div class="section">
+        <h2>Asset Analysis</h2>
+        
+        <table class="portfolio-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Asset</th>
+              <th>Expected Return</th>
+              <th>Standard Deviation</th>
+              <th>Sharpe Ratio</th>
+              <th>Expected Active Return</th>
+              <th>Tracking Error</th>
+              <th>Information Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for asset in asset_metrics %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ asset.Asset }}</td>
+                <td>{{ "%.2f"|format(asset['Expected Return'] * 100) }}%</td>
+                <td>{{ "%.2f"|format(asset['Standard Deviation'] * 100) }}%</td>
+                <td>{{ "%.3f"|format(asset['Sharpe Ratio']) }}</td>
+                <td>{{ "%.2f"|format(asset['Expected Active Return'] * 100) }}%</td>
+                <td>{{ "%.2f"|format(asset['Tracking Error'] * 100) }}%</td>
+                <td>{{ "%.3f"|format(asset['Information Ratio']) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="section">
+        <h2>Asset Correlations</h2>
+        <table class="correlation-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Ticker</th>
+              {% for ticker in tickers %}
+                <th>{{ ticker }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticker in tickers %}
+              <tr>
+                <td>{{ ticker }}</td>
+                <td>{{ ticker }}</td>
+                {% for other_ticker in tickers %}
+                  <td class="correlation-cell" style="background-color: rgba(0, 128, 0, {{ correlations[ticker][other_ticker] }})">
+                    {{ "%.2f"|format(correlations[ticker][other_ticker]) }}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Portfolios Tab -->
+    <div class="tab-content" id="portfolios-tab">
+      <div class="section">
+        <h2>Efficient Frontier Portfolios</h2>
+        
+        <table class="portfolio-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              {% for ticker in tickers %}
+                <th>{{ ticker }}</th>
+              {% endfor %}
+              <th>Active Return</th>
+              <th>Tracking Error</th>
+              <th>Information Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for portfolio in efficient_portfolios %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                {% for ticker in tickers %}
+                  <td>{{ "%.2f"|format(portfolio[ticker] * 100) }}%</td>
+                {% endfor %}
+                <td>{{ "%.2f"|format(portfolio['Active Return'] * 100) }}%</td>
+                <td>{{ "%.2f"|format(portfolio['Tracking Error'] * 100) }}%</td>
+                <td>{{ "%.3f"|format(portfolio['Information Ratio']) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="buttons">
+      <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}" class="btn btn-primary">Back to Efficient Frontier Tool</a>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+    </div>
+  </div>
+  
+  <script>
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(function(t) {
+          t.classList.remove('active');
+        });
+        
+        // Add active class to clicked tab
+        this.classList.add('active');
+        
+        // Hide all tab content
+        document.querySelectorAll('.tab-content').forEach(function(content) {
+          content.classList.remove('active');
+        });
+        
+        // Show selected tab content
+        const tabId = this.getAttribute('data-tab') + '-tab';
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+        if (response.ok) {
+          window.location.href = '/login-page';
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    });
+  </script>
+</body>
+</html>

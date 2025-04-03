@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio Optimizer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes fadeSlideUp {
       0% {
@@ -16,11 +15,24 @@
         transform: translateY(0);
       }
     }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f9f0;
+    }
     .animate-fade-up {
       animation: fadeSlideUp 0.8s ease-out forwards;
     }
     .card {
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #4CAF50;
+      box-shadow: 0 4px 8px rgba(0, 128, 0, 0.1);
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
     }
     .card:hover {
       transform: translateY(-4px);
@@ -35,110 +47,265 @@
       position: absolute;
       background-color: white;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      z-index: 10;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      z-index: 1100;
       top: 100%;
       left: 0;
-      min-width: 160px;
+      min-width: 180px;
+      overflow: hidden;
+      opacity: 1;
+      transform: translateY(0);
     }
     .dropdown-content a {
       display: block;
-      padding: 0.5rem 1rem;
+      padding: 0.75rem 1.25rem;
       color: #4a5568;
       text-decoration: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
     }
+    
     .dropdown-content a:hover {
-      background-color: #f1f1f1;
+      background-color: #f8f9fa;
+      color: #2E7D32;
+      border-left: 3px solid #4CAF50;
+      padding-left: 1.5rem;
     }
+    
     .dropdown:hover .dropdown-content {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .header {
+      background-color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      position: relative;
+      z-index: 1000;
+      overflow-x: visible;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      padding: 5px 0;
+    }
+    
+    .nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 0;
+      left: 0;
+      background-color: #2E7D32;
+      transition: width 0.3s ease;
+    }
+    
+    .nav a:hover {
+      color: #2E7D32;
+    }
+    
+    .nav a:hover::after {
+      width: 100%;
+    }
+    .nav span {
+      color: #2d3748;
+      font-weight: bold;
+    }
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-fade-up {
+      animation: fadeUp 0.8s ease-out forwards;
+    }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .hero h1 {
+      font-size: 36px;
+      color: #1a3f1a;
+      margin-bottom: 20px;
+    }
+    .hero p {
+      font-size: 18px;
+      color: #2d3748;
+      margin-bottom: 30px;
+    }
+    .cta-button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    .cta-button:hover {
+      background-color: #45a049;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-gap: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      border-top: 4px solid #2E7D32;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .features h2 {
+      color: #2f855a;
+      margin-top: 0;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    
+    .features p {
+      color: #4a5568;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    @media (max-width: 768px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-<body class="bg-green-100 text-gray-800">
-
-  <!-- Navbar -->
-  <nav class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-2">
-      <!-- Reference your static image: "logo.jpeg" must be in the "static/" folder at project root -->
-      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" class="w-6 h-6" />
-      <span class="font-bold text-green-800 text-lg sm:text-xl">Portfolio Optimizer</span>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
     </div>
-    <div class="space-x-4 sm:space-x-6 font-semibold text-sm sm:text-base flex items-center">
-      <a href="#" class="hover:text-green-600">Markets</a>
-      <a href="#" class="hover:text-green-600">Tools</a>
-      <!-- My Models Dropdown -->
+    <div class="nav">
+      <a href="#">Markets</a>
       <div class="dropdown">
-        <a href="#" class="hover:text-green-600">My Models</a>
+        <a href="#">Tools</a>
         <div class="dropdown-content">
-          <!-- Since saved_portfolios and data_entry are in the auth blueprint, we prefix with "auth." -->
-          <a href="{{ url_for('auth.saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('auth.data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
       {% if username %}
-        <span class="text-green-800 font-bold">Hello, {{ username }}!</span>
-        <!-- Logout triggers a POST to /logout. This route is in the auth blueprint at "/", so /logout is correct. -->
-        <a href="#" id="logoutButton" class="hover:text-green-600">Logout</a>
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
       {% else %}
-        <!-- For login and register, we call "auth.login_page" and "auth.register_page" -->
-        <a href="{{ url_for('auth.login_page') }}" class="hover:text-green-600">Login</a>
-        <a href="{{ url_for('auth.register_page') }}" class="bg-green-300 hover:bg-green-400 px-3 py-1 rounded font-bold text-green-900">Sign Up</a>
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
       {% endif %}
     </div>
-  </nav>
+  </div>
 
-  <!-- Split Layout -->
-  <section class="flex flex-col lg:flex-row items-center justify-center px-6 sm:px-12 py-20 min-h-[90vh] max-w-7xl mx-auto gap-y-12 gap-x-12">
-    <!-- Left: Hero Section -->
-    <div class="flex-1 flex flex-col justify-center items-center text-center lg:text-left lg:items-start animate-fade-up">
-      <div>
-        <h1 style="line-height: 1.25;" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6">
-            Effortlessly<br />Maximize<br />Return<br />..
-        </h1>
-        <a href="{{ url_for('auth.register_page') }}" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded text-lg sm:text-xl font-semibold hover:animate-bounce">
-            Get Started
-        </a>          
+  <!-- Main Content -->
+  <div class="content">
+    <div class="hero animate-fade-up">
+      <h1>Optimize Your Investment Portfolio</h1>
+      <p>Make better investment decisions with our comprehensive analysis tools.</p>
+      <a href="{{ url_for('data_entry') }}" class="cta-button">Create Portfolio</a>
+    </div>
+
+    <div class="features">
+      <div class="card animate-fade-up" style="animation-delay: 0.2s">
+        <h2>Portfolio Analysis</h2>
+        <p>Visualize your portfolio's performance with detailed charts and metrics.</p>
+      </div>
+      <div class="card animate-fade-up" style="animation-delay: 0.4s">
+        <h2>Risk Assessment</h2>
+        <p>Understand your portfolio's risk profile with advanced risk metrics.</p>
+      </div>
+      <div class="card animate-fade-up" style="animation-delay: 0.6s">
+        <h2>Asset Allocation</h2>
+        <p>Visualize your asset allocation and identify diversification opportunities.</p>
+      </div>
+      <div class="card animate-fade-up" style="animation-delay: 0.8s">
+        <h2>Performance Tracking</h2>
+        <p>Track your portfolio's performance over time with detailed metrics.</p>
       </div>
     </div>
-  
-    <!-- Right: Feature Cards -->
-    <div class="flex-1 flex justify-center">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
-          <h2 class="font-bold text-lg mb-2">Efficient Frontier Chart</h2>
-          <p class="text-base text-gray-700">A scatter plot with risk and return, showing the optimal portfolio vs. user's input.</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
-          <h2 class="font-bold text-lg mb-2">Backtest Portfolio</h2>
-          <p class="text-base text-gray-700">Compare historical and realized returns with lazy portfolios.</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
-          <h2 class="font-bold text-lg mb-2">Adjustable Sliders</h2>
-          <p class="text-base text-gray-700">Tweak allocation and see updated efficient frontier instantly.</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl border border-green-500 shadow card w-[280px]">
-          <h2 class="font-bold text-lg mb-2">Asset Analytics</h2>
-          <p class="text-base text-gray-700">Find funds by asset class, style, and risk-adjusted performance.</p>
-        </div>
-      </div>
-    </div>
-  </section>  
+  </div>
 
   <script>
-    // Optionally, add a logout handler that posts to /logout
+    // Logout handler
     document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
       e.preventDefault();
       try {
         const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
         if (response.ok) {
-          // If successful, redirect to the login page
           window.location.href = '/login-page';
-        } else {
-          console.error('Logout failed', response);
         }
       } catch (err) {
-        console.error('Logout error', err);
+        console.error('Logout error:', err);
       }
     });
   </script>

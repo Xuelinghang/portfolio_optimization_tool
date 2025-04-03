@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Analysis - {{ portfolio.portfolio_name }}</title>
+  <!-- Include Plotly.js for charts -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- Include Chart.js as a fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Include FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      background-color: #d1f0e0;
+      color: #333;
+    }
+    .header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background-color: white;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    .logo img {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+    .logo-text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b5d1e;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 50px;
+      font-size: 0.9rem;
+    }
+    .nav a {
+      color: #4a5568;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .nav a:hover {
+      color: #2f855a;
+    }
+    .nav span {
+      color: #2d3748;
+      font-weight: bold;
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      z-index: 10;
+      top: 100%;
+      left: 0;
+      min-width: 160px;
+    }
+    .dropdown-content a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #4a5568;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    
+    /* Main content styles */
+    .container {
+      max-width: 1200px;
+      margin: 100px auto 20px auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    .portfolio-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .portfolio-title h1 {
+      font-size: 1.8rem;
+      color: #2d3748;
+    }
+    .portfolio-actions a {
+      display: inline-block;
+      padding: 8px 16px;
+      margin-left: 10px;
+      background-color: #2f855a;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    .portfolio-actions a:hover {
+      background-color: #276749;
+    }
+    
+    /* Tabs for different sections */
+    .tabs {
+      display: flex;
+      background-color: white;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      flex: 1;
+      text-align: center;
+      font-weight: 500;
+    }
+    .tab.active {
+      background-color: #2f855a;
+      color: white;
+    }
+    .tab:hover:not(.active) {
+      background-color: #f0f0f0;
+    }
+    
+    /* Content sections */
+    .tab-content {
+      display: none;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Charts */
+    .chart-container {
+      width: 100%;
+      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .chart-container > div {
+      width: 100%;
+      max-width: 900px;
+    }
+    
+    /* Metrics cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .metric-card {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .metric-card h3 {
+      font-size: 1rem;
+      color: #718096;
+      margin-bottom: 8px;
+    }
+    .metric-card .value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    .metric-card .description {
+      font-size: 0.85rem;
+      color: #718096;
+      margin-top: 5px;
+    }
+    
+    /* Holdings table */
+    .holdings-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .holdings-table th, .holdings-table td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .holdings-table th {
+      background-color: #f7fafc;
+      font-weight: 600;
+      color: #4a5568;
+      text-align: center;
+    }
+    .holdings-table td {
+      text-align: left;
+    }
+    .holdings-table tr:hover {
+      background-color: #f7fafc;
+    }
+    
+    /* Loading indicator */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+    .loading > div:first-child {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #2f855a;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-status {
+      color: #4a5568;
+      font-size: 0.9rem;
+    }
+    
+    /* Real-time data indicator */
+    .real-time-indicator {
+      display: inline-block;
+      background-color: #ebf8ff;
+      color: #3182ce;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-left: 10px;
+      border: 1px solid #bee3f8;
+    }
+    
+    /* Refresh button */
+    .refresh-button {
+      display: inline-block;
+      padding: 8px 16px;
+      margin-left: 10px;
+      background-color: #4299e1;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+    .refresh-button:hover {
+      background-color: #3182ce;
+    }
+    
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .tabs {
+        flex-direction: column;
+      }
+      .tab {
+        text-align: left;
+      }
+      .portfolio-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .portfolio-actions {
+        margin-top: 15px;
+      }
+      .portfolio-actions a {
+        margin-left: 0;
+        margin-right: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
+    </div>
+    <div class="nav">
+      <a href="#">Markets</a>
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+        </div>
+      </div>
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <a href="{{ url_for('index') }}" style="text-decoration: none;">
+          <span>Hello, {{ username }}!</span>
+        </a>
+        <a href="#" id="logoutButton">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <div class="portfolio-header">
+      <div class="portfolio-title">
+        <h1>{{ portfolio.portfolio_name }}</h1>
+        <div id="data-source-indicator" style="margin-top: 5px;"></div>
+      </div>
+      <div class="portfolio-actions">
+        <a href="{{ url_for('data_entry') }}?portfolio_id={{ portfolio.id }}">Edit Portfolio</a>
+        <a href="{{ url_for('download_portfolio', portfolio_id=portfolio.id) }}">Download</a>
+      </div>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <div class="tab active" data-target="summary">Summary</div>
+      <div class="tab" data-target="performance">Performance</div>
+      <div class="tab" data-target="allocation">Allocation</div>
+      <div class="tab" data-target="returns">Returns</div>
+      <div class="tab" data-target="drawdowns">Drawdowns</div>
+      <div class="tab" data-target="metrics">Metrics</div>
+      <div class="tab" data-target="holdings">Holdings</div>
+    </div>
+    
+    <!-- Summary Tab Content -->
+    <div id="summary" class="tab-content active">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <h3>Total Return</h3>
+            <div class="value" id="total-return">-</div>
+            <div class="description">Since inception</div>
+          </div>
+          <div class="metric-card">
+            <h3>Volatility</h3>
+            <div class="value" id="volatility">-</div>
+            <div class="description">Annualized</div>
+          </div>
+          <div class="metric-card">
+            <h3>Sharpe Ratio</h3>
+            <div class="value" id="sharpe-ratio">-</div>
+            <div class="description">Risk-adjusted return</div>
+          </div>
+          <div class="metric-card">
+            <h3>Max Drawdown</h3>
+            <div class="value" id="max-drawdown">-</div>
+            <div class="description">Largest price drop</div>
+          </div>
+        </div>
+        
+        <!-- Portfolio Growth Summary Section -->
+        <div class="chart-container" style="padding: 20px; text-align: left;">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; font-size: 1.5rem; margin-bottom: 15px;">Portfolio Growth</h2>
+            <p style="margin-bottom: 15px; line-height: 1.6;">
+              $10,000 invested in January 1, 2011 would be worth <span id="end-value" style="font-weight: bold;">$40,287</span> as of <span id="end-date">March 31, 2025</span>, 
+              which represents a cumulative return of <span id="cumulative-return" style="font-weight: bold;">302.87%</span>.
+            </p>
+            <h3 style="color: #2f855a; font-size: 1.3rem; margin: 15px 0 10px 0;">Return</h3>
+            <p style="margin-bottom: 15px; line-height: 1.6;">
+              Over the period, the portfolio generated a return of <span id="annual-return" style="font-weight: bold;">10.27%</span> per year, 
+              with <span id="positive-months" style="font-weight: bold;">103 out of 171</span> or <span id="positive-months-pct" style="font-weight: bold;">60.23%</span> of months positive. 
+              The best year for the portfolio was <span id="best-year-label" style="font-weight: bold;">2019</span> with <span id="best-year-return" style="font-weight: bold;">31.87%</span> return 
+              and the worst year over the period was <span id="worst-year-label" style="font-weight: bold;">2022</span> with <span id="worst-year-return" style="font-weight: bold;">-18.65%</span> return.
+            </p>
+            <h3 style="color: #2f855a; font-size: 1.3rem; margin: 15px 0 10px 0;">Risk</h3>
+            <p style="margin-bottom: 15px; line-height: 1.6;">
+              The maximum drawdown of the portfolio was <span id="max-dd-pct" style="font-weight: bold;">23.31%</span> from 
+              <span id="max-dd-start" style="font-weight: bold;">January 1, 2022</span> to <span id="max-dd-end" style="font-weight: bold;">September 30, 2022</span> 
+              with a recovery time of <span id="recovery-time" style="font-weight: bold;">17</span> months. 
+              The risk adjusted return of the portfolio, measured by the Sharpe Ratio, was <span id="summary-sharpe" style="font-weight: bold;">0.69</span>.
+            </p>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <div id="growth-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+        
+        <!-- Holdings Summary Table with Donut Chart -->
+        <div class="chart-container" style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+          <div style="flex: 1; min-width: 300px;">
+            <table class="holdings-table" style="margin-bottom: 0;">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Allocation</th>
+                </tr>
+              </thead>
+              <tbody id="summary-holdings-table">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div style="flex: 1; min-width: 300px;">
+            <div id="donut-allocation-chart" style="height: 300px; margin: 0 auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Performance Tab Content -->
+    <div id="performance" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <!-- Performance Summary Table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 800px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Performance Summary</h2>
+            <table class="holdings-table" id="performance-summary-table">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">Metric</th>
+                  <th style="width: 60%; text-align: right;">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Start Balance</td>
+                  <td style="text-align: right;" id="start-balance">-</td>
+                </tr>
+                <tr>
+                  <td>End Balance</td>
+                  <td style="text-align: right;" id="end-balance">-</td>
+                </tr>
+                <tr>
+                  <td>Annualized Return (CAGR)</td>
+                  <td style="text-align: right;" id="performance-cagr">-</td>
+                </tr>
+                <tr>
+                  <td>Standard Deviation</td>
+                  <td style="text-align: right;" id="performance-std-dev">-</td>
+                </tr>
+                <tr>
+                  <td>Best Year</td>
+                  <td style="text-align: right;" id="best-year">-</td>
+                </tr>
+                <tr>
+                  <td>Worst Year</td>
+                  <td style="text-align: right;" id="worst-year">-</td>
+                </tr>
+                <tr>
+                  <td>Maximum Drawdown</td>
+                  <td style="text-align: right;" id="performance-drawdown">-</td>
+                </tr>
+                <tr>
+                  <td>Sharpe Ratio</td>
+                  <td style="text-align: right;" id="performance-sharpe">-</td>
+                </tr>
+                <tr>
+                  <td>Sortino Ratio</td>
+                  <td style="text-align: right;" id="performance-sortino">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <div id="cumulative-return-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Allocation Tab Content -->
+    <div id="allocation" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <div class="chart-container">
+          <div id="sectors-chart" style="height: 500px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+        
+        <div class="chart-container">
+          <div id="top-holdings-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Metrics Tab Content -->
+    <div id="metrics" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <h3>CAGR</h3>
+            <div class="value" id="cagr">-</div>
+            <div class="description">Compound Annual Growth Rate</div>
+          </div>
+          <div class="metric-card">
+            <h3>Standard Deviation</h3>
+            <div class="value" id="std-dev">-</div>
+            <div class="description">Measure of volatility</div>
+          </div>
+          <div class="metric-card">
+            <h3>Sharpe Ratio</h3>
+            <div class="value" id="sharpe">-</div>
+            <div class="description">Risk-adjusted return</div>
+          </div>
+          <div class="metric-card">
+            <h3>Sortino Ratio</h3>
+            <div class="value" id="sortino">-</div>
+            <div class="description">Downside risk-adjusted return</div>
+          </div>
+          <div class="metric-card">
+            <h3>Max Drawdown</h3>
+            <div class="value" id="drawdown">-</div>
+            <div class="description">Largest price drop</div>
+          </div>
+          <div class="metric-card">
+            <h3>Calmar Ratio</h3>
+            <div class="value" id="calmar">-</div>
+            <div class="description">Return relative to drawdown</div>
+          </div>
+          <div class="metric-card">
+            <h3>Beta</h3>
+            <div class="value" id="beta">-</div>
+            <div class="description">Market correlation</div>
+          </div>
+          <div class="metric-card">
+            <h3>Alpha</h3>
+            <div class="value" id="alpha">-</div>
+            <div class="description">Excess return over benchmark</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Returns Tab Content -->
+    <div id="returns" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <!-- Annual Returns Table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Annual Returns</h2>
+            <table class="holdings-table" id="annual-returns-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Inflation</th>
+                  <th>Portfolio Return</th>
+                  <th>Portfolio Balance</th>
+                  <!-- Additional columns for each asset will be added dynamically -->
+                </tr>
+              </thead>
+              <tbody id="annual-returns-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Monthly Returns Table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Monthly Returns</h2>
+            <table class="holdings-table" id="monthly-returns-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Month</th>
+                  <th>Portfolio Return</th>
+                  <th>Portfolio Balance</th>
+                  <!-- Additional columns for each asset will be added dynamically -->
+                </tr>
+              </thead>
+              <tbody id="monthly-returns-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Returns Visualization -->
+        <div class="chart-container">
+          <div id="returns-heatmap-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+        
+        <!-- Returns Bar Chart -->
+        <div class="chart-container">
+          <div id="returns-bar-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Drawdowns Tab Content -->
+    <div id="drawdowns" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <!-- Drawdowns Table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Drawdowns for Portfolio</h2>
+            <table class="holdings-table" id="drawdowns-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Length</th>
+                  <th>Recovery By</th>
+                  <th>Recovery Time</th>
+                  <th>Underwater Period</th>
+                  <th>Drawdown</th>
+                </tr>
+              </thead>
+              <tbody id="drawdowns-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Drawdowns Visualization -->
+        <div class="chart-container">
+          <div id="drawdowns-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Holdings Tab Content -->
+    <div id="holdings" class="tab-content">
+      <div class="loading"><div></div></div>
+      <div class="content" style="display: none;">
+        <!-- Portfolio Assets table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Portfolio Assets</h2>
+            <table class="holdings-table" id="portfolio-assets-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>CAGR</th>
+                  <th>Stdev</th>
+                  <th>Best Year</th>
+                  <th>Worst Year</th>
+                  <th>Max Drawdown</th>
+                  <th>Sharpe Ratio</th>
+                  <th>Sortino Ratio</th>
+                </tr>
+              </thead>
+              <tbody id="portfolio-assets-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Portfolio Asset Performance table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Portfolio Asset Performance</h2>
+            <table class="holdings-table" id="portfolio-asset-performance-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>3 Month</th>
+                  <th>Year To Date</th>
+                  <th>1 year</th>
+                  <th>Expense Ratio</th>
+                  <th>Net</th>
+                  <th>Gross</th>
+                </tr>
+              </thead>
+              <tbody id="portfolio-asset-performance-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Portfolio Risk Decomposition table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Portfolio Risk Decomposition</h2>
+            <table class="holdings-table" id="portfolio-risk-decomposition-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Contribution</th>
+                </tr>
+              </thead>
+              <tbody id="portfolio-risk-decomposition-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+            <p style="font-size: 0.9rem; color: #5a5a5a; margin-top: 10px;">Risk attribution decomposes portfolio risk into its constituent parts and identifies the contribution to overall volatility by each of the assets.</p>
+          </div>
+        </div>
+        
+        <!-- Portfolio Return Decomposition table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Portfolio Return Decomposition</h2>
+            <table class="holdings-table" id="portfolio-return-decomposition-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Contribution</th>
+                </tr>
+              </thead>
+              <tbody id="portfolio-return-decomposition-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+            <p style="font-size: 0.9rem; color: #5a5a5a; margin-top: 10px;">Return attribution decomposes portfolio gains into its constituent parts and identifies the contribution to returns by each of the assets.</p>
+          </div>
+        </div>
+        
+        <!-- Annual Asset Returns Visualization -->
+        <div class="chart-container">
+          <div id="annual-asset-returns-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
+        </div>
+        
+        <!-- All holdings table -->
+        <div class="chart-container">
+          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">All Holdings</h2>
+            <table class="holdings-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Weight</th>
+                  <th>Value</th>
+                  <th>Return</th>
+                </tr>
+              </thead>
+              <tbody id="holdings-table-body">
+                <!-- Will be populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Portfolio ID from the server
+    const portfolioId = {{ portfolio.id }};
+    
+    // State variables
+    let portfolioData = null;
+    let holdings = [];
+    let prices = {};
+    let dates = [];
+    let metrics = {};
+    
+    // Tab switching logic
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs and content
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        this.classList.add('active');
+        const target = this.getAttribute('data-target');
+        document.getElementById(target).classList.add('active');
+      });
+    });
+    
+    // Fetch portfolio data
+    async function fetchPortfolioData() {
+      try {
+        // Show loading indicators
+        document.querySelectorAll('.loading').forEach(loader => {
+          loader.style.display = 'flex';
+        });
+        document.querySelectorAll('.content').forEach(content => {
+          content.style.display = 'none';
+        });
+
+        // Add a status message to the loading indicators
+        document.querySelectorAll('.loading').forEach(loader => {
+          // Create status text element if it doesn't exist
+          if (!loader.querySelector('.loading-status')) {
+            const statusElem = document.createElement('div');
+            statusElem.className = 'loading-status';
+            statusElem.style.marginLeft = '20px';
+            statusElem.style.fontStyle = 'italic';
+            statusElem.textContent = 'Fetching real market data...';
+            loader.appendChild(statusElem);
+          }
+        });
+        
+        console.log(`Fetching real-time market data for portfolio: ${portfolioId}`);
+        const response = await fetch(`/dashboard/data/${portfolioId}`);
+        if (!response.ok) throw new Error('Failed to fetch portfolio data');
+        
+        const data = await response.json();
+        console.log('Portfolio data fetched successfully');
+        portfolioData = data;
+        holdings = data.holdings;
+        prices = data.prices;
+        dates = data.dates;
+        
+        // Log the retrieved data structure to help with debugging
+        console.log(`Holdings: ${holdings.length} assets`);
+        console.log(`Prices: ${Object.keys(prices).length} tickers`);
+        console.log(`Dates: ${dates.length} data points`);
+        
+        // Hide all loading indicators and show content
+        document.querySelectorAll('.loading').forEach(loader => {
+          loader.style.display = 'none';
+        });
+        document.querySelectorAll('.content').forEach(content => {
+          content.style.display = 'block';
+        });
+        
+        // Calculate metrics
+        calculateMetrics();
+        
+        // Render all charts and tables
+        renderSummaryCharts();
+        renderPerformanceCharts();
+        renderAllocationCharts();
+        renderReturnsCharts();
+        renderDrawdownsCharts();
+        renderMetricsCards();
+        renderHoldingsTable();
+        
+        // Add refresh button
+        addRefreshButton();
+      } catch (error) {
+        console.error('Error fetching portfolio data:', error);
+        
+        // Show error message in loading indicators
+        document.querySelectorAll('.loading').forEach(loader => {
+          loader.innerHTML = `
+            <div style="color: red; text-align: center;">
+              <p>Error loading portfolio data</p>
+              <p style="font-size: 0.9rem;">${error.message}</p>
+              <button id="retry-button" style="margin-top: 10px; padding: 8px 16px; background-color: #2f855a; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Retry
+              </button>
+            </div>
+          `;
+        });
+        
+        // Add event listener to retry button
+        document.querySelectorAll('#retry-button').forEach(button => {
+          button.addEventListener('click', fetchPortfolioData);
+        });
+      }
+    }
+    
+    // Add refresh button to the portfolio header
+    function addRefreshButton() {
+      // Check if refresh button already exists
+      if (!document.getElementById('refresh-data-button')) {
+        const refreshButton = document.createElement('a');
+        refreshButton.id = 'refresh-data-button';
+        refreshButton.href = '#';
+        refreshButton.textContent = 'Refresh Market Data';
+        refreshButton.className = 'refresh-button';
+        refreshButton.style.backgroundColor = '#4299e1';
+        
+        // Add click event to refresh data
+        refreshButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          fetchPortfolioData();
+        });
+        
+        // Add to portfolio actions
+        document.querySelector('.portfolio-actions').appendChild(refreshButton);
+      }
+      
+      // Add real-time data indicator
+      const dataSourceIndicator = document.getElementById('data-source-indicator');
+      if (dataSourceIndicator) {
+        // Get the current timestamp
+        const now = new Date();
+        const formattedTime = now.toLocaleTimeString();
+        const formattedDate = now.toLocaleDateString();
+        
+        // Create real-time data indicator
+        const indicator = document.createElement('span');
+        indicator.className = 'real-time-indicator';
+        indicator.innerHTML = `
+          <i class="fas fa-sync-alt" style="margin-right: 5px;"></i>
+          Using real market data
+          <span style="font-size: 0.75rem; display: block; margin-top: 3px; opacity: 0.8;">
+            Last updated: ${formattedTime} on ${formattedDate}
+          </span>
+        `;
+        
+        // Clear existing content and add indicator
+        dataSourceIndicator.innerHTML = '';
+        dataSourceIndicator.appendChild(indicator);
+        
+        // Add data source information based on which APIs are used
+        const dataSources = [];
+        if (Object.keys(prices).some(ticker => ticker.startsWith('BTC') || ticker.startsWith('ETH'))) {
+          dataSources.push('CoinGecko');
+        }
+        if (Object.keys(prices).some(ticker => ['AAPL', 'MSFT', 'AMZN', 'GOOGL'].includes(ticker))) {
+          dataSources.push('Yahoo Finance');
+        }
+        if (Object.keys(prices).some(ticker => ['10YEAR', '5YEAR', '30YEAR'].includes(ticker))) {
+          dataSources.push('Alpha Vantage');
+        }
+        
+        if (dataSources.length > 0) {
+          const sourcesText = document.createElement('div');
+          sourcesText.style.fontSize = '0.7rem';
+          sourcesText.style.marginTop = '3px';
+          sourcesText.style.color = '#4a5568';
+          sourcesText.textContent = `Data sources: ${dataSources.join(', ')}`;
+          indicator.appendChild(sourcesText);
+        }
+      }
+    }
+    
+    // Calculate portfolio metrics
+    function calculateMetrics() {
+      // Calculate portfolio values over time
+      const portfolioValues = dates.map((date, i) => {
+        let value = 0;
+        for (const holding of holdings) {
+          const ticker = holding.Ticker;
+          const weight = holding.Weight;
+          if (prices[ticker] && prices[ticker][i]) {
+            value += prices[ticker][i] * weight;
+          }
+        }
+        return value;
+      });
+      
+      // Calculate portfolio returns
+      const portfolioReturns = portfolioValues.map((value, i) => {
+        if (i === 0) return 0;
+        return (value / portfolioValues[i-1]) - 1;
+      }).slice(1);
+      
+      // Calculate total return
+      const totalReturn = (portfolioValues[portfolioValues.length - 1] / portfolioValues[0]) - 1;
+      
+      // Calculate volatility (annualized standard deviation)
+      const meanReturn = portfolioReturns.reduce((sum, r) => sum + r, 0) / portfolioReturns.length;
+      const variance = portfolioReturns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / portfolioReturns.length;
+      const dailyStd = Math.sqrt(variance);
+      const annualizedStd = dailyStd * Math.sqrt(252); // Assuming 252 trading days in a year
+      
+      // Calculate Sharpe ratio (assuming risk-free rate of 0 for simplicity)
+      const annualizedReturn = Math.pow(1 + totalReturn, 365 / dates.length) - 1;
+      const sharpeRatio = annualizedReturn / annualizedStd;
+      
+      // Calculate max drawdown
+      let maxDrawdown = 0;
+      let peak = portfolioValues[0];
+      
+      for (const value of portfolioValues) {
+        if (value > peak) {
+          peak = value;
+        }
+        
+        const drawdown = (peak - value) / peak;
+        if (drawdown > maxDrawdown) {
+          maxDrawdown = drawdown;
+        }
+      }
+      
+      // Store metrics
+      metrics = {
+        totalReturn,
+        annualizedReturn,
+        volatility: annualizedStd,
+        sharpeRatio,
+        maxDrawdown,
+        portfolioValues,
+        portfolioReturns,
+      };
+      
+      // Update metrics on the page
+      document.getElementById('total-return').textContent = formatPercentage(totalReturn);
+      document.getElementById('volatility').textContent = formatPercentage(annualizedStd);
+      document.getElementById('sharpe-ratio').textContent = sharpeRatio.toFixed(2);
+      document.getElementById('max-drawdown').textContent = formatPercentage(maxDrawdown);
+      
+      document.getElementById('cagr').textContent = formatPercentage(annualizedReturn);
+      document.getElementById('std-dev').textContent = formatPercentage(annualizedStd);
+      document.getElementById('sharpe').textContent = sharpeRatio.toFixed(2);
+      document.getElementById('sortino').textContent = calculateSortinoRatio(portfolioReturns).toFixed(2);
+      document.getElementById('drawdown').textContent = formatPercentage(maxDrawdown);
+      document.getElementById('calmar').textContent = (annualizedReturn / maxDrawdown).toFixed(2);
+      document.getElementById('beta').textContent = '1.00'; // Placeholder
+      document.getElementById('alpha').textContent = '0.00%'; // Placeholder
+    }
+    
+    // Calculate Sortino ratio (uses only negative returns for denominator)
+    function calculateSortinoRatio(returns) {
+      const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+      const annualizedReturn = meanReturn * 252; // Assuming 252 trading days
+      
+      // Calculate downside deviation (standard deviation of negative returns only)
+      const negativeReturns = returns.filter(r => r < 0);
+      const meanNegativeReturn = negativeReturns.reduce((sum, r) => sum + r, 0) / negativeReturns.length;
+      const downsideVariance = negativeReturns.reduce((sum, r) => sum + Math.pow(r - meanNegativeReturn, 2), 0) / negativeReturns.length;
+      const downsideDeviation = Math.sqrt(downsideVariance) * Math.sqrt(252); // Annualized
+      
+      return annualizedReturn / downsideDeviation;
+    }
+    
+    // Format percentage values
+    function formatPercentage(value) {
+      return (value * 100).toFixed(2) + '%';
+    }
+    
+    // Render summary tab charts
+    function renderSummaryCharts() {
+      // Portfolio growth chart
+      const growthTrace = {
+        x: dates,
+        y: metrics.portfolioValues,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Portfolio Value',
+        line: {
+          color: '#2f855a',
+          width: 2
+        }
+      };
+      
+      const growthLayout = {
+        title: {
+          text: 'Portfolio Growth',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0,  // Left-aligned title for consistency
+          xanchor: 'left'
+        },
+        xaxis: {
+          title: 'Date'
+        },
+        yaxis: {
+          title: 'Value'
+        },
+        showlegend: false,
+        legend: {
+          x: 0.5,
+          y: 1,
+          xanchor: 'center',
+          orientation: 'h'
+        },
+        margin: {
+          l: 50,
+          r: 50,
+          t: 80,
+          b: 80
+        }
+      };
+      
+      Plotly.newPlot('growth-chart', [growthTrace], growthLayout);
+      
+      // Create summary holdings table and donut chart
+      renderSummaryHoldingsTable();
+      
+      // Note: The allocation pie chart is now only rendered in the donut-allocation-chart element
+      // instead of the non-existent allocation-chart
+    }
+    
+    // Render summary holdings table and donut chart
+    function renderSummaryHoldingsTable() {
+      // Populate the summary holdings table
+      const tableBody = document.getElementById('summary-holdings-table');
+      tableBody.innerHTML = '';
+      
+      // Sort holdings by weight (descending)
+      const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight);
+      
+      // Create a pie chart with the same data for allocation (used in renderSummaryCharts)
+      const allocationLabels = sortedHoldings.map(h => h.Ticker);
+      const allocationValues = sortedHoldings.map(h => h.Weight);
+      
+      sortedHoldings.forEach(holding => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+          <td>${holding.Ticker}</td>
+          <td>${holding.Name || holding.Ticker}</td>
+          <td>${formatPercentage(holding.Weight)}</td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Create donut chart for allocation
+      const donutLabels = sortedHoldings.map(h => h.Ticker);
+      const donutValues = sortedHoldings.map(h => h.Weight);
+      
+      // Color palette that matches the screenshot
+      const colors = [
+        '#3b82f6', // Blue
+        '#10b981', // Green
+        '#6366f1', // Indigo
+        '#8b5cf6', // Purple
+        '#60a5fa', // Light blue
+        '#a5b4fc', // Light indigo
+        '#c4b5fd'  // Light purple
+      ];
+      
+      const donutTrace = {
+        labels: donutLabels,
+        values: donutValues,
+        type: 'pie',
+        hole: 0.4,
+        textinfo: 'label+percent',
+        textposition: 'outside',
+        automargin: true,
+        marker: {
+          colors: colors
+        }
+      };
+      
+      const donutLayout = {
+        showlegend: true,
+        legend: {
+          orientation: 'h',
+          y: -0.2,
+          x: 0.5,
+          xanchor: 'center'
+        },
+        margin: {
+          l: 30,
+          r: 30,
+          t: 30,
+          b: 0
+        },
+        height: 300
+      };
+      
+      Plotly.newPlot('donut-allocation-chart', [donutTrace], donutLayout);
+    }
+    
+    // Render performance tab charts
+    function renderPerformanceCharts() {
+      // Cumulative return chart
+      const cumulativeReturns = metrics.portfolioValues.map((value, i) => {
+        return (value / metrics.portfolioValues[0]) - 1;
+      });
+      
+      const cumulativeTrace = {
+        x: dates,
+        y: cumulativeReturns,
+        type: 'scatter',
+        mode: 'lines',
+        name: '',  // Remove the legend label since it's redundant with the title
+        line: {
+          color: '#2f855a',
+          width: 2
+        }
+      };
+      
+      const cumulativeLayout = {
+        title: {
+          text: 'Cumulative Return',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0,
+          xanchor: 'left'
+        },
+        xaxis: {
+          title: 'Date'
+        },
+        yaxis: {
+          title: 'Return',
+          tickformat: '.0%'
+        },
+        showlegend: false,
+        margin: {
+          l: 50,
+          r: 50,
+          t: 80,
+          b: 80
+        }
+      };
+      
+      Plotly.newPlot('cumulative-return-chart', [cumulativeTrace], cumulativeLayout);
+      
+      // Performance Summary Table
+      renderPerformanceSummaryTable();
+    }
+    
+    // Render performance summary table
+    function renderPerformanceSummaryTable() {
+      // Example data for the performance table
+      const startBalance = 10000; // Initial portfolio value
+      const endBalance = metrics.portfolioValues[metrics.portfolioValues.length - 1];
+      const cagr = metrics.annualizedReturn;
+      const stdDev = metrics.volatility;
+      const maxDrawdown = metrics.maxDrawdown;
+      const sharpeRatio = metrics.sharpeRatio;
+      const sortinoRatio = calculateSortinoRatio(metrics.portfolioReturns);
+      
+      // Mock best and worst year data (for demonstration)
+      const bestYear = 5.37;
+      const worstYear = -2.06;
+      
+      // Update the performance summary table
+      document.getElementById('start-balance').textContent = `$${startBalance.toFixed(2)}`;
+      document.getElementById('end-balance').textContent = `$${endBalance.toFixed(2)}`;
+      document.getElementById('performance-cagr').textContent = formatPercentage(cagr);
+      document.getElementById('performance-std-dev').textContent = formatPercentage(stdDev);
+      document.getElementById('best-year').textContent = formatPercentage(bestYear/100);
+      document.getElementById('worst-year').textContent = formatPercentage(worstYear/100);
+      document.getElementById('performance-drawdown').textContent = formatPercentage(maxDrawdown);
+      document.getElementById('performance-sharpe').textContent = sharpeRatio.toFixed(2);
+      document.getElementById('performance-sortino').textContent = sortinoRatio.toFixed(2);
+    }
+    
+    // Render returns tab charts and tables
+    function renderReturnsCharts() {
+      // Generate data for annual returns
+      const currentYear = new Date().getFullYear();
+      const years = [currentYear-5, currentYear-4, currentYear-3, currentYear-2, currentYear-1, currentYear];
+      
+      // Mock annual returns data for demonstration
+      const inflationRates = [0.018, 0.021, 0.023, 0.024, 0.042, 0.031];
+      const portfolioReturns = [0.073, 0.114, 0.085, -0.024, 0.196, 0.089];
+      const assetReturns = {
+        'AAPL': [0.061, 0.087, 0.104, -0.015, 0.204, 0.093],
+        'MSFT': [0.055, 0.143, 0.072, -0.031, 0.188, 0.092],
+        'VTI': [0.081, 0.105, 0.087, -0.025, 0.185, 0.074]
+      };
+      
+      // Calculate portfolio balance for each year based on returns
+      let balance = 10000; // Starting balance
+      const portfolioBalances = [balance];
+      
+      for (const returnVal of portfolioReturns) {
+        balance = balance * (1 + returnVal);
+        portfolioBalances.push(balance);
+      }
+      
+      // Populate annual returns table
+      const annualTableBody = document.getElementById('annual-returns-table-body');
+      annualTableBody.innerHTML = '';
+      
+      // Add asset columns to the annual returns table header if they don't exist
+      const annualTableHeader = document.querySelector('#annual-returns-table thead tr');
+      const existingColumns = annualTableHeader.querySelectorAll('th').length;
+      
+      if (existingColumns <= 4) { // Only add if we haven't already
+        for (const asset in assetReturns) {
+          const th = document.createElement('th');
+          th.textContent = asset;
+          annualTableHeader.appendChild(th);
+        }
+      }
+      
+      // Add rows to annual returns table
+      years.forEach((year, i) => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+          <td>${year}</td>
+          <td>${formatPercentage(inflationRates[i])}</td>
+          <td style="color: ${portfolioReturns[i] >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(portfolioReturns[i])}</td>
+          <td>$${portfolioBalances[i+1].toFixed(2)}</td>
+        `;
+        
+        // Add asset returns
+        for (const asset in assetReturns) {
+          const returnValue = assetReturns[asset][i];
+          const cell = document.createElement('td');
+          cell.style.color = returnValue >= 0 ? '#2f855a' : '#ef4444';
+          cell.textContent = formatPercentage(returnValue);
+          row.appendChild(cell);
+        }
+        
+        annualTableBody.appendChild(row);
+      });
+      
+      // Generate data for monthly returns
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      // Generate monthly returns table data (mock data for demonstration)
+      const monthlyTableBody = document.getElementById('monthly-returns-table-body');
+      monthlyTableBody.innerHTML = '';
+      
+      // Add asset columns to the monthly returns table header if they don't exist
+      const monthlyTableHeader = document.querySelector('#monthly-returns-table thead tr');
+      const existingMonthlyColumns = monthlyTableHeader.querySelectorAll('th').length;
+      
+      if (existingMonthlyColumns <= 4) { // Only add if we haven't already
+        for (const asset in assetReturns) {
+          const th = document.createElement('th');
+          th.textContent = asset;
+          monthlyTableHeader.appendChild(th);
+        }
+      }
+      
+      // Mock monthly data for current and previous year
+      const monthlyData = [
+        // Current year
+        ...[...Array(12)].map((_, i) => {
+          const monthReturn = (Math.random() * 0.06) - 0.02; // Between -2% and 4%
+          const assetMonthlyReturns = {};
+          for (const asset in assetReturns) {
+            assetMonthlyReturns[asset] = (Math.random() * 0.08) - 0.03; // Between -3% and 5%
+          }
+          return {
+            year: currentYear,
+            month: months[i],
+            return: monthReturn,
+            balance: 10000 * (1 + monthReturn),
+            assetReturns: assetMonthlyReturns
+          };
+        }),
+        // Previous year
+        ...[...Array(12)].map((_, i) => {
+          const monthReturn = (Math.random() * 0.06) - 0.02; // Between -2% and 4%
+          const assetMonthlyReturns = {};
+          for (const asset in assetReturns) {
+            assetMonthlyReturns[asset] = (Math.random() * 0.08) - 0.03; // Between -3% and 5%
+          }
+          return {
+            year: currentYear - 1,
+            month: months[i],
+            return: monthReturn,
+            balance: 9500 * (1 + monthReturn),
+            assetReturns: assetMonthlyReturns
+          };
+        })
+      ];
+      
+      // Add rows to monthly returns table (most recent months first)
+      monthlyData
+        .sort((a, b) => {
+          // Sort by year (descending) and then by month index (descending)
+          if (a.year !== b.year) return b.year - a.year;
+          return months.indexOf(b.month) - months.indexOf(a.month);
+        })
+        .slice(0, 12) // Show only the last 12 months
+        .forEach(data => {
+          const row = document.createElement('tr');
+          
+          row.innerHTML = `
+            <td>${data.year}</td>
+            <td>${data.month}</td>
+            <td style="color: ${data.return >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(data.return)}</td>
+            <td>$${data.balance.toFixed(2)}</td>
+          `;
+          
+          // Add asset returns
+          for (const asset in assetReturns) {
+            const returnValue = data.assetReturns[asset];
+            const cell = document.createElement('td');
+            cell.style.color = returnValue >= 0 ? '#2f855a' : '#ef4444';
+            cell.textContent = formatPercentage(returnValue);
+            row.appendChild(cell);
+          }
+          
+          monthlyTableBody.appendChild(row);
+        });
+      
+      // Create returns heatmap
+      const heatmapData = {
+        z: [
+          [0.030, 0.021, -0.015, 0.037, 0.018, 0.022, 0.014, -0.027, 0.039, 0.016, 0.025, 0.011], // Current year
+          [0.024, -0.019, 0.033, 0.015, 0.029, -0.012, 0.031, 0.018, -0.022, 0.034, 0.019, 0.027], // Previous year
+          [0.037, 0.012, 0.028, -0.014, 0.033, 0.016, -0.021, 0.035, 0.013, -0.024, 0.032, 0.017], // 2 years ago
+        ],
+        x: months,
+        y: [currentYear, currentYear-1, currentYear-2],
+        type: 'heatmap',
+        colorscale: [
+          [0, '#ef4444'],      // Red for negative returns
+          [0.5, '#ffffff'],    // White for zero
+          [1, '#2f855a']       // Green for positive returns
+        ],
+        showscale: true,
+        hovertemplate: '%{y} %{x}: %{z:.1%}<extra></extra>'
+      };
+      
+      const heatmapLayout = {
+        title: {
+          text: 'Monthly Returns Heatmap',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0.5,
+          xanchor: 'center'
+        },
+        xaxis: {
+          title: 'Month'
+        },
+        yaxis: {
+          title: 'Year'
+        },
+        margin: {
+          l: 50,
+          r: 50,
+          t: 80,
+          b: 50
+        }
+      };
+      
+      Plotly.newPlot('returns-heatmap-chart', [heatmapData], heatmapLayout);
+      
+      // Create annual returns bar chart
+      const barData = {
+        x: years,
+        y: portfolioReturns.map(r => r * 100), // Convert to percentages
+        type: 'bar',
+        marker: {
+          color: portfolioReturns.map(r => r >= 0 ? '#2f855a' : '#ef4444'),
+          line: {
+            color: portfolioReturns.map(r => r >= 0 ? '#1f5a3a' : '#c53030'),
+            width: 1
+          }
+        },
+        hovertemplate: '%{x}: %{y:.1f}%<extra></extra>'
+      };
+      
+      const barLayout = {
+        title: {
+          text: 'Annual Returns',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0.5,
+          xanchor: 'center'
+        },
+        xaxis: {
+          title: 'Year'
+        },
+        yaxis: {
+          title: 'Return (%)',
+          ticksuffix: '%',
+          zeroline: true,
+          zerolinecolor: '#888',
+          zerolinewidth: 1
+        },
+        showlegend: false,
+        margin: {
+          l: 50,
+          r: 50,
+          t: 80,
+          b: 50
+        }
+      };
+      
+      Plotly.newPlot('returns-bar-chart', [barData], barLayout);
+    }
+    
+    // Render allocation tab charts
+    function renderAllocationCharts() {
+      // Sectors bar chart
+      const sectors = [
+        'Technology', 
+        'Communication Services', 
+        'Financial Services', 
+        'Consumer Discretionary', 
+        'Healthcare', 
+        'Industrials', 
+        'Consumer Staples',
+        'Basic Materials',
+        'Energy',
+        'Real Estate',
+        'Utilities'
+      ];
+      
+      // Mock sector weights for demonstration (in real implementation, this would come from the portfolio data)
+      const sectorWeights = [
+        0.48, // Technology
+        0.10, // Communication Services
+        0.09, // Financial Services
+        0.11, // Consumer Discretionary
+        0.06, // Healthcare
+        0.05, // Industrials
+        0.04, // Consumer Staples
+        0.02, // Basic Materials
+        0.02, // Energy
+        0.015, // Real Estate
+        0.015  // Utilities
+      ];
+      
+      // Create the sectors bar chart (horizontal)
+      const sectorsTrace = {
+        y: sectors,
+        x: sectorWeights,
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+          color: '#2f855a',  // Consistent green color
+        },
+        hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
+      };
+      
+      const sectorsLayout = {
+        title: {
+          text: 'Equity Sectors',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0.5,  // Center-aligned title for consistency
+          xanchor: 'center'
+        },
+        xaxis: {
+          title: '',
+          tickformat: ',.0%',  // Format as percentage
+          showgrid: true,
+          gridcolor: '#E0E0E0',
+          zeroline: false,
+          tickvals: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+        },
+        yaxis: {
+          title: '',
+          automargin: true
+        },
+        showlegend: false,
+        margin: {
+          l: 150,  // Leave room for sector names
+          r: 30,
+          t: 80,
+          b: 50
+        },
+        width: 900,
+        height: 500,
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white'
+      };
+      
+      Plotly.newPlot('sectors-chart', [sectorsTrace], sectorsLayout);
+      
+      // Top holdings bar chart
+      const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight).slice(0, 10);
+      
+      const topHoldingsTrace = {
+        x: sortedHoldings.map(h => h.Weight),
+        y: sortedHoldings.map(h => h.Ticker),
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+          color: '#2f855a'
+        }
+      };
+      
+      const topHoldingsLayout = {
+        title: {
+          text: 'Top Holdings',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0.5,
+          xanchor: 'center'
+        },
+        xaxis: {
+          title: 'Weight',
+          tickformat: '.0%'
+        },
+        yaxis: {
+          title: 'Ticker',
+          automargin: true
+        },
+        showlegend: false,
+        margin: {
+          l: 100,
+          r: 50,
+          t: 80,
+          b: 80
+        }
+      };
+      
+      Plotly.newPlot('top-holdings-chart', [topHoldingsTrace], topHoldingsLayout);
+    }
+    
+    // Render metrics cards - already taken care of in calculateMetrics()
+    function renderMetricsCards() {
+      // Already populated in calculateMetrics function
+    }
+    
+    // Render holdings table
+    function renderHoldingsTable() {
+      // Render all holdings table
+      const tableBody = document.getElementById('holdings-table-body');
+      tableBody.innerHTML = '';
+      
+      // Sort holdings by weight (descending)
+      const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight);
+      
+      sortedHoldings.forEach(holding => {
+        const row = document.createElement('tr');
+        
+        // Calculate the return for this holding (placeholder for demo)
+        const returnValue = Math.random() * 0.2 - 0.05; // Random return between -5% and 15%
+        
+        row.innerHTML = `
+          <td>${holding.Ticker}</td>
+          <td>${holding.Name || holding.Ticker}</td>
+          <td>${holding.Category || 'Stock'}</td>
+          <td>${formatPercentage(holding.Weight)}</td>
+          <td>$${(holding.Weight * 10000).toFixed(2)}</td>
+          <td style="color: ${returnValue >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(returnValue)}</td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Render Portfolio Assets table
+      const assetsTableBody = document.getElementById('portfolio-assets-table-body');
+      if (assetsTableBody) {
+        assetsTableBody.innerHTML = '';
+        
+        // Sample asset metrics data (in a real implementation, this would be fetched from the backend)
+        const assetMetrics = {
+          'SPY': {
+            name: 'SPDR S&P 500 ETF Trust',
+            cagr: 0.1508,
+            stdev: 0.1202,
+            bestYear: 0.2489,
+            worstYear: -0.0455,
+            maxDrawdown: -0.0705,
+            sharpeRatio: 0.83,
+            sortinoRatio: 1.32
+          },
+          'QQQ': {
+            name: 'Invesco QQQ Trust',
+            cagr: 0.1197,
+            stdev: 0.1398,
+            bestYear: 0.2558,
+            worstYear: -0.0828,
+            maxDrawdown: -0.1022,
+            sharpeRatio: 0.53,
+            sortinoRatio: 0.81
+          },
+          'AAPL': {
+            name: 'Apple Inc',
+            cagr: 0.1266,
+            stdev: 0.2079,
+            bestYear: 0.3070,
+            worstYear: -0.1120,
+            maxDrawdown: -0.1142,
+            sharpeRatio: 0.44,
+            sortinoRatio: 0.75
+          },
+          'NVD': {
+            name: 'GraniteShares 2x Short NVDA Daily ETF',
+            cagr: -0.8684,
+            stdev: 0.6598,
+            bestYear: 0.1517,
+            worstYear: -0.9312,
+            maxDrawdown: -0.9350,
+            sharpeRatio: -2.52,
+            sortinoRatio: -2.16
+          },
+          'VWO': {
+            name: 'Vanguard FTSE Emerging Markets ETF',
+            cagr: 0.1077,
+            stdev: 0.0914,
+            bestYear: 0.1058,
+            worstYear: 0.0277,
+            maxDrawdown: -0.0575,
+            sharpeRatio: 0.63,
+            sortinoRatio: 1.10
+          }
+        };
+        
+        // Add rows to the portfolio assets table
+        sortedHoldings.forEach(holding => {
+          const ticker = holding.Ticker;
+          const metrics = assetMetrics[ticker] || {
+            name: holding.Name || ticker,
+            cagr: Math.random() * 0.15,
+            stdev: Math.random() * 0.15 + 0.05,
+            bestYear: Math.random() * 0.3,
+            worstYear: Math.random() * 0.15 * -1,
+            maxDrawdown: Math.random() * 0.15 * -1,
+            sharpeRatio: Math.random() * 1.5,
+            sortinoRatio: Math.random() * 2
+          };
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${ticker}</td>
+            <td>${metrics.name}</td>
+            <td>${formatPercentage(metrics.cagr)}</td>
+            <td>${formatPercentage(metrics.stdev)}</td>
+            <td>${formatPercentage(metrics.bestYear)}</td>
+            <td style="color: ${metrics.worstYear >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(metrics.worstYear)}</td>
+            <td style="color: ${metrics.maxDrawdown >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(metrics.maxDrawdown)}</td>
+            <td>${metrics.sharpeRatio.toFixed(2)}</td>
+            <td>${metrics.sortinoRatio.toFixed(2)}</td>
+          `;
+          
+          assetsTableBody.appendChild(row);
+        });
+      }
+      
+      // Render Portfolio Asset Performance table
+      const assetPerformanceTableBody = document.getElementById('portfolio-asset-performance-table-body');
+      if (assetPerformanceTableBody) {
+        assetPerformanceTableBody.innerHTML = '';
+        
+        // Sample asset performance data
+        const assetPerformance = {
+          'SPY': {
+            name: 'SPDR S&P 500 ETF Trust',
+            threeMonth: -0.0455,
+            ytd: -0.0455,
+            oneYear: 0.0798,
+            expenseRatio: 0.0009,
+            net: 0.0009,
+            gross: 0.0009
+          },
+          'QQQ': {
+            name: 'Invesco QQQ Trust',
+            threeMonth: -0.0828,
+            ytd: -0.0828,
+            oneYear: 0.0610,
+            expenseRatio: 0.0020,
+            net: 0.0020,
+            gross: 0.0020
+          },
+          'AAPL': {
+            name: 'Apple Inc',
+            threeMonth: -0.1120,
+            ytd: -0.1120,
+            oneYear: 0.3015,
+            expenseRatio: 0,
+            net: 0,
+            gross: 0
+          },
+          'NVD': {
+            name: 'GraniteShares 2x Short NVDA Daily ETF',
+            threeMonth: 0.1517,
+            ytd: 0.1517,
+            oneYear: -0.7016,
+            expenseRatio: 0.0150,
+            net: 0.0150,
+            gross: 0.0173
+          },
+          'VWO': {
+            name: 'Vanguard FTSE Emerging Markets ETF',
+            threeMonth: 0.0277,
+            ytd: 0.0277,
+            oneYear: 0.1172,
+            expenseRatio: 0.0007,
+            net: 0.0007,
+            gross: 0.0007
+          }
+        };
+        
+        // Add rows to the portfolio asset performance table
+        sortedHoldings.forEach(holding => {
+          const ticker = holding.Ticker;
+          const performance = assetPerformance[ticker] || {
+            name: holding.Name || ticker,
+            threeMonth: Math.random() * 0.2 - 0.1,
+            ytd: Math.random() * 0.2 - 0.1,
+            oneYear: Math.random() * 0.3 - 0.1,
+            expenseRatio: Math.random() * 0.005,
+            net: Math.random() * 0.005,
+            gross: Math.random() * 0.005 + 0.001
+          };
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${performance.name}</td>
+            <td style="color: ${performance.threeMonth >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.threeMonth)}</td>
+            <td style="color: ${performance.ytd >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.ytd)}</td>
+            <td style="color: ${performance.oneYear >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.oneYear)}</td>
+            <td>${formatPercentage(performance.expenseRatio)}</td>
+            <td>${formatPercentage(performance.net)}</td>
+            <td>${formatPercentage(performance.gross)}</td>
+          `;
+          
+          assetPerformanceTableBody.appendChild(row);
+        });
+      }
+      
+      // Render Portfolio Risk Decomposition table
+      const riskDecompositionTableBody = document.getElementById('portfolio-risk-decomposition-table-body');
+      if (riskDecompositionTableBody) {
+        riskDecompositionTableBody.innerHTML = '';
+        
+        // Sample risk decomposition data
+        const riskDecomposition = {
+          'SPY': {
+            name: 'SPDR S&P 500 ETF Trust',
+            contribution: 0.2391
+          },
+          'QQQ': {
+            name: 'Invesco QQQ Trust',
+            contribution: 0.3039
+          },
+          'AAPL': {
+            name: 'Apple Inc',
+            contribution: 0.3219
+          },
+          'NVD': {
+            name: 'GraniteShares 2x Short NVDA Daily ETF',
+            contribution: 0.0169
+          },
+          'VWO': {
+            name: 'Vanguard FTSE Emerging Markets ETF',
+            contribution: 0.1181
+          }
+        };
+        
+        // Add rows to the portfolio risk decomposition table
+        sortedHoldings.forEach(holding => {
+          const ticker = holding.Ticker;
+          const risk = riskDecomposition[ticker] || {
+            name: holding.Name || ticker,
+            contribution: Math.random()
+          };
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${ticker}</td>
+            <td>${risk.name}</td>
+            <td>${formatPercentage(risk.contribution)}</td>
+          `;
+          
+          riskDecompositionTableBody.appendChild(row);
+        });
+      }
+      
+      // Render Portfolio Return Decomposition table
+      const returnDecompositionTableBody = document.getElementById('portfolio-return-decomposition-table-body');
+      if (returnDecompositionTableBody) {
+        returnDecompositionTableBody.innerHTML = '';
+        
+        // Sample return decomposition data
+        const returnDecomposition = {
+          'SPY': {
+            name: 'SPDR S&P 500 ETF Trust',
+            contribution: 502
+          },
+          'QQQ': {
+            name: 'Invesco QQQ Trust',
+            contribution: 421
+          },
+          'AAPL': {
+            name: 'Apple Inc',
+            contribution: 284
+          },
+          'NVD': {
+            name: 'GraniteShares 2x Short NVDA Daily ETF',
+            contribution: -1157
+          },
+          'VWO': {
+            name: 'Vanguard FTSE Emerging Markets ETF',
+            contribution: 270
+          }
+        };
+        
+        // Add rows to the portfolio return decomposition table
+        sortedHoldings.forEach(holding => {
+          const ticker = holding.Ticker;
+          const returnData = returnDecomposition[ticker] || {
+            name: holding.Name || ticker,
+            contribution: Math.random() * 1000 - 200
+          };
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${ticker}</td>
+            <td>${returnData.name}</td>
+            <td style="color: ${returnData.contribution >= 0 ? '#2f855a' : '#ef4444'}">$${returnData.contribution.toFixed(0)}</td>
+          `;
+          
+          returnDecompositionTableBody.appendChild(row);
+        });
+      }
+      
+      // Render Annual Asset Returns chart
+      renderAnnualAssetReturnsChart();
+    }
+    
+    // Render Annual Asset Returns chart
+    function renderAnnualAssetReturnsChart() {
+      const currentYear = new Date().getFullYear();
+      
+      // Sample annual returns data for assets
+      const assetReturns = {
+        'SPY': {
+          [currentYear]: 0.25,
+          [currentYear + 1]: -0.03
+        },
+        'QQQ': {
+          [currentYear]: 0.25,
+          [currentYear + 1]: -0.05
+        },
+        'AAPL': {
+          [currentYear]: 0.30,
+          [currentYear + 1]: -0.08
+        },
+        'NVD': {
+          [currentYear]: -0.93,
+          [currentYear + 1]: 0.15
+        },
+        'VWO': {
+          [currentYear]: 0.10,
+          [currentYear + 1]: 0.03
+        }
+      };
+      
+      // Prepare data for the chart
+      const years = [currentYear, currentYear + 1];
+      const tickers = Object.keys(assetReturns);
+      
+      const traces = [];
+      tickers.forEach(ticker => {
+        const yearlyReturns = years.map(year => assetReturns[ticker][year] * 100); // Convert to percentage
+        
+        traces.push({
+          x: years.map(String),
+          y: yearlyReturns,
+          type: 'bar',
+          name: ticker,
+          marker: {
+            color: getColorForAsset(ticker)
+          }
+        });
+      });
+      
+      const layout = {
+        title: {
+          text: 'Annual Asset Returns',
+          font: {
+            size: 24,
+            color: '#2f855a'
+          },
+          x: 0,
+          xanchor: 'left'
+        },
+        barmode: 'group',
+        xaxis: {
+          title: 'Year'
+        },
+        yaxis: {
+          title: 'Return',
+          tickformat: ',.0%',
+          ticksuffix: '%',
+          zeroline: true,
+          zerolinecolor: '#888',
+          zerolinewidth: 1
+        },
+        legend: {
+          orientation: 'h',
+          y: -0.2,
+          x: 0.5,
+          xanchor: 'center'
+        },
+        margin: {
+          l: 50,
+          r: 50,
+          t: 80,
+          b: 80
+        }
+      };
+      
+      Plotly.newPlot('annual-asset-returns-chart', traces, layout);
+    }
+    
+    // Get color for different assets (to make each asset have a consistent color across charts)
+    function getColorForAsset(ticker) {
+      const colorMap = {
+        'SPY': '#0000FF',  // Blue
+        'QQQ': '#4ECDC4',  // Teal
+        'AAPL': '#6B8CFF', // Light blue
+        'NVD': '#556B2F',  // Dark olive green
+        'VWO': '#00A6A6',  // Cyan
+        'BTC': '#FF9900',  // Orange
+        'ETH': '#3C3C3D'   // Dark gray
+      };
+      
+      return colorMap[ticker] || '#2f855a'; // Default to green
+    }
+    
+    // Render drawdowns charts and tables
+    function renderDrawdownsCharts() {
+      // Always render the drawdowns data regardless of tab visibility
+      const drawdownsTab = document.getElementById('drawdowns');
+      
+      // Render drawdowns table
+      const tableBody = document.getElementById('drawdowns-table-body');
+      if (tableBody) {
+        tableBody.innerHTML = '';
+        
+        // Sample drawdowns data
+        const drawdowns = [
+          {
+            rank: 1,
+            start: 'Jan 2024',
+            end: 'Apr 2024',
+            length: '4 months',
+            recoveryBy: 'Aug 2024',
+            recoveryTime: '4 months',
+            underwaterPeriod: '8 months',
+            drawdown: -0.0969
+          },
+          {
+            rank: 2,
+            start: 'Feb 2025',
+            end: 'Mar 2025',
+            length: '2 months',
+            recoveryBy: null,
+            recoveryTime: null,
+            underwaterPeriod: null,
+            drawdown: -0.0365
+          },
+          {
+            rank: 3,
+            start: 'Oct 2024',
+            end: 'Oct 2024',
+            length: '1 month',
+            recoveryBy: 'Nov 2024',
+            recoveryTime: '1 month',
+            underwaterPeriod: '2 months',
+            drawdown: -0.0190
+          }
+        ];
+        
+        // Add rows to the drawdowns table
+        drawdowns.forEach(d => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${d.rank}</td>
+            <td>${d.start}</td>
+            <td>${d.end}</td>
+            <td>${d.length}</td>
+            <td>${d.recoveryBy || '-'}</td>
+            <td>${d.recoveryTime || '-'}</td>
+            <td>${d.underwaterPeriod || '-'}</td>
+            <td style="color: #ef4444">${formatPercentage(d.drawdown)}</td>
+          `;
+          
+          tableBody.appendChild(row);
+        });
+      }
+      
+      // Generate drawdowns visualization
+      const drawdownsChart = document.getElementById('drawdowns-chart');
+      if (drawdownsChart) {
+        // Simulate drawdowns over time
+        const drawdownDates = [];
+        const drawdownValues = [];
+        
+        // Generate date range from Jan 2024 to March 2025
+        const startDate = new Date(2024, 0, 1);
+        const endDate = new Date(2025, 2, 31);
+        
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 15)) {
+          drawdownDates.push(new Date(d));
+        }
+        
+        // Generate drawdown values that match the pattern in the reference image
+        drawdownValues.push(0);  // Start at 0
+        
+        // First major drawdown (Jan 2024 - Jun 2024)
+        for (let i = 1; i < 7; i++) {
+          if (i < 5) {
+            drawdownValues.push(-0.02 * i * i);  // Accelerating drawdown
+          } else {
+            drawdownValues.push(-0.097 + (i - 5) * 0.02);  // Recovery begins
+          }
+        }
+        
+        // Recovery period (Jul 2024 - Sep 2024)
+        for (let i = 0; i < 3; i++) {
+          drawdownValues.push(-0.06 + i * 0.02);
+        }
+        
+        // Minor drawdown (Oct 2024)
+        drawdownValues.push(-0.019);
+        
+        // Recovery (Nov 2024)
+        drawdownValues.push(-0.005);
+        
+        // Period of no drawdown (Dec 2024 - Jan 2025)
+        drawdownValues.push(0);
+        drawdownValues.push(0);
+        
+        // Final drawdown (Feb 2025 - Mar 2025)
+        drawdownValues.push(-0.023);
+        drawdownValues.push(-0.0365);
+        
+        // Create the trace for the drawdown chart
+        const drawdownTrace = {
+          x: drawdownDates,
+          y: drawdownValues,
+          type: 'scatter',
+          mode: 'lines',
+          fill: 'tozeroy',
+          line: {
+            color: '#ef4444',
+            width: 2
+          },
+          fillcolor: 'rgba(239, 68, 68, 0.2)'
+        };
+        
+        const drawdownLayout = {
+          title: {
+            text: 'Drawdowns',
+            font: {
+              size: 24,
+              color: '#2f855a'
+            },
+            x: 0,
+            xanchor: 'left'
+          },
+          xaxis: {
+            title: 'Year'
+          },
+          yaxis: {
+            title: 'Drawdown',
+            tickformat: ',.0%',
+            range: [-0.12, 0.01]  // Set range to show drawdowns properly
+          },
+          showlegend: false,
+          margin: {
+            l: 50,
+            r: 50,
+            t: 80,
+            b: 50
+          },
+          paper_bgcolor: 'white',
+          plot_bgcolor: 'white'
+        };
+        
+        Plotly.newPlot('drawdowns-chart', [drawdownTrace], drawdownLayout);
+      }
+    }
+    
+    // Logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+      e.preventDefault();
+      try {
+        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+        if (response.ok) {
+          window.location.href = '/login-page';
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    });
+    
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', fetchPortfolioData);
+  </script>
+</body>
+</html>

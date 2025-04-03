@@ -1,20 +1,13 @@
-<<<<<<< HEAD
 # app/routes/portfolio_api.py
 import os
 import json
 import io
 import csv
-import random
-from flask import (
-    Blueprint, request, jsonify, session, redirect,
-    url_for, render_template, abort, send_file
-)
+from flask import (Blueprint, request, jsonify, session, redirect, url_for,
+                   render_template, abort, send_file)
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-=======
-from flask import Blueprint, request, jsonify, session, redirect, url_for
->>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
 from app import db
 from app.models import Portfolio, Asset
 
@@ -22,20 +15,13 @@ portfolio_bp = Blueprint("portfolio", __name__)
 
 # --- Portfolio API Endpoints (Session-based) ---
 
-@portfolio_bp.route("/portfolio/manual", methods=["POST"])
+
+@portfolio_bp.route("/manual", methods=["POST"])
 def submit_manual_entry():
-<<<<<<< HEAD
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 
     user_id = session["user_id"]
-=======
-    # Check if user is logged in
-    if "user_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    user_id = session["user_id"]
-
->>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
     data = request.get_json()
     symbol = data.get("asset_symbol")
     quantity = data.get("quantity")
@@ -51,21 +37,38 @@ def submit_manual_entry():
         db.session.add(asset)
         db.session.commit()
 
-    entry = Portfolio(user_id=user_id, asset_id=asset.id, quantity=quantity, purchase_price=purchase_price)
-    db.session.add(entry)
+    # Create portfolio entry with proper data structure
+    # For simplicity, we'll just add this to the portfolio_data JSON
+    portfolio = Portfolio.query.filter_by(user_id=user_id).first()
+    if not portfolio:
+        portfolio = Portfolio(user_id=user_id, portfolio_name="My Portfolio")
+        portfolio_data = []
+    else:
+        try:
+            portfolio_data = json.loads(
+                portfolio.portfolio_data) if portfolio.portfolio_data else []
+        except:
+            portfolio_data = []
+
+    # Add new entry
+    portfolio_data.append({
+        "ticker": symbol,
+        "allocation": float(quantity) * float(purchase_price)
+    })
+
+    # Update portfolio
+    portfolio.portfolio_data = json.dumps(portfolio_data)
+    db.session.add(portfolio)
     db.session.commit()
 
     return jsonify({"message": "Asset added to portfolio"}), 201
 
 
-@portfolio_bp.route("/portfolio/upload", methods=["POST"])
+@portfolio_bp.route("/upload", methods=["POST"])
 def upload_csv():
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
-<<<<<<< HEAD
 
-=======
->>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
     user_id = session["user_id"]
 
     if "file" not in request.files:
@@ -82,150 +85,267 @@ def upload_csv():
 
     try:
         df = pd.read_csv(filepath)
-        required_columns = {"asset_symbol", "quantity", "purchase_price"}
-        if not required_columns.issubset(df.columns):
-            return jsonify({"error": "CSV must contain: asset_symbol, quantity, purchase_price"}), 400
 
-        for _, row in df.iterrows():
-            symbol = row["asset_symbol"]
-            quantity = row["quantity"]
-            purchase_price = row["purchase_price"]
+        # Process the CSV file into portfolio_data structure
+        portfolio_data = []
+        invalid_tickers = []
 
-            asset = Asset.query.filter_by(symbol=symbol, user_id=user_id).first()
-            if not asset:
-                asset = Asset(symbol=symbol, asset_type="Stock", user_id=user_id)
-                db.session.add(asset)
-                db.session.commit()
+        # Check if the CSV has the expected structure
+        if 'Symbol' in df.columns and ('Weight' in df.columns
+                                       or 'Balance' in df.columns):
+            for _, row in df.iterrows():
+                ticker = str(row['Symbol']).strip().upper()
+                if not ticker or ticker.lower() in ['nan', '']:
+                    continue
 
-            entry = Portfolio(user_id=user_id, asset_id=asset.id, quantity=quantity, purchase_price=purchase_price)
-            db.session.add(entry)
+                # Validate ticker using Yahoo Finance
+                try:
+                    import yfinance as yf
+                    stock = yf.Ticker(ticker)
+                    info = stock.info
 
-        db.session.commit()
-        return jsonify({"message": "CSV uploaded and portfolio updated"}), 201
+                    # Check if we got back a valid ticker object with meaningful info
+                    if not info or 'symbol' not in info:
+                        invalid_tickers.append({
+                            'ticker':
+                            ticker,
+                            'reason':
+                            'Invalid ticker symbol'
+                        })
+                        continue
+                except Exception as e:
+                    print(f"Error validating ticker {ticker}: {str(e)}")
+                    # Try validating with Alpha Vantage if Yahoo fails
+                    try:
+                        alpha_vantage_key = os.environ.get(
+                            'ALPHA_VANTAGE_API_KEY')
+                        if alpha_vantage_key:
+                            url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&apikey={alpha_vantage_key}"
+                            response = requests.get(url, timeout=10)
+                            data = response.json()
+
+                            if 'Global Quote' not in data or not data[
+                                    'Global Quote'] or '01. symbol' not in data[
+                                        'Global Quote']:
+                                invalid_tickers.append({
+                                    'ticker':
+                                    ticker,
+                                    'reason':
+                                    'Could not validate ticker with either Yahoo Finance or Alpha Vantage'
+                                })
+                                continue
+                    except Exception as av_error:
+                        print(
+                            f"Alpha Vantage validation error for {ticker}: {str(av_error)}"
+                        )
+                        # Add to invalid tickers but continue processing
+                        invalid_tickers.append({
+                            'ticker':
+                            ticker,
+                            'reason':
+                            'Failed validation with both services'
+                        })
+                        continue
+
+                # Check for allocation
+                if 'Weight' in df.columns:
+                    # Parse percentage to decimal (remove % sign if present)
+                    weight_str = str(row['Weight']).replace('%', '')
+                    try:
+                        weight = float(weight_str) / 100 if '%' in str(
+                            row['Weight']) else float(weight_str)
+                    except:
+                        weight = 0
+
+                    # Skip entries with zero or negative weight
+                    if weight <= 0:
+                        continue
+
+                    portfolio_data.append({
+                        "ticker": ticker,
+                        "allocation": weight
+                    })
+                elif 'Balance' in df.columns:
+                    # If balance is provided, will convert to allocation later
+                    balance_str = str(row['Balance']).replace('$', '').replace(
+                        ',', '')
+                    try:
+                        balance = float(balance_str)
+                    except:
+                        balance = 0
+
+                    # Skip entries with zero or negative balance
+                    if balance <= 0:
+                        continue
+
+                    # Store temporarily
+                    portfolio_data.append({
+                        "ticker": ticker,
+                        "balance": balance
+                    })
+
+            # If no valid entries found
+            if len(portfolio_data) == 0:
+                # If we have invalid tickers, return a helpful error
+                if invalid_tickers:
+                    os.remove(filepath)  # Clean up
+                    error_message = "No valid tickers found in the CSV. Invalid tickers: "
+                    error_message += ", ".join(
+                        [item['ticker'] for item in invalid_tickers[:5]])
+                    if len(invalid_tickers) > 5:
+                        error_message += f" and {len(invalid_tickers) - 5} more"
+                    return jsonify({"error": error_message}), 400
+                else:
+                    os.remove(filepath)  # Clean up
+                    return jsonify({
+                        "error":
+                        "No valid portfolio entries found in the CSV"
+                    }), 400
+
+            # If using balance, convert to allocation percentages
+            if 'Balance' in df.columns:
+                total_balance = sum(
+                    entry.get("balance", 0) for entry in portfolio_data)
+                if total_balance > 0:
+                    for entry in portfolio_data:
+                        entry["allocation"] = entry.get("balance",
+                                                        0) / total_balance
+                        entry.pop("balance", None)
+            else:
+                # Normalize allocation to ensure they sum to 1.0
+                total_allocation = sum(
+                    entry.get("allocation", 0) for entry in portfolio_data)
+                if total_allocation > 0:
+                    for entry in portfolio_data:
+                        entry["allocation"] = entry.get("allocation",
+                                                        0) / total_allocation
+
+            # Create the portfolio
+            portfolio_name = request.form.get('portfolioName',
+                                              f"Imported Portfolio")
+
+            # Create assets for each ticker in the portfolio
+            for entry in portfolio_data:
+                asset = Asset.query.filter_by(symbol=entry["ticker"],
+                                              user_id=user_id).first()
+                if not asset:
+                    asset_type = 'Stock'  # Default to Stock
+                    if 'Type' in df.columns:
+                        # See if we can get the asset type from the CSV
+                        matching_row = df[df['Symbol'] ==
+                                          entry["ticker"]].iloc[0]
+                        if 'Type' in matching_row:
+                            asset_type = matching_row['Type']
+
+                    asset = Asset(symbol=entry["ticker"],
+                                  asset_type=asset_type,
+                                  user_id=user_id)
+                    db.session.add(asset)
+
+            # Save to database
+            portfolio = Portfolio(user_id=user_id,
+                                  portfolio_name=portfolio_name,
+                                  portfolio_data=json.dumps(portfolio_data))
+            db.session.add(portfolio)
+            db.session.commit()
+
+            # Return a successful response, but include warnings about invalid tickers if any
+            response_data = {
+                "message": "Portfolio created successfully",
+                "id": portfolio.id
+            }
+            if invalid_tickers:
+                warning_message = f"Note: {len(invalid_tickers)} invalid ticker(s) were skipped: "
+                warning_message += ", ".join(
+                    [item['ticker'] for item in invalid_tickers[:3]])
+                if len(invalid_tickers) > 3:
+                    warning_message += f" and {len(invalid_tickers) - 3} more"
+                response_data["warning"] = warning_message
+
+            os.remove(filepath)  # Clean up the uploaded file
+            return jsonify(response_data), 201
+        else:
+            os.remove(filepath)  # Clean up
+            return jsonify({
+                "error":
+                "CSV must contain Symbol and either Weight or Balance columns"
+            }), 400
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        print(f"CSV upload error: {str(e)}")
+        print(traceback.format_exc())
+
+        if os.path.exists(filepath):
+            os.remove(filepath)  # Clean up in case of error
+        return jsonify({"error": f"Error processing CSV: {str(e)}"}), 500
 
 
-@portfolio_bp.route("/portfolio/simulate", methods=["GET"])
-def simulate_market_data():
-    if "user_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-<<<<<<< HEAD
-
-    user_id = session["user_id"]
-    portfolios = Portfolio.query.filter_by(user_id=user_id).all()
-    if not portfolios:
-        return jsonify({"error": "No assets found in portfolio"}), 400
-
-=======
-    # For demo purposes, we're returning a simulated response.
-    import random
->>>>>>> 9238b7bd13e3228f275e5e1ae5ab4e4dcc7d9b6a
-    simulated = {
-        "simulated_data": [
-            {
-                "symbol": "SIM",
-                "current_price": round(random.uniform(50, 500), 2),
-                "daily_change": round(random.uniform(-5, 5), 2)
-            }
-        ]
-    }
-    return jsonify(simulated), 200
-
-
-@portfolio_bp.route("/portfolio/open/<int:portfolio_id>", methods=["GET"])
+@portfolio_bp.route("/open/<int:portfolio_id>", methods=["GET"])
 def open_portfolio(portfolio_id):
     if "user_id" not in session:
         return redirect(url_for("auth.login_page"))
 
     # Verify ownership of the portfolio
-    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=session["user_id"]).first()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id,
+                                          user_id=session["user_id"]).first()
     if not portfolio:
         abort(404, description="Portfolio not found or unauthorized.")
 
     try:
-        portfolio_data = json.loads(portfolio.portfolio_data) if portfolio.portfolio_data else []
+        portfolio_data = json.loads(
+            portfolio.portfolio_data) if portfolio.portfolio_data else []
     except Exception:
         portfolio_data = []
 
-    # Compute or retrieve analysis data (stubbed example)
-    analysis = {
-        "summary": {
-            "growth": "$10,000 invested on January 1, 2024 would be worth $10,450 as of February 28, 2025 (4.50% cumulative return)",
-            "return": "3.85% per year; 57.14% of months positive. Best Year: 2024 (5.37%), Worst Year: 2025 (-0.82%)",
-            "risk": "Maximum drawdown of 9.69% (Jan-Apr 2024) with a Sharpe Ratio of -0.08"
-        }
-        # Additional keys for exposures, metrics, returns, drawdowns, etc.
-    }
-
-    return render_template("portfolio_detail.html",
-                           portfolio=portfolio,
-                           portfolio_data=portfolio_data,
-                           analysis=analysis,
-                           username=session.get("username"))
+    # Redirect to Flask-based portfolio analysis page
+    return redirect(url_for('view_dashboard', portfolio_id=portfolio_id))
 
 
-@portfolio_bp.route("/portfolio/edit/<int:portfolio_id>", methods=["GET"])
+@portfolio_bp.route("/edit/<int:portfolio_id>", methods=["GET"])
 def edit_portfolio(portfolio_id):
     if "user_id" not in session:
         return redirect(url_for("auth.login_page"))
 
     # Verify ownership of the portfolio
-    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=session["user_id"]).first()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id,
+                                          user_id=session["user_id"]).first()
     if not portfolio:
         abort(404, description="Portfolio not found or unauthorized.")
 
     # Render the data-entry page pre-populated with portfolio data
-    return render_template("data-entry.html", portfolio=portfolio, username=session.get("username"))
+    return render_template("data-entry.html",
+                           portfolio=portfolio,
+                           username=session.get("username"))
 
 
-@portfolio_bp.route("/portfolio/download/<int:portfolio_id>", methods=["GET"])
+@portfolio_bp.route("/download/<int:portfolio_id>", methods=["GET"])
 def download_portfolio(portfolio_id):
     if "user_id" not in session:
         abort(401)
 
     # Verify ownership
-    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=session["user_id"]).first()
+    portfolio = Portfolio.query.filter_by(id=portfolio_id,
+                                          user_id=session["user_id"]).first()
     if not portfolio:
         abort(404, description="Portfolio not found or unauthorized.")
 
     try:
-        portfolio_data = json.loads(portfolio.portfolio_data) if portfolio.portfolio_data else []
+        portfolio_data = json.loads(
+            portfolio.portfolio_data) if portfolio.portfolio_data else []
     except Exception:
         portfolio_data = []
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Ticker", "Company Name", "Allocation Percentage"])
+    writer.writerow(["Symbol", "Weight"])
     for entry in portfolio_data:
         writer.writerow([
-            entry.get("ticker", ""),
-            entry.get("company_name", "N/A"),
-            entry.get("allocation", "")
+            entry.get("ticker", ""), f"{entry.get('allocation', 0) * 100:.2f}%"
         ])
 
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8')),
-        mimetype="text/csv",
-        as_attachment=True,
-        attachment_filename=f"portfolio_{portfolio_id}.csv"
-    )
-
-
-@portfolio_bp.route("/portfolio/delete/<int:portfolio_id>", methods=["POST"])
-def delete_portfolio(portfolio_id):
-    if "user_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    # Verify ownership
-    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=session["user_id"]).first()
-    if not portfolio:
-        return jsonify({"error": "Portfolio not found or unauthorized"}), 404
-
-    db.session.delete(portfolio)
-    db.session.commit()
-    return jsonify({"message": "Portfolio deleted successfully"}), 200
-
-
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')),
+                     mimetype='text/csv',
+                     as_attachment=True,
+                     download_name=f"{portfolio.portfolio_name}.csv")
