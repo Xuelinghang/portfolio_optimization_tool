@@ -83,11 +83,10 @@ def calculate_efficient_frontier():
             # Fallback to manual extraction
             tickers = []
             if isinstance(portfolio_data, dict):
-                for key, value in portfolio_data.items():
-                    if isinstance(value, dict) and 'ticker' in value:
-                        tickers.append(value['ticker'])
-                    elif key == 'ticker':
-                        tickers.append(value)
+                for entry in portfolio_data:
+                    if isinstance(entry, dict) and 'ticker' in entry:
+                        tickers.append(entry['ticker'])
+
             
             if not tickers:
                 flash('Portfolio format not recognized. Please enter tickers manually.', 'warning')
@@ -201,7 +200,8 @@ def fetch_historical_data(tickers, start_date, end_date):
                 values = [price.price for price in prices]
                 
                 if dates and values:
-                    price_series = pd.Series(values, index=dates)
+                    price_series = pd.Series(values, index=dates).sort_index()
+                    price_series = price_series[~price_series.index.duplicated(keep='first')]
                     data[ticker] = price_series.reindex(date_range, method='ffill')
         
     # Replace any remaining NaN values with forward fill, then backward fill
