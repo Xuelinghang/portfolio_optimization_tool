@@ -1,4 +1,5 @@
 # app/routes/portfolio_api.py
+
 import os
 import json
 import io
@@ -66,9 +67,9 @@ def submit_manual_entry():
 
 @portfolio_bp.route("/upload", methods=["POST"])
 def upload_csv():
+    # Check if user is logged in
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
-
     user_id = session["user_id"]
 
     if "file" not in request.files:
@@ -81,9 +82,9 @@ def upload_csv():
     filename = secure_filename(file.filename)
     filepath = os.path.join("uploads", filename)
     os.makedirs("uploads", exist_ok=True)
-    file.save(filepath)
 
     try:
+        file.save(filepath)
         df = pd.read_csv(filepath)
 
         # Process the CSV file into portfolio_data structure
