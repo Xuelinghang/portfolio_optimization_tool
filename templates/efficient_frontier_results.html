@@ -401,10 +401,10 @@
             </tr>
           </thead>
           <tbody>
-            {% for asset in asset_metrics %}
-              <tr>
+            {% for ticker, asset in asset_metrics.items() %}
+            <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ asset.Asset }}</td>
+                <td>{{ ticker }}</td>
                 <td>{{ "%.2f"|format(asset['Expected Return'] * 100) }}%</td>
                 <td>{{ "%.2f"|format(asset['Standard Deviation'] * 100) }}%</td>
                 <td>{{ "%.3f"|format(asset['Sharpe Ratio']) }}</td>

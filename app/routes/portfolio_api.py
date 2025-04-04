@@ -12,8 +12,6 @@ from app.models import Portfolio, Asset
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
-# --- Portfolio API Endpoints (Session-based) ---
-
 
 @portfolio_bp.route("/manual", methods=["POST"])
 def submit_manual_entry():
