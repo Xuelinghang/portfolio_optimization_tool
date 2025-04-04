@@ -299,8 +299,7 @@ def get_portfolio_data(portfolio_id):
             asset_details = get_asset_details(ticker)
             
             holdings.append({
-                'Ticker': ticker,
-                'Weight': float(entry['allocation']),
+                'Weight': float(entry['allocation']) if entry.get('allocation') not in [None, ''] else 0.0,
                 'Category': asset_details['Category'],
                 'Name': asset_details['Name'],
                 'Expense_Ratio': asset_details['Expense_Ratio'],

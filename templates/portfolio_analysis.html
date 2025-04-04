@@ -103,6 +103,30 @@
       padding: 0 20px;
       text-align: center;
     }
+    .data-warning-banner {
+      background-color: #FFFAEB;
+      border: 1px solid #FFC53D;
+      border-radius: 6px;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #7E5700;
+      font-size: 14px;
+      display: none;
+    }
+    .data-warning-banner i {
+      margin-right: 8px;
+      color: #F59E0B;
+    }
+    .data-warning-banner .close-button {
+      background: none;
+      border: none;
+      color: #7E5700;
+      cursor: pointer;
+      font-size: 16px;
+    }
     .portfolio-header {
       display: flex;
       justify-content: space-between;
@@ -352,6 +376,15 @@
 
   <!-- Main Content -->
   <div class="container">
+    <!-- Data Warning Banner -->
+    <div id="data-warning-banner" class="data-warning-banner">
+      <div>
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Some tickers had incomplete data and were excluded from historical analysis.</span>
+      </div>
+      <button class="close-button">&times;</button>
+    </div>
+    
     <div class="portfolio-header">
       <div class="portfolio-title">
         <h1>{{ portfolio.portfolio_name }}</h1>
@@ -822,6 +855,9 @@
     // Fetch portfolio data
     async function fetchPortfolioData() {
       try {
+        // Hide data warning banner by default
+        document.getElementById('data-warning-banner').style.display = 'none';
+        
         // Show loading indicators
         document.querySelectorAll('.loading').forEach(loader => {
           loader.style.display = 'flex';
@@ -853,6 +889,29 @@
         holdings = data.holdings;
         prices = data.prices;
         dates = data.dates;
+        
+        // Check if any tickers have incomplete data
+        const hasIncompleteData = data.failed_tickers && data.failed_tickers.length > 0;
+        if (hasIncompleteData) {
+          const warningBanner = document.getElementById('data-warning-banner');
+          warningBanner.style.display = 'flex';
+          
+          // If specific failed tickers are provided, show them in the message
+          if (data.failed_tickers.length > 0) {
+            const tickerList = data.failed_tickers.join(', ');
+            warningBanner.querySelector('span').textContent = 
+              `Some tickers (${tickerList}) had incomplete data and were excluded from historical analysis.`;
+          }
+          
+          // Add event listener to close button if not already added
+          const closeButton = warningBanner.querySelector('.close-button');
+          if (!closeButton.hasListener) {
+            closeButton.addEventListener('click', function() {
+              warningBanner.style.display = 'none';
+            });
+            closeButton.hasListener = true;
+          }
+        }
         
         // Log the retrieved data structure to help with debugging
         console.log(`Holdings: ${holdings.length} assets`);
