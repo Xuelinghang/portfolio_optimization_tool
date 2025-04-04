@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
@@ -864,11 +863,3 @@ if __name__ == '__main__':
     
     # Start the Flask app without waiting for market data
     app.run(host='0.0.0.0', port=5050, debug=True)
-=======
-from app import create_app
-
-app = create_app()
-
-if __name__ == "__main__":
-    app.run(debug=True)
->>>>>>> 05e507c30830f5687b7b7a2f5a2d9288fa4a19c0

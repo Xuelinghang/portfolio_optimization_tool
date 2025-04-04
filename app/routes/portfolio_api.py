@@ -1,5 +1,3 @@
-# app/routes/portfolio_api.py
-
 import os
 import json
 import io
