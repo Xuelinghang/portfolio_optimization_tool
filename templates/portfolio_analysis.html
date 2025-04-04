@@ -1122,7 +1122,7 @@
     
     // Format percentage values
     function formatPercentage(value) {
-      return (value * 100).toFixed(2) + '%';
+      return value.toFixed(2) + '%';
     }
     
     // Render summary tab charts
@@ -1206,7 +1206,8 @@
       });
       
       // Create donut chart for allocation
-      const donutLabels = sortedHoldings.map(h => h.Ticker);
+      console.log('Sorted Holdings:', sortedHoldings);
+      const donutLabels = sortedHoldings.map(h => h.Name);
       const donutValues = sortedHoldings.map(h => h.Weight);
       
       // Color palette that matches the screenshot
