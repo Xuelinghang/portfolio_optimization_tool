@@ -1036,7 +1036,7 @@
       const portfolioValues = dates.map((date, i) => {
         let value = 0;
         for (const holding of holdings) {
-          const ticker = holding.Ticker;
+          const ticker = holding.ticker;
           const weight = holding.Weight;
           if (prices[ticker] && prices[ticker][i]) {
             value += prices[ticker][i] * weight;
@@ -1190,15 +1190,15 @@
       const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight);
       
       // Create a pie chart with the same data for allocation (used in renderSummaryCharts)
-      const allocationLabels = sortedHoldings.map(h => h.Ticker);
+      const allocationLabels = sortedHoldings.map(h => h.ticker);
       const allocationValues = sortedHoldings.map(h => h.Weight);
       
       sortedHoldings.forEach(holding => {
         const row = document.createElement('tr');
         
         row.innerHTML = `
-          <td>${holding.Ticker}</td>
-          <td>${holding.Name || holding.Ticker}</td>
+          <td>${holding.ticker}</td>
+          <td>${holding.Name || holding.ticker}</td>
           <td>${formatPercentage(holding.Weight)}</td>
         `;
         
@@ -1655,7 +1655,7 @@
       
       const topHoldingsTrace = {
         x: sortedHoldings.map(h => h.Weight),
-        y: sortedHoldings.map(h => h.Ticker),
+        y: sortedHoldings.map(h => h.ticker),
         type: 'bar',
         orientation: 'h',
         marker: {
@@ -1714,8 +1714,8 @@
         const returnValue = Math.random() * 0.2 - 0.05; // Random return between -5% and 15%
         
         row.innerHTML = `
-          <td>${holding.Ticker}</td>
-          <td>${holding.Name || holding.Ticker}</td>
+          <td>${holding.ticker}</td>
+          <td>${holding.Name || holding.ticker}</td>
           <td>${holding.Category || 'Stock'}</td>
           <td>${formatPercentage(holding.Weight)}</td>
           <td>$${(holding.Weight * 10000).toFixed(2)}</td>
@@ -1786,7 +1786,7 @@
         
         // Add rows to the portfolio assets table
         sortedHoldings.forEach(holding => {
-          const ticker = holding.Ticker;
+          const ticker = holding.ticker;
           const metrics = assetMetrics[ticker] || {
             name: holding.Name || ticker,
             cagr: Math.random() * 0.15,
@@ -1871,7 +1871,7 @@
         
         // Add rows to the portfolio asset performance table
         sortedHoldings.forEach(holding => {
-          const ticker = holding.Ticker;
+          const ticker = holding.ticker;
           const performance = assetPerformance[ticker] || {
             name: holding.Name || ticker,
             threeMonth: Math.random() * 0.2 - 0.1,
@@ -1928,7 +1928,7 @@
         
         // Add rows to the portfolio risk decomposition table
         sortedHoldings.forEach(holding => {
-          const ticker = holding.Ticker;
+          const ticker = holding.ticker;
           const risk = riskDecomposition[ticker] || {
             name: holding.Name || ticker,
             contribution: Math.random()
@@ -1976,7 +1976,7 @@
         
         // Add rows to the portfolio return decomposition table
         sortedHoldings.forEach(holding => {
-          const ticker = holding.Ticker;
+          const ticker = holding.ticker;
           const returnData = returnDecomposition[ticker] || {
             name: holding.Name || ticker,
             contribution: Math.random() * 1000 - 200

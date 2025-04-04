@@ -298,7 +298,9 @@ def get_portfolio_data(portfolio_id):
             # Get asset details from Yahoo Finance
             asset_details = get_asset_details(ticker)
             
+            # *** Updated: Include the ticker field in the holdings object ***
             holdings.append({
+                "ticker": ticker,  # <-- Added this line to include the ticker
                 'Weight': float(entry['allocation']) if entry.get('allocation') not in [None, ''] else 0.0,
                 'Category': asset_details['Category'],
                 'Name': asset_details['Name'],
@@ -460,6 +462,7 @@ def get_portfolio_data(portfolio_id):
         print(f"Error in get_portfolio_data: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/portfolio/upload', methods=['POST'])
 def upload_csv():
