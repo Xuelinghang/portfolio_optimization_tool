@@ -127,11 +127,12 @@ def saved_portfolios():
         except:
             num_assets = 0
             
+        created_at = getattr(portfolio, 'created_at', None) or getattr(portfolio, 'purchase_date', None)    
         enhanced_portfolios.append({
             'id': portfolio.id,
             'portfolio_name': portfolio.portfolio_name,
             'num_assets': num_assets,
-            'created_at': portfolio.purchase_date
+            'created_at': created_at
         })
     
     return render_template('saved-portfolios.html', username=username, portfolios=enhanced_portfolios)
