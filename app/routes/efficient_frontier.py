@@ -83,10 +83,11 @@ def calculate_efficient_frontier():
             # Fallback to manual extraction
             tickers = []
             if isinstance(portfolio_data, dict):
-                for entry in portfolio_data:
-                    if isinstance(entry, dict) and 'ticker' in entry:
-                        tickers.append(entry['ticker'])
-
+                for key, value in portfolio_data.items():
+                    if isinstance(value, dict) and 'ticker' in value:
+                        tickers.append(value['ticker'])
+                    elif key == 'ticker':
+                        tickers.append(value)
             
             if not tickers:
                 flash('Portfolio format not recognized. Please enter tickers manually.', 'warning')
@@ -175,7 +176,7 @@ def fetch_historical_data(tickers, start_date, end_date):
     end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
     
     # Create a date range (changed from 'M' to 'ME' as 'M' is deprecated)
-    date_range = pd.date_range(start=start_datetime, end=end_datetime, freq='ME')
+    date_range = pd.date_range(start=start_datetime, end=end_datetime, freq='M')
     
     # Initialize DataFrame with dates as index
     data = pd.DataFrame(index=date_range)
@@ -200,8 +201,11 @@ def fetch_historical_data(tickers, start_date, end_date):
                 values = [price.price for price in prices]
                 
                 if dates and values:
-                    price_series = pd.Series(values, index=dates).sort_index()
-                    price_series = price_series[~price_series.index.duplicated(keep='first')]
+                    price_series = pd.Series(values, index=dates)
+                    # Remove duplicate date entries
+                    price_series = price_series[~price_series.index.duplicated(keep='last')]
+                    # Resample to monthly frequency to match the date_range
+                    price_series = price_series.resample('M').last()
                     data[ticker] = price_series.reindex(date_range, method='ffill')
         
     # Replace any remaining NaN values with forward fill, then backward fill
@@ -780,20 +784,20 @@ def generate_efficient_frontier_chart(efficient_portfolios, tangency_portfolio, 
     # Create figure
     fig = go.Figure()
     
-    # Add efficient frontier line
+    # Add efficient frontier line (Risk vs. Return)
     fig.add_trace(go.Scatter(
-        x=efficient_portfolios['Tracking Error'],
-        y=efficient_portfolios['Active Return'],
+        x=efficient_portfolios['Risk'],
+        y=efficient_portfolios['Return'],
         mode='lines',
         name='Efficient Frontier',
         line=dict(color='blue', width=2)
     ))
     
-    # Add individual assets
+    # Add individual assets (using standard deviation vs. expected return)
     for i, asset in asset_metrics.iterrows():
         fig.add_trace(go.Scatter(
-            x=[asset['Tracking Error']],
-            y=[asset['Expected Active Return']],
+            x=[asset['Standard Deviation']],
+            y=[asset['Expected Return']],
             mode='markers',
             name=asset['Asset'],
             marker=dict(size=10, opacity=0.8),
@@ -802,8 +806,8 @@ def generate_efficient_frontier_chart(efficient_portfolios, tangency_portfolio, 
     
     # Add tangency portfolio
     fig.add_trace(go.Scatter(
-        x=[tangency_portfolio['tracking_error']],
-        y=[tangency_portfolio['active_return']],
+        x=[tangency_portfolio['risk']],
+        y=[tangency_portfolio['return']],
         mode='markers',
         name='Tangency Portfolio',
         marker=dict(size=12, symbol='star', color='green'),
@@ -812,8 +816,8 @@ def generate_efficient_frontier_chart(efficient_portfolios, tangency_portfolio, 
     
     # Add max information ratio portfolio
     fig.add_trace(go.Scatter(
-        x=[max_info_portfolio['tracking_error']],
-        y=[max_info_portfolio['active_return']],
+        x=[max_info_portfolio['risk']],
+        y=[max_info_portfolio['return']],
         mode='markers',
         name='Max Info Ratio Portfolio',
         marker=dict(size=12, symbol='star', color='purple'),
@@ -825,8 +829,8 @@ def generate_efficient_frontier_chart(efficient_portfolios, tangency_portfolio, 
     if equal_weight_index < len(efficient_portfolios):
         equal_weight = efficient_portfolios.iloc[equal_weight_index]
         fig.add_trace(go.Scatter(
-            x=[equal_weight['Tracking Error']],
-            y=[equal_weight['Active Return']],
+            x=[equal_weight['Risk']],
+            y=[equal_weight['Return']],
             mode='markers+text',
             name='222',
             marker=dict(size=10, color='black'),
@@ -836,9 +840,9 @@ def generate_efficient_frontier_chart(efficient_portfolios, tangency_portfolio, 
     
     # Update layout
     fig.update_layout(
-        title="Resampled Tracking Error Efficient Frontier",
-        xaxis_title="Tracking Error",
-        yaxis_title="Expected Active Return",
+        title="Mean-Variance Efficient Frontier",
+        xaxis_title="Annualized Risk (Std Dev)",
+        yaxis_title="Annualized Return",
         legend=dict(
             yanchor="top",
             y=0.99,
@@ -878,7 +882,7 @@ def generate_transition_map(efficient_portfolios):
     
     for asset in asset_columns:
         fig.add_trace(go.Scatter(
-            x=efficient_portfolios['Tracking Error'],
+            x=efficient_portfolios['Risk'],
             y=cumulative_weights + efficient_portfolios[asset] * 100,  # Convert to percentage
             mode='lines',
             name=asset,
@@ -889,8 +893,8 @@ def generate_transition_map(efficient_portfolios):
     
     # Update layout
     fig.update_layout(
-        title="Tracking Error Efficient Frontier Transition Map",
-        xaxis_title="Tracking Error",
+        title="Mean-Variance Efficient Frontier Transition Map",
+        xaxis_title="Annualized Risk (Std Dev)",
         yaxis_title="Allocation (%)",
         legend=dict(
             yanchor="top",
