@@ -6,6 +6,7 @@ from flask import (Blueprint, request, jsonify, session, redirect, url_for,
                    render_template, abort, send_file)
 from werkzeug.utils import secure_filename
 import pandas as pd
+import requests
 
 from app import db
 from app.models import Portfolio, Asset
@@ -46,7 +47,7 @@ def submit_manual_entry():
         except:
             portfolio_data = []
 
-    # Add new entry including both ticker and name
+    # Add new entry; allocation is computed as quantity * purchase_price (i.e., dollar amount)
     portfolio_data.append({
         "ticker": symbol,
         "name": symbol,  # Fallback: in manual entry, you might only have the symbol
@@ -135,12 +136,11 @@ def upload_csv():
                         })
                         continue
 
-                # Check for allocation
                 if 'Weight' in df.columns:
-                    # Parse percentage to decimal (remove % sign if present)
-                    weight_str = str(row['Weight']).replace('%', '')
+                    # Parse dollar amount from 'Weight' column (now representing dollar allocation)
+                    weight_str = str(row['Weight']).replace('$', '').replace(',', '').replace('%', '')
                     try:
-                        weight = float(weight_str) / 100 if '%' in str(row['Weight']) else float(weight_str)
+                        weight = float(weight_str)
                     except:
                         weight = 0
 
@@ -162,11 +162,10 @@ def upload_csv():
                     if balance <= 0:
                         continue
 
-                    # For Balance-based entries, store the ticker and fallback name
                     portfolio_data.append({
                         "ticker": ticker,
-                        "name": company_name,  # or simply ticker if name not available
-                        "balance": balance
+                        "name": company_name,
+                        "allocation": balance
                     })
 
             if len(portfolio_data) == 0:
@@ -181,18 +180,7 @@ def upload_csv():
                     os.remove(filepath)
                     return jsonify({"error": "No valid portfolio entries found in the CSV"}), 400
 
-            # Convert balance to allocation if needed
-            if 'Balance' in df.columns:
-                total_balance = sum(entry.get("balance", 0) for entry in portfolio_data)
-                if total_balance > 0:
-                    for entry in portfolio_data:
-                        entry["allocation"] = entry.get("balance", 0) / total_balance
-                        entry.pop("balance", None)
-            else:
-                total_allocation = sum(entry.get("allocation", 0) for entry in portfolio_data)
-                if total_allocation > 0:
-                    for entry in portfolio_data:
-                        entry["allocation"] = entry.get("allocation", 0) / total_allocation
+            # Remove normalization block; the raw dollar amounts remain as allocation
 
             # Create the portfolio
             portfolio_name = request.form.get('portfolioName', f"Imported Portfolio")
@@ -289,10 +277,10 @@ def download_portfolio(portfolio_id):
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Symbol", "Weight"])
+    writer.writerow(["Symbol", "Dollar Allocation"])
     for entry in portfolio_data:
         writer.writerow([
-            entry.get("ticker", ""), f"{entry.get('allocation', 0) * 100:.2f}%"
+            entry.get("ticker", ""), f"${entry.get('allocation', 0):,.2f}"
         ])
 
     output.seek(0)
