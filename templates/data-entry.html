@@ -476,7 +476,7 @@
       </a>
     </div>
     <div class="nav">
-      <a href="#">Markets</a>
+      <a href="{{ url_for('transactions_page') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
@@ -655,8 +655,8 @@
     
     // Parse existing portfolio data if in edit mode
     {% if portfolio and portfolio.portfolio_data %}
+      let portfolioData = {{ portfolio.portfolio_data|tojson }};
       try {
-        let portfolioData = JSON.parse('{{ portfolio.portfolio_data|safe }}');
         if (Array.isArray(portfolioData)) {
           portfolioEntries = portfolioData;
         }
@@ -665,7 +665,7 @@
       }
     {% endif %}
 
-    // Initialize with empty entries if none exist
+  // Initialize with empty entries if none exist
     if (portfolioEntries.length === 0) {
       for (let i = 0; i < 5; i++) {
         portfolioEntries.push({ ticker: "", allocation: "" });
@@ -678,29 +678,25 @@
       if (!ticker) return;
       
       try {
-        const response = await fetch(`/search-ticker?keyword=${ticker}`);
+        const response = await fetch(`/search-ticker?keyword=${encodeURIComponent(ticker)}`);
         if (!response.ok) throw new Error('Search failed');
-        
         const data = await response.json();
         
-        // Create and show suggestions dropdown
-        // Remove any existing dropdowns first
+        // Remove any existing dropdowns (if any)
         const existingDropdowns = document.querySelectorAll('.suggestions-row');
-        existingDropdowns.forEach(el => {
-          if (el.parentNode && el.parentNode.parentNode) {
-            el.parentNode.remove();
-          }
-        });
+        existingDropdowns.forEach(el => el.remove());
         
-        // Create dropdown positioned directly below the input
+        // Create a new dropdown container
         const dropdown = document.createElement('div');
+        if (!dropdown) {
+          console.error("Dropdown element creation failed.");
+          return;
+        }
         dropdown.className = 'suggestions-row';
         
-        // Set position absolute relative to the document
-        dropdown.style.position = 'absolute';
-        
-        // Calculate position to be exactly below the input
+        // Position the dropdown directly below the input
         const rect = tickerInput.getBoundingClientRect();
+        dropdown.style.position = 'absolute';
         dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
         dropdown.style.left = (rect.left + window.scrollX) + 'px';
         dropdown.style.width = rect.width + 'px';
@@ -718,27 +714,32 @@
             item.textContent = `${result.symbol} - ${result.name}`;
             item.addEventListener('click', () => {
               tickerInput.value = result.symbol;
-              dropdown.remove();
+              if (dropdown.parentNode) {
+                dropdown.parentNode.removeChild(dropdown);
+              }
             });
             dropdown.appendChild(item);
           });
         }
         
-        // Add dropdown directly to the document body for absolute positioning
+        // Append the dropdown to the body
         document.body.appendChild(dropdown);
         dropdown.style.display = 'block';
         
-        // Close dropdown when clicking outside
+        // Remove dropdown when clicking outside
         document.addEventListener('click', function closeDropdown(e) {
           if (!dropdown.contains(e.target) && e.target !== tickerInput) {
-            dropdown.remove();
+            if (dropdown.parentNode) {
+              dropdown.parentNode.removeChild(dropdown);
+            }
             document.removeEventListener('click', closeDropdown);
           }
         });
       } catch (error) {
-        console.error('Ticker search error:', error);
+        console.error("Ticker search error:", error);
       }
     }
+    
 
     // Tab switching logic with slider animation
     document.getElementById('manualTab').addEventListener('click', function() {

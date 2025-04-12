@@ -19,7 +19,7 @@ class Asset(db.Model):
     asset_type = db.Column(db.String(10), nullable=False)  # e.g., Stock, ETF, Bond, Crypto
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     
-    # Remove the Portfolio relationship here because our saved portfolio is stored separately.
+    # Removed direct relationship to Portfolio; portfolios are stored separately.
     market_data = db.relationship("MarketData", backref="asset", lazy=True)
 
 class Portfolio(db.Model):
@@ -36,3 +36,16 @@ class MarketData(db.Model):
     asset_id = db.Column(db.Integer, db.ForeignKey("asset.id"), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     price = db.Column(db.Float, nullable=False)
+    
+class Transaction(db.Model):
+    """Transaction model to store individual buy/sell orders."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    asset_id = db.Column(db.Integer, db.ForeignKey("asset.id"), nullable=False)
+    portfolio_id = db.Column(db.Integer, db.ForeignKey("portfolio.id"), nullable=False)  # New field: portfolio_id
+    transaction_type = db.Column(db.String(10), nullable=False)  # 'buy' or 'sell'
+    quantity = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    transaction_date = db.Column(db.DateTime, default=datetime.utcnow)
+    fees = db.Column(db.Float, nullable=True)   # New field: fees
+    notes = db.Column(db.Text, nullable=True)     # New field: notes

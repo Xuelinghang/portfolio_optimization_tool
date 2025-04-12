@@ -2,6 +2,9 @@ from flask import Blueprint, request, jsonify, session
 from app import db
 from app.models import MarketData, Asset
 from datetime import datetime
+import os
+
+ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY', '')
 
 market_bp = Blueprint("market", __name__)
 
@@ -93,3 +96,33 @@ def add_market_data():
     db.session.commit()
 
     return jsonify({"message": "Market data added successfully"}), 201
+
+@market_bp.route("/search-ticker", methods=["GET"])
+def search_ticker():
+    """
+    Search for ticker symbols using Alpha Vantage.
+    Query Parameter:
+      - keyword: The search term with at least 2 characters
+    """
+    keyword = request.args.get("keyword", "").strip()
+    if len(keyword) < 2:
+        return jsonify([])
+
+    alpha_vantage_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    if not alpha_vantage_key:
+        return jsonify({"error": "Alpha Vantage API key not configured"}), 500
+
+    url = f"https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={keyword}&apikey={ALPHA_VANTAGE_API_KEY}"
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        suggestions = []
+        if "bestMatches" in data:
+            for match in data["bestMatches"]:
+                suggestions.append({
+                    "symbol": match.get("1. symbol", ""),
+                    "name": match.get("2. name", "")
+                })
+        return jsonify(suggestions)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

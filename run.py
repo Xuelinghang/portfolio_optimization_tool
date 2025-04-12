@@ -5,7 +5,7 @@ from flask_bcrypt import Bcrypt
 import json
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import requests
 from alpha_vantage.fundamentaldata import FundamentalData
 from alpha_vantage.timeseries import TimeSeries
@@ -18,6 +18,8 @@ from app.market_fetcher import fetch_market_data
 # Create Flask application
 app = create_app()
 bcrypt = Bcrypt(app)
+
+from app.routes.portfolio_api import portfolio_bp
 
 # Create all database tables if they don't exist
 with app.app_context():
@@ -122,17 +124,16 @@ def saved_portfolios():
     enhanced_portfolios = []
     for portfolio in portfolios:
         try:
-            portfolio_data = json.loads(portfolio.portfolio_data)
-            num_assets = len(portfolio_data) if isinstance(portfolio_data, list) else 0
-        except:
-            num_assets = 0
-            
-        created_at = getattr(portfolio, 'created_at', None) or getattr(portfolio, 'purchase_date', None)    
+            portfolio_entries = json.loads(portfolio.portfolio_data) if portfolio.portfolio_data else []
+        except Exception as e:
+            print(f"Error parsing portfolio data for portfolio {portfolio.id}: {e}")
+            portfolio_entries = []
+        valid_entries = [entry for entry in portfolio_entries if entry.get("ticker")]
         enhanced_portfolios.append({
-            'id': portfolio.id,
-            'portfolio_name': portfolio.portfolio_name,
-            'num_assets': num_assets,
-            'created_at': created_at
+            "id": portfolio.id,
+            "portfolio_name": portfolio.portfolio_name,
+            "num_assets": len(valid_entries),
+            "created_at": portfolio.purchase_date
         })
     
     return render_template('saved-portfolios.html', username=username, portfolios=enhanced_portfolios)
@@ -460,7 +461,7 @@ def upload_csv():
         # Check for required columns
         if not all(col in df.columns for col in ['Symbol', 'Weight']):
             if not all(col in df.columns for col in ['Symbol', 'Balance']):
-                return jsonify({"error": "CSV must contain Symbol column and either Weight or Balance column"}), 400
+                return jsonify({"error": "CSV must contain Symbol column and either Weight or Balance columns"}), 400
         
         # Process the data without normalizing; treat values as raw dollar amounts
         portfolio_entries = []
@@ -589,7 +590,7 @@ def search_ticker():
             
             if 'bestMatches' in data and data['bestMatches']:
                 results = []
-                for match in data['bestMatches']:
+                for match in data['bestMatches'][:3]:
                     results.append({
                         'symbol': match['1. symbol'],
                         'name': match['2. name']
@@ -763,6 +764,16 @@ def download_portfolio(portfolio_id):
         print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
+@app.route('/transactions')
+def transactions_page():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page'))
+    
+    username = session.get('username')
+    now_date = date.today().strftime('%Y-%m-%d')
+    return render_template('transactions.html', username=username, now_date=now_date)
+
+
 # Initialize market data fetcher at startup
 import threading
 
@@ -779,27 +790,6 @@ def init_market_data():
     except Exception as e:
         print(f"Warning: Could not initialize market data fetcher: {e}")
         return False
-
-@app.route('/refresh-market-data', methods=['GET'])
-def refresh_market_data():
-    """Manually refresh market data to get the most current data"""
-    if 'user_id' not in session:
-        return jsonify({"error": "Authentication required"}), 401
-    
-    try:
-        from app.market_fetcher import fetch_market_data
-        
-        fetch_market_data(historical=False)
-        fetch_market_data(historical=True)
-        
-        return jsonify({
-            "status": "success", 
-            "message": "Market data refreshed successfully with the most recent data available",
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        })
-    except Exception as e:
-        print(f"Market data refresh error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     market_thread = threading.Thread(target=init_market_data)

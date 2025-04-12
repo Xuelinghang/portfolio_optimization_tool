@@ -48,6 +48,10 @@ def create_app():
         app.register_blueprint(efficient_frontier_bp)
     except ImportError:
         pass
+    
+    # Register the transactions blueprint
+    from app.routes.transactions import transactions_bp
+    app.register_blueprint(transactions_bp, url_prefix="/transactions")
 
     app.register_blueprint(auth_bp)  # Now routes like "/" or "/login-page" are at the root.
     app.register_blueprint(portfolio_bp, url_prefix="/portfolio")

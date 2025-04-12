@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transaction History</title>
+  
+  <!-- Inter font for aesthetic headings -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Reference the CSS file from the static folder -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='transactions.css') }}">
+</head>
+
+<body>
+  <!-- HEADER: with logo and navigation dropdowns -->
+  <div class="header">
+    <div class="logo">
+      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+        <div class="logo-text">Portfolio Optimizer</div>
+      </a>
+    </div>
+    <div class="nav">
+      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <!-- Tools Dropdown -->
+      <div class="dropdown">
+        <a href="#">Tools</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+        </div>
+      </div>
+      <!-- My Models Dropdown -->
+      <div class="dropdown">
+        <a href="#">My Models</a>
+        <div class="dropdown-content">
+          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+        </div>
+      </div>
+      {% if username %}
+        <a href="{{ url_for('index') }}" style="text-decoration: none;"><span>Hello, {{ username }}!</span></a>
+        <a href="#" id="logoutButton">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT: Two-column layout -->
+  <div class="content">
+    <!-- LEFT COLUMN: Add New Transaction -->
+    <div class="add-transaction-section">
+      <div class="add-transaction-card animate-fade-up">
+        <h2>Add New Transaction</h2>
+        <form id="add-transaction-form">
+          <div class="form-group">
+            <label for="portfolio-select">Portfolio</label>
+            <select id="portfolio-select" name="portfolio" required>
+              <option value="">Select Portfolio</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="transaction-type">Transaction Type</label>
+            <select id="transaction-type" name="transaction_type" required>
+              <option value="">Select Type</option>
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
+          <!-- Ticker Input with Search Suggestions for the form -->
+          <div class="form-group ticker-wrapper">
+            <label for="ticker-input">Ticker</label>
+            <input type="text" id="ticker-input" name="ticker" required autocomplete="off">
+            <ul id="ticker-suggestions"></ul>
+          </div>
+          <div class="form-group">
+            <label for="transaction-date">Date</label>
+            <input type="date" id="transaction-date" name="transaction_date" required value="{{ now_date }}">
+          </div>
+          <div class="form-group">
+            <label for="quantity">Shares</label>
+            <input type="number" id="quantity" name="quantity" required>
+          </div>
+          <div class="form-group">
+            <label for="price-per-unit">Price per Unit</label>
+            <div class="input-group">
+              <span class="input-group-addon">$</span>
+              <input type="number" id="price-per-unit" name="price" step="0.01" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fees">Fees</label>
+            <div class="input-group">
+              <span class="input-group-addon">$</span>
+              <input type="number" id="fees" name="fees" value="0" step="0.01">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Transaction
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Transaction History -->
+    <div class="transaction-history-section">
+      <div class="transaction-history-card">
+        <div class="card-header">
+          <h2>Transaction History</h2>
+        </div>
+        <!-- Filters Row -->
+        <div class="filters">
+          <div class="filter-group">
+            <label for="transaction-type-filter">Transaction Type</label>
+            <select id="transaction-type-filter">
+              <option value="all">All Transactions</option>
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="date-range-filter">Date Range</label>
+            <select id="date-range-filter">
+              <option value="all">All Time</option>
+              <option value="1w">Last Week</option>
+              <option value="1m">Last Month</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="portfolio-filter">Portfolio</label>
+            <select id="portfolio-filter">
+              <option value="all">All Portfolios</option>
+            </select>
+          </div>
+          <!-- Ticker Filter with Search Suggestions -->
+          <div class="filter-group ticker-filter-wrapper">
+            <label for="ticker-filter">Ticker</label>
+            <input type="text" id="ticker-filter" placeholder="Ticker" autocomplete="off">
+            <ul id="ticker-filter-suggestions"></ul>
+          </div>
+        </div>
+          
+        <!-- Transaction Table with Headings -->
+        <table id="transactions-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Portfolio</th>
+              <th>Type</th>
+              <th>Ticker</th>
+              <th>Shares</th>
+              <th>Price</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Table rows populated via JavaScript -->
+          </tbody>
+        </table>
+
+        <!-- Example Pagination (optional) -->
+        <div class="pagination">
+          <span>Showing 1 to 3 of 3 entries</span>
+          <div class="pagination-buttons">
+            <button disabled>Previous</button>
+            <button disabled>Next</button>
+          </div>
+        </div>
+      </div>
+      <!-- Empty History Message -->
+      <div class="empty-history">
+        No transaction history available. Please add a new transaction.
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for fetching data, adding transactions, and ticker search -->
+  <script>
+    // Get references to elements
+    const portfolioSelect = document.getElementById('portfolio-select');
+    const portfolioFilter = document.getElementById('portfolio-filter');
+    const transactionTypeSelect = document.getElementById('transaction-type');
+    const tickerInput = document.getElementById('ticker-input');
+    const pricePerUnitInput = document.getElementById('price-per-unit');
+    const addTransactionForm = document.getElementById('add-transaction-form');
+    const transactionsTableBody = document.querySelector('#transactions-table tbody');
+    const transactionHistoryCard = document.querySelector('.transaction-history-card');
+    const emptyHistoryMessage = document.querySelector('.empty-history');
+    const tickerSuggestions = document.getElementById('ticker-suggestions');
+    const tickerFilter = document.getElementById('ticker-filter');
+    const tickerFilterSuggestions = document.getElementById('ticker-filter-suggestions');
+
+    // Function to fetch and populate portfolio options for both selects
+    async function fetchAndPopulatePortfolios() {
+      try {
+        const response = await fetch('/portfolio/');
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const portfolios = await response.json();
+        // Left panel select
+        portfolioSelect.innerHTML = '<option value="">Select Portfolio</option>';
+        portfolios.forEach(portfolio => {
+          const option = document.createElement('option');
+          option.value = portfolio.id;
+          option.textContent = portfolio.portfolio_name;
+          portfolioSelect.appendChild(option);
+        });
+        // Right panel filter
+        portfolioFilter.innerHTML = '<option value="all">All Portfolios</option>';
+        portfolios.forEach(portfolio => {
+          const option = document.createElement('option');
+          option.value = portfolio.id;
+          option.textContent = portfolio.portfolio_name;
+          portfolioFilter.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error fetching portfolios:', error);
+      }
+    }
+
+    // Function to fetch a ticker's latest price
+    async function fetchPrice(ticker) {
+      try {
+        const response = await fetch(`/market/${ticker}`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        return data.price;
+      } catch (error) {
+        console.error(`Error fetching price for ${ticker}:`, error);
+        return null;
+      }
+    }
+
+    // Debounced price lookup on ticker input (form)
+    let tickerInputTimer;
+    tickerInput.addEventListener('input', (e) => {
+      clearTimeout(tickerInputTimer);
+      tickerInputTimer = setTimeout(async () => {
+        const ticker = e.target.value.trim().toUpperCase();
+        if (ticker.length > 2) {
+          const price = await fetchPrice(ticker);
+          if (price !== null) {
+            pricePerUnitInput.value = price.toFixed(2);
+          }
+          // Fetch suggestions for the form ticker input
+          fetchTickerSuggestions(ticker, tickerSuggestions, tickerInput);
+        } else {
+          tickerSuggestions.innerHTML = '';
+        }
+      }, 300);
+    });
+
+    // Debounced ticker search for the filter input
+    let tickerFilterTimer;
+    tickerFilter.addEventListener('input', (e) => {
+      clearTimeout(tickerFilterTimer);
+      tickerFilterTimer = setTimeout(async () => {
+        const keyword = e.target.value.trim();
+        if (keyword.length >= 2) {
+          await fetchTickerSuggestions(keyword, tickerFilterSuggestions, tickerFilter);
+        } else {
+          tickerFilterSuggestions.innerHTML = '';
+        }
+      }, 300);
+    });
+
+    // Function to fetch ticker suggestions via backend search endpoint (using Alpha Vantage)
+    async function fetchTickerSuggestions(keyword, suggestionsContainer, inputElement) {
+      try {
+        const response = await fetch(`/market/search-ticker?keyword=${encodeURIComponent(keyword)}`);
+        if (response.ok) {
+          const suggestions = await response.json();
+          suggestionsContainer.innerHTML = '';
+          suggestions.forEach(sugg => {
+            const li = document.createElement('li');
+            li.textContent = `${sugg.symbol} - ${sugg.name}`;
+            li.addEventListener('click', () => {
+              inputElement.value = sugg.symbol;
+              suggestionsContainer.innerHTML = '';
+            });
+            suggestionsContainer.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching ticker suggestions:', error);
+      }
+    }
+
+    // Calculate total amount
+    function calculateTotal() {
+      const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+      const pricePerUnit = parseFloat(pricePerUnitInput.value) || 0;
+      const fees = parseFloat(document.getElementById('fees').value) || 0;
+      const total = (quantity * pricePerUnit) + fees;
+      // Update a DOM element to display total if needed
+    }
+    document.getElementById('quantity').addEventListener('input', calculateTotal);
+    pricePerUnitInput.addEventListener('input', calculateTotal);
+    document.getElementById('fees').addEventListener('input', calculateTotal);
+
+    // Fetch and display transactions
+    async function fetchAndDisplayTransactions() {
+      try {
+        const response = await fetch('/transactions/');
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const transactions = await response.json();
+        transactionHistoryCard.style.display = 'block';
+        emptyHistoryMessage.style.display = transactions.length === 0 ? 'block' : 'none';
+        transactionsTableBody.innerHTML = '';
+        transactions.forEach(t => {
+          const row = transactionsTableBody.insertRow();
+          row.innerHTML = `
+            <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
+            <td>${t.portfolio_id}</td>
+            <td>${t.transaction_type}</td>
+            <td>${t.ticker}</td>
+            <td>${t.quantity}</td>
+            <td>$${t.price.toFixed(2)}</td>
+            <td>$${((t.quantity * t.price) + t.fees).toFixed(2)}</td>
+            <td class="actions">
+              <button class="edit-btn" data-id="${t.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="feather feather-edit-2">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+              </button>
+              <button class="delete-btn" data-id="${t.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" class="feather feather-trash-2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4
+                          a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </td>
+          `;
+        });
+        addEditDeleteEventListeners();
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      }
+    }
+
+    // Add event listeners for edit and delete buttons
+    function addEditDeleteEventListeners() {
+      const editButtons = document.querySelectorAll('.edit-btn');
+      const deleteButtons = document.querySelectorAll('.delete-btn');
+      editButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const transactionId = button.dataset.id;
+          console.log('Edit clicked for transaction:', transactionId);
+          // Implement edit functionality as needed
+        });
+      });
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const transactionId = button.dataset.id;
+          console.log('Delete clicked for transaction:', transactionId);
+          // Implement delete functionality as needed
+        });
+      });
+    }
+
+    // Handle new transaction form submission
+    addTransactionForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(addTransactionForm);
+      const transactionData = Object.fromEntries(formData.entries());
+      try {
+        const response = await fetch('/transactions/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(transactionData)
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || `HTTP error! Status: ${response.status}`);
+        }
+        await response.json();
+        addTransactionForm.reset();
+        fetchAndDisplayTransactions();
+      } catch (error) {
+        console.error('Error adding transaction:', error);
+      }
+    });
+
+    // Initialize page on load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchAndPopulatePortfolios();
+      fetchAndDisplayTransactions();
+    });
+  </script>
+</body>
+</html>

@@ -11,8 +11,7 @@ import requests
 from app import db
 from app.models import Portfolio, Asset
 
-portfolio_bp = Blueprint("portfolio", __name__)
-
+portfolio_bp = Blueprint("portfolio_api", __name__)
 
 @portfolio_bp.route("/manual", methods=["POST"])
 def submit_manual_entry():
@@ -180,8 +179,6 @@ def upload_csv():
                     os.remove(filepath)
                     return jsonify({"error": "No valid portfolio entries found in the CSV"}), 400
 
-            # Remove normalization block; the raw dollar amounts remain as allocation
-
             # Create the portfolio
             portfolio_name = request.form.get('portfolioName', f"Imported Portfolio")
             for entry in portfolio_data:
@@ -288,3 +285,13 @@ def download_portfolio(portfolio_id):
                      mimetype='text/csv',
                      as_attachment=True,
                      download_name=f"{portfolio.portfolio_name}.csv")
+
+
+# >>> NEW ENDPOINT: GET /portfolio/ <<<
+@portfolio_bp.route('/', methods=['GET'])
+def get_portfolios():
+    if "user_id" not in session:
+        return jsonify({"error": "Authentication required"}), 401
+    portfolios = Portfolio.query.filter_by(user_id=session["user_id"]).all()
+    portfolio_list = [{"id": p.id, "portfolio_name": p.portfolio_name} for p in portfolios]
+    return jsonify(portfolio_list)

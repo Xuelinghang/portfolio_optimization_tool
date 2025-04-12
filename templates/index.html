@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,19 +11,23 @@
         opacity: 0;
         transform: translateY(20px);
       }
+
       100% {
         opacity: 1;
         transform: translateY(0);
       }
     }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
       background-color: #f0f9f0;
     }
+
     .animate-fade-up {
       animation: fadeSlideUp 0.8s ease-out forwards;
     }
+
     .card {
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       background-color: white;
@@ -34,14 +39,17 @@
       height: 100%;
       box-sizing: border-box;
     }
+
     .card:hover {
       transform: translateY(-4px);
       box-shadow: 0 12px 24px rgba(0, 128, 0, 0.12);
     }
+
     .dropdown {
       position: relative;
       display: inline-block;
     }
+
     .dropdown-content {
       display: none;
       position: absolute;
@@ -57,6 +65,7 @@
       opacity: 1;
       transform: translateY(0);
     }
+
     .dropdown-content a {
       display: block;
       padding: 0.75rem 1.25rem;
@@ -66,49 +75,55 @@
       font-weight: 500;
       border-left: 3px solid transparent;
     }
-    
+
     .dropdown-content a:hover {
       background-color: #f8f9fa;
       color: #2E7D32;
       border-left: 3px solid #4CAF50;
       padding-left: 1.5rem;
     }
-    
+
     .dropdown:hover .dropdown-content {
       display: block;
       opacity: 1;
       transform: translateY(0);
     }
+
     .header {
       background-color: white;
       padding: 10px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
       position: relative;
       z-index: 1000;
       overflow-x: visible;
     }
+
     .logo {
       display: flex;
       align-items: center;
     }
+
     .logo img {
       width: 30px;
       height: 30px;
       margin-right: 8px;
     }
+
     .logo-text {
       font-size: 18px;
       font-weight: bold;
       color: #0b5d1e;
     }
+
     .nav {
       display: flex;
       align-items: center;
       gap: 20px;
     }
+
     .nav a {
       color: #4a5568;
       font-weight: 600;
@@ -117,7 +132,7 @@
       position: relative;
       padding: 5px 0;
     }
-    
+
     .nav a::after {
       content: '';
       position: absolute;
@@ -128,53 +143,60 @@
       background-color: #2E7D32;
       transition: width 0.3s ease;
     }
-    
+
     .nav a:hover {
       color: #2E7D32;
     }
-    
+
     .nav a:hover::after {
       width: 100%;
     }
+
     .nav span {
       color: #2d3748;
       font-weight: bold;
     }
+
     .content {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 40px 20px;
     }
+
     @keyframes fadeUp {
       from {
         opacity: 0;
         transform: translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
-    
+
     .animate-fade-up {
       animation: fadeUp 0.8s ease-out forwards;
     }
-    
+
     .hero {
       text-align: center;
       margin-bottom: 40px;
     }
+
     .hero h1 {
       font-size: 36px;
       color: #1a3f1a;
       margin-bottom: 20px;
     }
+
     .hero p {
       font-size: 18px;
       color: #2d3748;
       margin-bottom: 30px;
     }
+
     .cta-button {
       background-color: #4CAF50;
       color: white;
@@ -184,9 +206,11 @@
       font-weight: bold;
       transition: background-color 0.3s ease;
     }
+
     .cta-button:hover {
       background-color: #45a049;
     }
+
     .features {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -194,7 +218,7 @@
       max-width: 800px;
       margin: 0 auto;
     }
-    
+
     .card {
       background-color: white;
       border-radius: 10px;
@@ -203,12 +227,12 @@
       transition: all 0.3s ease;
       border-top: 4px solid #2E7D32;
     }
-    
+
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
     }
-    
+
     .features h2 {
       color: #2f855a;
       margin-top: 0;
@@ -216,13 +240,13 @@
       font-weight: 600;
       margin-bottom: 12px;
     }
-    
+
     .features p {
       color: #4a5568;
       line-height: 1.6;
       margin: 0;
     }
-    
+
     @media (max-width: 768px) {
       .features {
         grid-template-columns: 1fr;
@@ -230,8 +254,8 @@
     }
   </style>
 </head>
+
 <body>
-  <!-- Header -->
   <div class="header">
     <div class="logo">
       <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
@@ -240,7 +264,7 @@
       </a>
     </div>
     <div class="nav">
-      <a href="#">Markets</a>
+      <a href="{{ url_for('transactions_page') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
@@ -267,7 +291,6 @@
     </div>
   </div>
 
-  <!-- Main Content -->
   <div class="content">
     <div class="hero animate-fade-up">
       <h1>Optimize Your Investment Portfolio</h1>
@@ -310,4 +333,5 @@
     });
   </script>
 </body>
+
 </html>
