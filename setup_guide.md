@@ -26,7 +26,7 @@ cd portfolio-optimizer
 ```
 
 ### 2. Create and Activate Virtual Environment (Optional but Recommended)
-```bash
+```bashs
 # On Windows
 python -m venv venv
 venv\Scripts\activate
