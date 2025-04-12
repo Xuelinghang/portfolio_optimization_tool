@@ -161,7 +161,7 @@ def save_portfolio():
     
     data = request.get_json()
     
-    # Create new portfolio
+    # Create new portfolio with the complete data (including start and end dates if provided)
     new_portfolio = Portfolio(
         user_id=session['user_id'],
         portfolio_name=data['portfolioName'],
@@ -232,7 +232,7 @@ def get_portfolio_data(portfolio_id):
         return jsonify({"error": "Portfolio not found"}), 404
     
     try:
-        # Parse portfolio data (contains tickers and allocations)
+        # Parse portfolio data (contains tickers, allocations, and start/end dates)
         portfolio_data = json.loads(portfolio.portfolio_data)
         
         # Import the market fetcher for real data
@@ -243,19 +243,15 @@ def get_portfolio_data(portfolio_id):
         
         # Helper to get asset details
         def get_asset_details(ticker):
-            # Try to get details from Yahoo Finance
             try:
                 import yfinance as yf
                 stock = yf.Ticker(ticker)
                 info = stock.info
-                
-                # Extract relevant details
                 category = 'ETF' if 'ETF' in info.get('quoteType', 'Stock') else info.get('quoteType', 'Stock')
                 name = info.get('shortName', ticker) 
                 pe_ratio = info.get('trailingPE', 0.0) or 0.0
                 div_yield = info.get('dividendYield', 0.0) or 0.0
                 expense_ratio = info.get('annualReportExpenseRatio', 0.0) or 0.0
-                
                 return {
                     'Category': category,
                     'Name': name,
@@ -264,7 +260,6 @@ def get_portfolio_data(portfolio_id):
                     'Expense_Ratio': expense_ratio
                 }
             except:
-                # Default values if no data available
                 return {
                     'Category': 'Stock',
                     'Name': ticker,
@@ -273,99 +268,78 @@ def get_portfolio_data(portfolio_id):
                     'Expense_Ratio': 0.0
                 }
         
-        # First, ensure we have assets in the database
+        # Ensure assets exist in database and build holdings including investment dates
         for entry in portfolio_data:
             ticker = entry['ticker']
-            # Check if the asset exists for this user
             user_id = portfolio.user_id
-            
             asset = Asset.query.filter_by(symbol=ticker, user_id=user_id).first()
             if not asset:
-                # Create the asset if it doesn't exist
-                asset_type = 'Stock'  # Default
-                # Determine asset type from ticker
+                asset_type = 'Stock'
                 if ticker.startswith('BTC') or ticker.startswith('ETH') or ticker.lower() in ['bitcoin', 'ethereum']:
                     asset_type = 'Crypto'
                 elif ticker in ['10YEAR', '5YEAR', '30YEAR', 'AGG', 'BND']:
                     asset_type = 'Bond'
                 elif ticker in ['SPY', 'QQQ', 'VTI', 'VOO']:
                     asset_type = 'ETF'
-                
                 asset = Asset(symbol=ticker, asset_type=asset_type, user_id=user_id)
                 db.session.add(asset)
                 db.session.commit()
+            
+            asset_details = get_asset_details(ticker)
+            holdings.append({
+                "ticker": ticker,
+                'Weight': float(entry['allocation']) if entry.get('allocation') not in [None, ''] else 0.0,
+                'Category': asset_details['Category'],
+                'Name': asset_details['Name'],
+                'Expense_Ratio': asset_details['Expense_Ratio'],
+                'Yield': asset_details['Yield'],
+                'PE': asset_details['PE'],
+                'start_date': entry.get("start_date", ""),
+                'end_date': entry.get("end_date", "")
+            })
         
-        # Try to get market data - if not enough in DB, fetch it
+        # Get market data for portfolio values
         prices = {}
         today = datetime.now()
-        
-        # First check if we have data in database
         asset_market_data = {}
         all_dates = set()
         
-        # Try to get historical data for all tickers
         for entry in portfolio_data:
             ticker = entry['ticker']
-            
-            # Get the asset from database
             asset = Asset.query.filter_by(symbol=ticker, user_id=portfolio.user_id).first()
-            
             if asset:
-                # Try getting data from database first
                 market_data = MarketData.query.filter_by(asset_id=asset.id).order_by(MarketData.date).all()
-                
-                if market_data and len(market_data) > 30:  # Require at least a month of data
+                if market_data and len(market_data) > 30:
                     dates = [data.date for data in market_data]
                     ticker_prices = [data.price for data in market_data]
-                    
                     for date in dates:
                         all_dates.add(date.strftime('%Y-%m-%d'))
-                    
                     prices[ticker] = ticker_prices
                     asset_market_data[ticker] = list(zip([d.strftime('%Y-%m-%d') for d in dates], ticker_prices))
                 else:
-                    # Fetch from API based on asset type
                     if asset.asset_type.lower() in ['stock', 'etf']:
                         df = fetch_yahoo_data(ticker, period="1y", interval="1d")
-                        
                         if isinstance(df, pd.DataFrame) and not df.empty and 'Close' in df.columns:
                             dates = df.index.tolist()
                             ticker_prices = df['Close'].tolist()
-                            
                             print(f"Ticker {ticker}: Got {len(dates)} data points from Yahoo Finance")
-                            
                             for date in dates:
                                 all_dates.add(date.strftime('%Y-%m-%d'))
-                            
                             prices[ticker] = ticker_prices
                             asset_market_data[ticker] = list(zip([d.strftime('%Y-%m-%d') for d in dates], ticker_prices))
-                            
-                            # Store in database for future use
                             for i, date in enumerate(dates):
-                                existing_data = MarketData.query.filter_by(
-                                    asset_id=asset.id, 
-                                    date=date
-                                ).first()
-                                
+                                existing_data = MarketData.query.filter_by(asset_id=asset.id, date=date).first()
                                 if not existing_data:
-                                    market_data = MarketData(
-                                        asset_id=asset.id,
-                                        date=date,
-                                        price=ticker_prices[i]
-                                    )
+                                    market_data = MarketData(asset_id=asset.id, date=date, price=ticker_prices[i])
                                     db.session.add(market_data)
-                            
                             db.session.commit()
         
-        # Convert all market data to a standard date range
         if all_dates:
             dates = sorted(list(all_dates))
-            
             for ticker in asset_market_data:
                 ticker_data_dict = dict(asset_market_data[ticker])
                 complete_prices = []
                 last_price = None
-                
                 for date in dates:
                     if date in ticker_data_dict:
                         price = ticker_data_dict[date]
@@ -374,59 +348,34 @@ def get_portfolio_data(portfolio_id):
                         price = last_price
                     else:
                         price = 100.0
-                        
                     complete_prices.append(price)
-                
                 prices[ticker] = complete_prices
         else:
             dates = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(365, 0, -1)]
-            
             for entry in portfolio_data:
                 ticker = entry['ticker']
-                
                 if ticker not in prices:
                     try:
                         df = fetch_yahoo_data(ticker, period="1y", interval="1d")
-                        
                         if isinstance(df, pd.DataFrame) and not df.empty and 'Close' in df.columns:
                             ticker_prices = []
                             date_dict = {date.strftime('%Y-%m-%d'): price for date, price in zip(df.index, df['Close'])}
-                            
                             for date in dates:
                                 if date in date_dict:
                                     ticker_prices.append(date_dict[date])
                                 else:
-                                    if ticker_prices:
-                                        ticker_prices.append(ticker_prices[-1])
-                                    else:
-                                        ticker_prices.append(100.0)
-                            
+                                    ticker_prices.append(ticker_prices[-1] if ticker_prices else 100.0)
                             prices[ticker] = ticker_prices
                         else:
                             prices[ticker] = [100.0] * len(dates)
                     except:
                         prices[ticker] = [100.0] * len(dates)
-            
+        
         failed_tickers = []
         for entry in portfolio_data:
             ticker = entry['ticker']
             if ticker not in prices or (len(prices[ticker]) < len(dates) * 0.9):
                 failed_tickers.append(ticker)
-        
-        # Build holdings with asset details
-        for entry in portfolio_data:
-            ticker = entry['ticker']
-            asset_details = get_asset_details(ticker)
-            
-            holdings.append({
-                "ticker": ticker,
-                'Weight': float(entry['allocation']) if entry.get('allocation') not in [None, ''] else 0.0,
-                'Category': asset_details['Category'],
-                'Name': asset_details['Name'],
-                'Expense_Ratio': asset_details['Expense_Ratio'],
-                'Yield': asset_details['Yield'],
-                'PE': asset_details['PE']
-            })
         
         return jsonify({
             'portfolio_name': portfolio.portfolio_name,
@@ -455,17 +404,14 @@ def upload_csv():
         return jsonify({"error": "Missing file or portfolio name"}), 400
     
     try:
-        # Read CSV file
         df = pd.read_csv(file)
         
-        # Check for required columns
+        # Check for required columns; allow optional Start Date and End Date columns
         if not all(col in df.columns for col in ['Symbol', 'Weight']):
             if not all(col in df.columns for col in ['Symbol', 'Balance']):
                 return jsonify({"error": "CSV must contain Symbol column and either Weight or Balance columns"}), 400
         
-        # Process the data without normalizing; treat values as raw dollar amounts
         portfolio_entries = []
-        
         if 'Weight' in df.columns:
             for _, row in df.iterrows():
                 weight_str = str(row['Weight']).replace('$', '').replace(',', '').replace('%', '')
@@ -473,23 +419,30 @@ def upload_csv():
                     weight = float(weight_str)
                 except:
                     weight = 0
+                start_date = row['Start Date'] if 'Start Date' in df.columns and pd.notnull(row['Start Date']) else ""
+                end_date = row['End Date'] if 'End Date' in df.columns and pd.notnull(row['End Date']) else ""
                 portfolio_entries.append({
                     'ticker': row['Symbol'],
-                    'allocation': weight
+                    'allocation': weight,
+                    'start_date': start_date,
+                    'end_date': end_date
                 })
-        elif 'Balance' in df.columns:
+        else:
             for _, row in df.iterrows():
                 balance_str = str(row['Balance']).replace('$', '').replace(',', '')
                 try:
                     balance = float(balance_str)
                 except:
                     balance = 0
+                start_date = row['Start Date'] if 'Start Date' in df.columns and pd.notnull(row['Start Date']) else ""
+                end_date = row['End Date'] if 'End Date' in df.columns and pd.notnull(row['End Date']) else ""
                 portfolio_entries.append({
                     'ticker': row['Symbol'],
-                    'allocation': balance
+                    'allocation': balance,
+                    'start_date': start_date,
+                    'end_date': end_date
                 })
         
-        # Create new portfolio
         new_portfolio = Portfolio(
             user_id=session['user_id'],
             portfolio_name=portfolio_name,
@@ -513,13 +466,10 @@ def validate_ticker():
     ticker = ticker.strip().upper()
     
     try:
-        # Try validating with Yahoo Finance first
         import yfinance as yf
-        
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
-            
             if info and 'symbol' in info and info['symbol']:
                 return jsonify({
                     "valid": True,
@@ -530,7 +480,6 @@ def validate_ticker():
                         "type": info.get('quoteType')
                     }
                 })
-                
         except Exception as e:
             print(f"Yahoo validation error for {ticker}: {str(e)}")
             
@@ -539,7 +488,6 @@ def validate_ticker():
             url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&apikey={alpha_vantage_key}"
             response = requests.get(url, timeout=10)
             data = response.json()
-            
             if 'Global Quote' in data and data['Global Quote'] and '01. symbol' in data['Global Quote']:
                 return jsonify({
                     "valid": True,
@@ -548,16 +496,13 @@ def validate_ticker():
                         "source": "Alpha Vantage"
                     }
                 })
-            
             search_url = f"https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={ticker}&apikey={alpha_vantage_key}"
             search_response = requests.get(search_url, timeout=10)
             search_data = search_response.json()
-            
             if 'bestMatches' in search_data and search_data['bestMatches']:
                 suggested_tickers = []
                 for match in search_data['bestMatches'][:3]:
                     suggested_tickers.append(match['1. symbol'])
-                
                 return jsonify({
                     "valid": False,
                     "message": f"Could not find exact match for {ticker}",
@@ -587,7 +532,6 @@ def search_ticker():
             url = f"https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={keyword}&apikey={alpha_vantage_key}"
             response = requests.get(url, timeout=10)
             data = response.json()
-            
             if 'bestMatches' in data and data['bestMatches']:
                 results = []
                 for match in data['bestMatches'][:3]:
@@ -600,7 +544,6 @@ def search_ticker():
         try:
             import yfinance as yf
             matches = []
-            
             try:
                 ticker = yf.Ticker(keyword.upper())
                 info = ticker.info
@@ -611,7 +554,6 @@ def search_ticker():
                     })
             except:
                 pass
-            
             if len(matches) < 5:
                 common_tickers = {
                     'AAPL': 'Apple Inc.',
@@ -631,20 +573,12 @@ def search_ticker():
                     'VEA': 'Vanguard FTSE Developed Markets ETF',
                     'VWO': 'Vanguard FTSE Emerging Markets ETF',
                     'BND': 'Vanguard Total Bond Market ETF',
-                    'AGG': 'iShares Core U.S. Aggregate Bond ETF',
-                    'DIA': 'SPDR Dow Jones Industrial Average ETF',
-                    'IWM': 'iShares Russell 2000 ETF',
-                    'GLD': 'SPDR Gold Shares',
-                    'SLV': 'iShares Silver Trust',
-                    'XLE': 'Energy Select Sector SPDR Fund',
-                    'XLF': 'Financial Select Sector SPDR Fund'
+                    'AGG': 'iShares Core U.S. Aggregate Bond ETF'
                 }
-                
                 for symbol, name in common_tickers.items():
                     if keyword.upper() in symbol or keyword.lower() in name.lower():
                         if not any(match['symbol'] == symbol for match in matches):
                             matches.append({'symbol': symbol, 'name': name})
-                
             return jsonify(matches[:10])
             
         except Exception as e:
@@ -670,11 +604,9 @@ def search_ticker():
                 'BND': 'Vanguard Total Bond Market ETF',
                 'AGG': 'iShares Core U.S. Aggregate Bond ETF'
             }
-            
             for symbol, name in common_tickers.items():
                 if keyword.upper() in symbol or keyword.lower() in name.lower():
                     sample_results.append({'symbol': symbol, 'name': name})
-            
             return jsonify(sample_results[:10])
             
     except Exception as e:
@@ -700,7 +632,6 @@ def download_portfolio(portfolio_id):
         for entry in portfolio_data:
             ticker = entry['ticker']
             asset = Asset.query.filter_by(symbol=ticker, user_id=session['user_id']).first()
-            
             if asset:
                 latest_price = MarketData.query.filter_by(asset_id=asset.id).order_by(MarketData.date.desc()).first()
                 if latest_price:
@@ -726,22 +657,20 @@ def download_portfolio(portfolio_id):
                 "date": today,
                 "holdings": []
             }
-            
             for entry in portfolio_data:
                 ticker = entry['ticker']
                 allocation = float(entry['allocation'])
                 price = prices.get(ticker, 100.0)
-                
                 output_data["holdings"].append({
                     "symbol": ticker,
                     "dollar_allocation": allocation,
+                    "start_date": entry.get("start_date", ""),
+                    "end_date": entry.get("end_date", ""),
                     "current_price": price
                 })
-                
             return jsonify(output_data)
-            
-        else:  # CSV format
-            csv_content = "Symbol,Dollar Allocation,Current_Price\n"
+        else:
+            csv_content = "Symbol,Dollar Allocation,Start Date,End Date,Current_Price\n"
             for entry in portfolio_data:
                 ticker = entry['ticker']
                 price = prices.get(ticker, '')
@@ -749,10 +678,10 @@ def download_portfolio(portfolio_id):
                     allocation = float(entry['allocation'])
                 except:
                     allocation = 0
-                csv_content += f"{ticker},${allocation:,.2f},{price}\n"
-            
+                start_date = entry.get("start_date", "")
+                end_date = entry.get("end_date", "")
+                csv_content += f"{ticker},${allocation:,.2f},{start_date},{end_date},{price}\n"
             filename = f"portfolio_{portfolio.portfolio_name.replace(' ', '_')}_{today}.csv"
-            
             return csv_content, 200, {
                 'Content-Type': 'text/csv',
                 'Content-Disposition': f'attachment; filename={filename}'
@@ -780,20 +709,43 @@ import threading
 def init_market_data():
     try:
         from app.market_fetcher import fetch_market_data, init
-        
         with app.app_context():
             scheduler = init()
             fetch_market_data(historical=False)
-            
             print("Market data fetcher initialized successfully")
             return True
     except Exception as e:
         print(f"Warning: Could not initialize market data fetcher: {e}")
         return False
 
+<<<<<<< HEAD
+=======
+@app.route('/refresh-market-data', methods=['GET'])
+def refresh_market_data():
+    """Manually refresh market data to get the most current data"""
+    if 'user_id' not in session:
+        return jsonify({"error": "Authentication required"}), 401
+    try:
+        from app.market_fetcher import fetch_market_data
+        fetch_market_data(historical=False)
+        fetch_market_data(historical=True)
+        return jsonify({
+            "status": "success", 
+            "message": "Market data refreshed successfully with the most recent data available",
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    except Exception as e:
+        print(f"Market data refresh error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+>>>>>>> fdcb5b16f17b2445f8572ebf07cb169f89153447
 if __name__ == '__main__':
     market_thread = threading.Thread(target=init_market_data)
     market_thread.daemon = True
     market_thread.start()
+<<<<<<< HEAD
     
     app.run(host='0.0.0.0', port=5050, debug=True)
+=======
+    app.run(host='0.0.0.0', port=5050, debug=True)
+>>>>>>> fdcb5b16f17b2445f8572ebf07cb169f89153447
