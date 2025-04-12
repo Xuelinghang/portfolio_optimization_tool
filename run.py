@@ -740,5 +740,10 @@ if __name__ == '__main__':
     market_thread = threading.Thread(target=init_market_data)
     market_thread.daemon = True
     market_thread.start()
+<<<<<<< HEAD
 
 app.run(host='0.0.0.0', port=5050, debug=True)
+=======
+    
+    app.run(host='0.0.0.0', port=5050, debug=True)
+>>>>>>> 255b454c545a6068a7945da7387d49af343c8bbe
