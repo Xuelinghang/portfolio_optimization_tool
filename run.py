@@ -718,8 +718,6 @@ def init_market_data():
         print(f"Warning: Could not initialize market data fetcher: {e}")
         return False
 
-<<<<<<< HEAD
-=======
 @app.route('/refresh-market-data', methods=['GET'])
 def refresh_market_data():
     """Manually refresh market data to get the most current data"""
@@ -738,14 +736,9 @@ def refresh_market_data():
         print(f"Market data refresh error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
->>>>>>> fdcb5b16f17b2445f8572ebf07cb169f89153447
 if __name__ == '__main__':
     market_thread = threading.Thread(target=init_market_data)
     market_thread.daemon = True
     market_thread.start()
-<<<<<<< HEAD
     
     app.run(host='0.0.0.0', port=5050, debug=True)
-=======
-    app.run(host='0.0.0.0', port=5050, debug=True)
->>>>>>> fdcb5b16f17b2445f8572ebf07cb169f89153447

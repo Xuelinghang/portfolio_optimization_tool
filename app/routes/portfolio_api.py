@@ -186,8 +186,6 @@ def upload_csv():
                     os.remove(filepath)
                     return jsonify({"error": "No valid portfolio entries found in the CSV"}), 400
 
-<<<<<<< HEAD
-=======
             # Normalize allocations: NOTE—if you wish to store raw dollar amounts, you may remove this normalization block.
             if 'Balance' in df.columns:
                 total_balance = sum(entry.get("balance", 0) for entry in portfolio_data)
@@ -201,7 +199,6 @@ def upload_csv():
                     for entry in portfolio_data:
                         entry["allocation"] = entry.get("allocation", 0) / total_allocation
 
->>>>>>> fdcb5b16f17b2445f8572ebf07cb169f89153447
             # Create the portfolio
             portfolio_name = request.form.get('portfolioName', f"Imported Portfolio")
             for entry in portfolio_data:
