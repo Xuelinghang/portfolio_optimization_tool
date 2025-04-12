@@ -48,10 +48,13 @@ def submit_manual_entry():
             portfolio_data = []
 
     # Add new entry; allocation is computed as quantity * purchase_price (i.e., dollar amount)
+    # Also include optional start_date and end_date if provided by the user.
     portfolio_data.append({
         "ticker": symbol,
         "name": symbol,  # Fallback: in manual entry, you might only have the symbol
-        "allocation": float(quantity) * float(purchase_price)
+        "allocation": float(quantity) * float(purchase_price),
+        "start_date": data.get("start_date", ""),
+        "end_date": data.get("end_date", "")
     })
 
     # Update portfolio
@@ -150,7 +153,9 @@ def upload_csv():
                     portfolio_data.append({
                         "ticker": ticker,
                         "name": company_name,  # Store the extracted company name
-                        "allocation": weight
+                        "allocation": weight,
+                        "start_date": str(row["Start Date"]) if "Start Date" in df.columns and pd.notnull(row["Start Date"]) else "",
+                        "end_date": str(row["End Date"]) if "End Date" in df.columns and pd.notnull(row["End Date"]) else ""
                     })
                 elif 'Balance' in df.columns:
                     balance_str = str(row['Balance']).replace('$', '').replace(',', '')
@@ -164,8 +169,10 @@ def upload_csv():
 
                     portfolio_data.append({
                         "ticker": ticker,
-                        "name": company_name,
-                        "allocation": balance
+                        "name": company_name,  # or simply ticker if name not available
+                        "allocation": balance,
+                        "start_date": str(row["Start Date"]) if "Start Date" in df.columns and pd.notnull(row["Start Date"]) else "",
+                        "end_date": str(row["End Date"]) if "End Date" in df.columns and pd.notnull(row["End Date"]) else ""
                     })
 
             if len(portfolio_data) == 0:
@@ -180,7 +187,18 @@ def upload_csv():
                     os.remove(filepath)
                     return jsonify({"error": "No valid portfolio entries found in the CSV"}), 400
 
-            # Remove normalization block; the raw dollar amounts remain as allocation
+            # Normalize allocations: NOTE—if you wish to store raw dollar amounts, you may remove this normalization block.
+            if 'Balance' in df.columns:
+                total_balance = sum(entry.get("balance", 0) for entry in portfolio_data)
+                if total_balance > 0:
+                    for entry in portfolio_data:
+                        entry["allocation"] = entry.get("balance", 0) / total_balance
+                        entry.pop("balance", None)
+            else:
+                total_allocation = sum(entry.get("allocation", 0) for entry in portfolio_data)
+                if total_allocation > 0:
+                    for entry in portfolio_data:
+                        entry["allocation"] = entry.get("allocation", 0) / total_allocation
 
             # Create the portfolio
             portfolio_name = request.form.get('portfolioName', f"Imported Portfolio")
@@ -277,10 +295,13 @@ def download_portfolio(portfolio_id):
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Symbol", "Dollar Allocation"])
+    writer.writerow(["Symbol", "Dollar Allocation", "Start Date", "End Date"])
     for entry in portfolio_data:
         writer.writerow([
-            entry.get("ticker", ""), f"${entry.get('allocation', 0):,.2f}"
+            entry.get("ticker", ""),
+            f"${entry.get('allocation', 0):,.2f}",
+            entry.get("start_date", ""),
+            entry.get("end_date", "")
         ])
 
     output.seek(0)
