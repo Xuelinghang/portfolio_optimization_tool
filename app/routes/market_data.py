@@ -3,6 +3,8 @@ from app import db
 from app.models import MarketData, Asset
 from datetime import datetime
 import os
+import requests
+import pandas as pd
 
 ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY', '')
 
@@ -108,8 +110,9 @@ def search_ticker():
     if len(keyword) < 2:
         return jsonify([])
 
-    alpha_vantage_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-    if not alpha_vantage_key:
+    # Try to use the API key
+    if not ALPHA_VANTAGE_API_KEY:
+        current_app.logger.error("Alpha Vantage API key not configured")
         return jsonify({"error": "Alpha Vantage API key not configured"}), 500
 
     url = f"https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords={keyword}&apikey={ALPHA_VANTAGE_API_KEY}"
@@ -125,4 +128,30 @@ def search_ticker():
                 })
         return jsonify(suggestions)
     except Exception as e:
+        current_app.logger.error(f"Search error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    
+@market_bp.route("/<ticker>", methods=["GET"])
+def get_market_data_by_ticker(ticker):
+    """Retrieve latest market data for a specific ticker symbol."""
+    try:
+        # Import here to avoid circular imports
+        from app.market_fetcher import fetch_yahoo_data
+        
+        price = fetch_yahoo_data(ticker)
+        
+        if price is None:
+            return jsonify({"error": f"Could not fetch data for {ticker}"}), 404
+            
+        # If price is a dataframe (historical data), get the latest close price
+        if isinstance(price, pd.DataFrame) and not price.empty:
+            price = price['Close'].iloc[-1]
+            
+        return jsonify({
+            "symbol": ticker,
+            "price": float(price),
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error fetching {ticker}: {str(e)}")
         return jsonify({"error": str(e)}), 500
