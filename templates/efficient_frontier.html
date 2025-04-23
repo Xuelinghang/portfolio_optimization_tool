@@ -6,13 +6,13 @@
   <title>Efficient Frontier | Portfolio Optimizer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
+
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
@@ -20,7 +20,7 @@
       color: #333;
       line-height: 1.6;
     }
-    
+
     .form-container {
       max-width: 900px;
       margin: 40px auto;
@@ -30,7 +30,7 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
       border: 1px solid rgba(0, 0, 0, 0.05);
     }
-    
+
     .header {
       background-color: white;
       padding: 15px 30px;
@@ -42,32 +42,32 @@
       top: 0;
       z-index: 100;
     }
-    
+
     .logo {
       display: flex;
       align-items: center;
     }
-    
+
     .logo img {
       width: 32px;
       height: 32px;
       margin-right: 12px;
       border-radius: 6px;
     }
-    
+
     .logo-text {
       font-size: 20px;
       font-weight: 700;
       color: #0b5d1e;
       letter-spacing: -0.5px;
     }
-    
+
     .nav {
       display: flex;
       align-items: center;
       gap: 30px;
     }
-    
+
     .nav a {
       color: #4a5568;
       font-weight: 600;
@@ -76,7 +76,7 @@
       position: relative;
       padding: 5px 0;
     }
-    
+
     .nav a::after {
       content: '';
       position: absolute;
@@ -87,25 +87,20 @@
       background-color: #2E7D32;
       transition: width 0.3s ease;
     }
-    
+
     .nav a:hover {
       color: #2E7D32;
     }
-    
+
     .nav a:hover::after {
       width: 100%;
     }
-    
-    .nav span {
-      color: #2d3748;
-      font-weight: 600;
-    }
-    
+
     .dropdown {
       position: relative;
       display: inline-block;
     }
-    
+
     .dropdown-content {
       display: none;
       position: absolute;
@@ -122,7 +117,7 @@
       transform: translateY(10px);
       transition: all 0.3s ease;
     }
-    
+
     .dropdown-content a {
       display: block;
       padding: 0.75rem 1.25rem;
@@ -132,20 +127,20 @@
       font-weight: 500;
       border-left: 3px solid transparent;
     }
-    
+
     .dropdown-content a:hover {
       background-color: #f8f9fa;
       color: #2E7D32;
       border-left: 3px solid #4CAF50;
       padding-left: 1.5rem;
     }
-    
+
     .dropdown:hover .dropdown-content {
       display: block;
       opacity: 1;
       transform: translateY(0);
     }
-    
+
     .page-title {
       position: relative;
       padding-bottom: 15px;
@@ -154,7 +149,7 @@
       font-size: 2.25rem;
       font-weight: 700;
     }
-    
+
     .page-title::after {
       content: "";
       position: absolute;
@@ -165,7 +160,7 @@
       background: linear-gradient(to right, #4CAF50, #81C784);
       border-radius: 2px;
     }
-    
+
     .section-title {
       font-size: 1.5rem;
       font-weight: 600;
@@ -174,18 +169,18 @@
       display: flex;
       align-items: center;
     }
-    
+
     .section-title svg {
       margin-right: 10px;
       color: #4CAF50;
     }
-    
+
     .section-description {
       color: #6b7280;
       margin-bottom: 20px;
       font-size: 1rem;
     }
-    
+
     .form-section {
       margin-bottom: 40px;
       background-color: #f9fbfa;
@@ -193,11 +188,11 @@
       border-radius: 12px;
       border: 1px solid rgba(76, 175, 80, 0.1);
     }
-    
+
     .form-group {
       margin-bottom: 20px;
     }
-    
+
     label {
       display: block;
       margin-bottom: 8px;
@@ -205,9 +200,10 @@
       color: #4a5568;
       font-size: 0.95rem;
     }
-    
+
     input[type="text"],
     input[type="number"],
+    input[type="date"], /* Added date input type */
     select,
     textarea {
       width: 100%;
@@ -221,35 +217,36 @@
       color: #4a5568;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     }
-    
+
     input[type="text"]:focus,
     input[type="number"]:focus,
+    input[type="date"]:focus, /* Added date input type */
     select:focus,
     textarea:focus {
       outline: none;
       border-color: #4CAF50;
       box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
     }
-    
+
     .date-inputs {
       display: flex;
       gap: 16px;
       align-items: flex-start;
       margin-bottom: 20px;
     }
-    
+
     .date-inputs .form-group {
       flex: 1;
       margin-bottom: 0;
     }
-    
+
     .radio-group {
       display: flex;
       flex-direction: column;
       gap: 12px;
       margin-bottom: 20px;
     }
-    
+
     .radio-option {
       display: flex;
       align-items: center;
@@ -258,32 +255,32 @@
       border-radius: 8px;
       transition: all 0.2s ease;
     }
-    
+
     .radio-option:hover {
       background-color: rgba(76, 175, 80, 0.05);
     }
-    
+
     .radio-option input[type="radio"] {
       margin-right: 10px;
       accent-color: #4CAF50;
       width: 18px;
       height: 18px;
     }
-    
+
     .radio-option label {
       margin-bottom: 0;
       cursor: pointer;
     }
-    
+
     .portfolio-selection {
       margin-top: 15px;
       padding: 15px;
       border-radius: 8px;
       background-color: white;
       border: 1px solid #e2e8f0;
-      display: none;
+      /* Removed default display:none; will control via JS */
     }
-    
+
     .input-hint {
       font-size: 0.875rem;
       color: #718096;
@@ -291,12 +288,12 @@
       display: flex;
       align-items: center;
     }
-    
+
     .input-hint svg {
       margin-right: 6px;
       flex-shrink: 0;
     }
-    
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -312,70 +309,61 @@
       transition: all 0.3s ease;
       box-shadow: 0 4px 6px rgba(0, 128, 0, 0.1);
     }
-    
+
     .btn:hover {
       background-color: #3d8b40;
       transform: translateY(-2px);
       box-shadow: 0 6px 12px rgba(0, 128, 0, 0.15);
     }
-    
+
     .btn-small {
       padding: 8px 16px;
       font-size: 0.875rem;
     }
-    
+
     .btn svg {
       margin-right: 8px;
     }
-    
-    .alert {
-      padding: 16px;
-      margin-bottom: 24px;
-      border-radius: 8px;
+
+    /* Asset Entry Row */
+    .asset-entry-row { /* Renamed from ticker-entry */
       display: flex;
-      align-items: flex-start;
-    }
-    
-    .alert svg {
-      margin-right: 12px;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-    
-    .alert-success {
-      background-color: #e6f4ea;
-      color: #1e4620;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .alert-danger {
-      background-color: #fae9eb;
-      color: #731c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .alert-warning {
-      background-color: #fff8e6;
-      color: #805d14;
-      border: 1px solid #ffe4b2;
-    }
-    
-    .ticker-entry {
-      display: flex;
-      align-items: center;
+      align-items: flex-start; /* Align items to the top */
       margin-bottom: 12px;
-      gap: 12px;
-      position: relative;
+      gap: 12px; /* Space between items */
+      position: relative; /* For suggestions dropdown */
     }
-    
-    .ticker-input {
-      flex: 2;
+
+    /* Containers for Ticker, Amount, Date inputs */
+    .asset-input-container { /* Renamed from ticker-input/allocation-input */
+      flex: 1; /* Make these take equal space */
+      min-width: 0; /* Allow shrinking */
+      position: relative; /* For suggestions/validation messages */
+      display: flex; /* Enable flexbox inside container */
+      flex-direction: column; /* Stack input and messages */
+      gap: 4px; /* Space between input and messages */
     }
-    
-    .allocation-input {
+
+    /* Specific container for Ticker to position messages below it */
+    .asset-ticker-container { /* Renamed from ticker-input */
       flex: 1;
+      min-width: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    
+
+
+    /* Styling for the actual inputs inside containers */
+    .asset-input-container input[type="text"],
+    .asset-input-container input[type="number"],
+    .asset-input-container input[type="date"] {
+       width: 100%; /* Input fills its container */
+       /* Inherit global input styles */
+    }
+
+
     .remove-btn {
       background-color: #ff5a5a;
       color: white;
@@ -388,19 +376,20 @@
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s ease;
-      flex-shrink: 0;
+      flex-shrink: 0; /* Prevent button from shrinking */
+      margin-top: 0; /* Align with top of inputs */
     }
-    
+
     .remove-btn:hover {
       background-color: #e04747;
       transform: scale(1.05);
     }
-    
-    .suggestions-dropdown {
+
+    .suggestions-dropdown { /* Kept class name for simplicity */
       position: absolute;
       top: calc(100% + 4px);
       left: 0;
-      width: calc(100% - 48px - 12px);
+      width: 100%; /* Match width of the asset input container */
       max-height: 200px;
       overflow-y: auto;
       background-color: white;
@@ -408,26 +397,49 @@
       border-radius: 8px;
       z-index: 1000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-sizing: border-box;
     }
-    
+
     .suggestion-item {
       padding: 10px 16px;
       cursor: pointer;
       border-bottom: 1px solid #f1f5f9;
       transition: all 0.2s ease;
     }
-    
+
     .suggestion-item:hover {
       background-color: #f8fafc;
     }
-    
+
+    .validation-message { /* Unified validation/warning class */
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        display: none; /* Hidden by default */
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .validation-error {
+        background-color: #fff3f3;
+        border: 1px solid #e53e3e;
+        color: #e53e3e;
+    }
+
+     .validation-warning {
+        background-color: #FFFAEB;
+        border: 1px solid #F59E0B;
+        color: #92400E;
+    }
+
+
     .actions-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: 40px;
     }
-    
+
     .back-link {
       display: flex;
       align-items: center;
@@ -437,161 +449,75 @@
       transition: all 0.2s ease;
       padding: 8px 0;
     }
-    
+
     .back-link:hover {
       color: #3d8b40;
     }
-    
+
     .back-link svg {
       margin-right: 6px;
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="header">
     <div class="logo">
-      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+      <a href="{{ url_for('auth.index') }}" style="text-decoration: none; display: flex; align-items: center;">
         <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
         <div class="logo-text">Portfolio Optimizer</div>
       </a>
     </div>
     <div class="nav">
-      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('transactions.get_transactions') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
           <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
-          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+          <a href="{{ url_for('portfolio_api.portfolio_analysis_selection') }}">Portfolio Analysis</a>
         </div>
       </div>
       <div class="dropdown">
         <a href="#">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('portfolio_api.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('portfolio_api.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
-      {% if username %}
-        <a href="{{ url_for('index') }}" style="text-decoration: none;">
-          <span>Hello, {{ username }}!</span>
+      {# Check if current_user is authenticated using Flask-Login #}
+      {% if current_user.is_authenticated %} {# <--- CHANGED check #}
+        {# Display username from current_user #}
+        <a href="{{ url_for('auth.index') }}" style="text-decoration: none;">
+          <span>Hello, {{ current_user.username }}!</span> {# <--- CHANGED to current_user.username #}
         </a>
-        <a href="#" id="logoutButton">Logout</a>
+        {# Provide a logout link (ensure backend route handles POST for logout) #}
+        <a href="#" id="logoutButton">Logout</a> {# The JS handles the POST request for logout #}
       {% else %}
-        <a href="{{ url_for('login_page') }}">Login</a>
-        <a href="{{ url_for('register_page') }}">Sign Up</a>
+        {# Show login and sign up links if not authenticated #}
+        <a href="{{ url_for('auth.login_page') }}">Login</a>
+        <a href="{{ url_for('auth.register_page') }}">Sign Up</a>
       {% endif %}
     </div>
   </div>
 
   <div class="form-container">
-    <h1 class="page-title">Efficient Frontier Analysis</h1>
-    
-    {% for category, message in get_flashed_messages(with_categories=true) %}
-      <div class="alert alert-{{ category }}">
-        {% if category == 'success' %}
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-        {% elif category == 'danger' %}
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        {% elif category == 'warning' %}
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-        {% endif %}
-        {{ message }}
-      </div>
-    {% endfor %}
-    
-    <form action="{{ url_for('efficient_frontier.calculate_efficient_frontier') }}" method="post">
-      <div class="form-section">
-        <h2 class="section-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          Date Range
-        </h2>
-        <p class="section-description">Select the time period for your efficient frontier analysis. Historical data within this range will be used to calculate optimal portfolios.</p>
-        
-        <div class="date-inputs">
-          <div class="form-group">
-            <label for="start_year">Start Year:</label>
-            <select id="start_year" name="start_year" required>
-              {% for year in range(2010, 2026) %}
-                <option value="{{ year }}">{{ year }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="start_month">Start Month:</label>
-            <select id="start_month" name="start_month">
-              <option value="01">January</option>
-              <option value="02">February</option>
-              <option value="03">March</option>
-              <option value="04">April</option>
-              <option value="05">May</option>
-              <option value="06">June</option>
-              <option value="07">July</option>
-              <option value="08">August</option>
-              <option value="09">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-          </div>
+    <form id="efficient-frontier-form" method="POST">
+      <h1 class="page-title">Efficient Frontier Analysis</h1>
+
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+        <div class="alert alert-{{ category }}">
+          {% if category == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          {% elif category == 'danger' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          {% elif category == 'warning' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          {% endif %}
+          {{ message }}
         </div>
-        
-        <div class="date-inputs">
-          <div class="form-group">
-            <label for="end_year">End Year:</label>
-            <select id="end_year" name="end_year" required>
-              {% for year in range(2010, 2026) %}
-                <option value="{{ year }}" {% if year == 2025 %}selected{% endif %}>{{ year }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="end_month">End Month:</label>
-            <select id="end_month" name="end_month">
-              <option value="01">January</option>
-              <option value="02">February</option>
-              <option value="03">March</option>
-              <option value="04">April</option>
-              <option value="05">May</option>
-              <option value="06">June</option>
-              <option value="07">July</option>
-              <option value="08">August</option>
-              <option value="09">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="input-hint">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          Longer time periods provide more data points but may include market conditions that are less relevant to current environment.
-        </div>
-      </div>
-      
+      {% endfor %}
+
+      {# REMOVED Analysis Date Range Section as requested #}
+
       <div class="form-section">
         <h2 class="section-title">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -601,37 +527,52 @@
           </svg>
           Portfolio Selection
         </h2>
-        <p class="section-description">Choose whether to use one of your existing portfolios or create a custom asset mix for the efficient frontier analysis.</p>
-        
+        <p class="section-description">Choose whether to analyze one of your existing portfolios or define a new set of assets for the efficient frontier calculation. If creating a new set, you can save it as a new portfolio.</p>
+
         <div class="radio-group">
           <div class="radio-option">
-            <input type="radio" id="existing_portfolio" name="portfolio_option" value="existing" checked>
-            <label for="existing_portfolio">Use an existing portfolio</label>
+            <input type="radio"
+                   id="existing_portfolio_radio"
+                   name="portfolio_option"
+                   value="existing"
+                   checked>
+            <label for="existing_portfolio_radio">Use an existing portfolio</label>
           </div>
-          
           <div class="radio-option">
-            <input type="radio" id="new_portfolio" name="portfolio_option" value="new">
-            <label for="new_portfolio">Create a new portfolio with custom tickers</label>
+            <input type="radio"
+                   id="new_portfolio_radio"
+                   name="portfolio_option"
+                   value="new">
+            <label for="new_portfolio_radio">Create a new portfolio with custom assets</label>
           </div>
         </div>
-        
+
         <div class="portfolio-selection" id="existing_portfolio_selection" style="display: block;">
           <div class="form-group">
             <label for="portfolio_id">Select Portfolio:</label>
-            <select id="portfolio_id" name="portfolio_id" required>
+            <select id="portfolio_id" name="portfolio_id">
+              {# Options populated by Flask backend #}
               {% for portfolio in portfolios %}
                 <option value="{{ portfolio.id }}">{{ portfolio.portfolio_name }}</option>
               {% endfor %}
             </select>
           </div>
         </div>
-        
-        <div class="portfolio-selection" id="new_portfolio_selection">
+
+        <div class="portfolio-selection" id="new_portfolio_selection" style="display: none;">
           <div class="form-group">
-            <div id="portfolio-entries">
-              <!-- Portfolio entries will be dynamically added here -->
-            </div>
-            <button type="button" id="add-ticker-btn" class="btn btn-small">
+            <label for="new_portfolio_name">Portfolio Name:</label>
+            <input type="text"
+                   id="new_portfolio_name"
+                   name="new_portfolio_name"
+                   placeholder="Name for the new portfolio"
+                   class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>Assets:</label>
+            <div id="asset-entries-container"></div>
+            <button type="button" id="add-asset-btn" class="btn btn-small">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -644,22 +585,20 @@
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
-              Enter ticker symbols (e.g., AAPL, MSFT, SPY). Type at least 2 characters to search for available tickers.
+              Enter ticker symbols, dollar amounts, and purchase dates.
             </div>
           </div>
         </div>
-        
       </div>
-      
+
       <div class="actions-container">
-        <a href="{{ url_for('index') }}" class="back-link">
+        <a href="{{ url_for('auth.index') }}" class="back-link">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           Back to Home
         </a>
-        
         <button type="submit" class="btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
@@ -670,159 +609,47 @@
       </div>
     </form>
   </div>
-  
+
   <script>
-    // Portfolio entries array
-    let portfolioEntries = [];
-    
-    // Initialize with 5 empty entries
-    for (let i = 0; i < 5; i++) {
-      portfolioEntries.push({ ticker: "", allocation: "" });
+    // Portfolio entries array for the 'new portfolio' option
+    // Renamed from portfolioEntries to be specific to the 'new' section
+    let newPortfolioEntries = [];
+
+    // Initialize with a few empty entries for the new portfolio form
+    for (let i = 0; i < 3; i++) {
+      newPortfolioEntries.push({ ticker: "", amount: "", purchase_date: "" });
     }
-    
-    // Show/hide portfolio selections based on radio button choice
-    document.querySelectorAll('input[name="portfolio_option"]').forEach(function(radio) {
-      radio.addEventListener('change', function() {
-        document.getElementById('existing_portfolio_selection').style.display = 
-          (this.value === 'existing') ? 'block' : 'none';
-          
-        document.getElementById('new_portfolio_selection').style.display = 
-          (this.value === 'new') ? 'block' : 'none';
-      });
-    });
-    
-    // Render portfolio entries when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-      renderPortfolioEntries();
-      
-      // Add ticker button event
-      document.getElementById('add-ticker-btn').addEventListener('click', function() {
-        portfolioEntries.push({ ticker: "", allocation: "" });
-        renderPortfolioEntries();
-      });
-      
-      // Form submission handling
-      document.querySelector('form').addEventListener('submit', function(e) {
-        // If using new portfolio option
-        if (document.getElementById('new_portfolio').checked) {
-          e.preventDefault();
-          
-          // Create hidden input for tickers
-          const tickersInput = document.createElement('input');
-          tickersInput.type = 'hidden';
-          tickersInput.name = 'tickers';
-          
-          // Collect all ticker values
-          const tickers = portfolioEntries
-            .filter(entry => entry.ticker.trim()) // Filter out empty entries
-            .map(entry => entry.ticker.trim())
-            .join(',');
-          
-          if (!tickers) {
-            alert('Please enter at least one ticker symbol');
-            return;
-          }
-          
-          tickersInput.value = tickers;
-          this.appendChild(tickersInput);
-          
-          // Submit the form
-          this.submit();
-        }
-      });
-    });
-    
-    // Render portfolio entries function
-    function renderPortfolioEntries() {
-      const container = document.getElementById('portfolio-entries');
-      container.innerHTML = '';
-      
-      portfolioEntries.forEach((entry, index) => {
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'ticker-entry';
-        
-        // Ticker input
-        const tickerInput = document.createElement('input');
-        tickerInput.type = 'text';
-        tickerInput.className = 'ticker-input';
-        tickerInput.placeholder = 'Ticker Symbol';
-        tickerInput.value = entry.ticker;
-        tickerInput.dataset.index = index;
-        
-        // Input event listener for ticker search
-        tickerInput.addEventListener('input', async function() {
-          const index = parseInt(this.dataset.index);
-          portfolioEntries[index].ticker = this.value;
-          
-          if (this.value.trim().length >= 2) {
-            await searchAlphaVantage(this);
-          }
-        });
-        
-        // Allocation input
-        const allocationInput = document.createElement('input');
-        allocationInput.type = 'number';
-        allocationInput.className = 'allocation-input';
-        allocationInput.placeholder = 'Weight %';
-        allocationInput.min = '0';
-        allocationInput.max = '100';
-        allocationInput.value = entry.allocation;
-        allocationInput.dataset.index = index;
-        
-        allocationInput.addEventListener('input', function() {
-          const index = parseInt(this.dataset.index);
-          portfolioEntries[index].allocation = this.value;
-        });
-        
-        // Remove button
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'remove-btn';
-        removeBtn.textContent = 'X';
-        removeBtn.dataset.index = index;
-        
-        removeBtn.addEventListener('click', function() {
-          const index = parseInt(this.dataset.index);
-          portfolioEntries.splice(index, 1);
-          renderPortfolioEntries();
-        });
-        
-        // Append elements to entry div
-        entryDiv.appendChild(tickerInput);
-        entryDiv.appendChild(allocationInput);
-        entryDiv.appendChild(removeBtn);
-        
-        // Append entry to container
-        container.appendChild(entryDiv);
-      });
-    }
-    
-    // Search for stock tickers using Alpha Vantage API
-    async function searchAlphaVantage(tickerInput) {
-      const ticker = tickerInput.value.trim().toUpperCase();
-      if (!ticker) return;
-      
+
+    // Get references to the portfolio selection divs
+    const existingPortfolioSelection = document.getElementById('existing_portfolio_selection');
+    const newPortfolioSelection = document.getElementById('new_portfolio_selection');
+    const assetEntriesContainer = document.getElementById('asset-entries-container'); // Container where asset rows are added
+
+    // Get references to the radio buttons and relevant inputs for required attribute handling
+    const existingPortfolioRadio = document.getElementById('existing_portfolio_radio');
+    const newPortfolioRadio = document.getElementById('new_portfolio_radio');
+    const portfolioIdSelect = document.getElementById('portfolio_id'); // Select element for existing portfolios
+    const newPortfolioNameInput = document.getElementById('new_portfolio_name'); // Input for new portfolio name
+
+    // --- Helper Functions ---
+
+    // Search for stock tickers using Alpha Vantage API (Reused from data-entry, ensure correct URL)
+    async function searchAlphaVantage(input) {
+      const keyword = input.value.trim().toUpperCase();
+      const container = input.parentElement; // The container holding the input and suggestions
+      container.querySelectorAll('.suggestions-dropdown').forEach(n => n.remove());
+      if (keyword.length < 2) return;
+
       try {
-        const response = await fetch(`/search-ticker?keyword=${ticker}`);
-        if (!response.ok) throw new Error('Search failed');
-        
-        const data = await response.json();
-        
-        // Create and show suggestions dropdown
-        // Remove any existing dropdowns first
-        const existingDropdowns = document.querySelectorAll('.suggestions-dropdown');
-        existingDropdowns.forEach(el => el.remove());
-        
-        // Create new dropdown
+        const res = await fetch(`/portfolio/search-ticker?keyword=${encodeURIComponent(keyword)}`);
+        if (res.status === 429) { console.warn("Ticker search rate limit exceeded."); return; }
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+
         const dropdown = document.createElement('div');
         dropdown.className = 'suggestions-dropdown';
-        
-        // Position dropdown relative to input
-        const inputRect = tickerInput.getBoundingClientRect();
-        dropdown.style.width = inputRect.width + 'px';
-        
-        // Add suggestions to dropdown
-        if (!data || data.length === 0) {
+
+        if (data.length === 0) {
           const item = document.createElement('div');
           item.className = 'suggestion-item';
           item.textContent = 'No results found';
@@ -831,44 +658,553 @@
           data.forEach(result => {
             const item = document.createElement('div');
             item.className = 'suggestion-item';
-            item.textContent = `${result.symbol} - ${result.name}`;
+            item.textContent = `${result.symbol} – ${result.name}`;
             item.addEventListener('click', () => {
-              tickerInput.value = result.symbol;
-              const index = parseInt(tickerInput.dataset.index);
-              portfolioEntries[index].ticker = result.symbol;
+              input.value = result.symbol;
+              const index = parseInt(input.dataset.index);
+              newPortfolioEntries[index].ticker = result.symbol; // Update the array
               dropdown.remove();
+              const validationError = input.parentElement.querySelector('.validation-error');
+              if (validationError) {
+                   validateTicker(result.symbol, validationError);
+              }
             });
             dropdown.appendChild(item);
           });
         }
-        
-        // Append dropdown to ticker input parent
-        tickerInput.parentNode.appendChild(dropdown);
-        
-        // Close dropdown when clicking outside
+
+        input.parentElement.appendChild(dropdown);
+
         document.addEventListener('click', function closeDropdown(e) {
-          if (!dropdown.contains(e.target) && e.target !== tickerInput) {
-            dropdown.remove();
-            document.removeEventListener('click', closeDropdown);
-          }
+            document.querySelectorAll('.suggestions-dropdown').forEach(dropdown => {
+                 const targetIsInput = e.target.tagName === 'INPUT' && (e.target.parentElement.classList.contains('asset-ticker-container'));
+                 if (!dropdown.contains(e.target) && !targetIsInput) {
+                     dropdown.remove();
+                 }
+            });
         });
+
+
       } catch (error) {
         console.error('Ticker search error:', error);
       }
     }
-    
-    // Logout handler
-    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
-      e.preventDefault();
-      try {
-        const response = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
-        if (response.ok) {
-          window.location.href = '/login-page';
+
+      // Function to validate ticker symbol (Reused from data-entry, ensure correct URL and class names)
+      async function validateTicker(ticker, errorElement) { // errorElement is the validation error div
+        if (!ticker.trim()) {
+          errorElement.style.display = 'none';
+          const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+          warningElement && (warningElement.style.display = 'none');
+          return false;
         }
-      } catch (err) {
-        console.error('Logout error:', err);
+        const sym = ticker.trim().toUpperCase();
+
+        try {
+          const res = await fetch(`/portfolio/validate-ticker?ticker=${encodeURIComponent(sym)}`);
+          if (res.status === 429) {
+            errorElement.textContent = 'Rate limit exceeded';
+            errorElement.style.display = 'block';
+            const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+            warningElement && (warningElement.style.display = 'none');
+            return false;
+          }
+          if (!res.ok) {
+            const data = await res.json();
+            errorElement.textContent = data.message
+              || (data.suggested_tickers?.length
+                  ? `Did you mean ${data.suggested_tickers.join(', ')}?`
+                  : 'Invalid ticker');
+            errorElement.style.display = 'block';
+            const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+            warningElement && (warningElement.style.display = 'none');
+            return false;
+          }
+          // valid (status is ok)
+          const data = await res.json();
+          if (data.valid) {
+              errorElement.style.display = 'none';
+              const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+              if (warningElement) {
+                    if (data.message) {
+                        warningElement.textContent = data.message;
+                        warningElement.style.display = 'block';
+                    } else {
+                        warningElement.style.display = 'none';
+                    }
+              }
+              return true;
+          } else {
+              errorElement.textContent = data.message || 'Validation failed.';
+              errorElement.style.display = 'block';
+              const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+              warningElement && (warningElement.style.display = 'none');
+              return false;
+          }
+
+
+        } catch (e) {
+          console.error('Validation error:', e);
+          errorElement.textContent = 'Validation failed';
+          errorElement.style.display = 'block';
+          const warningElement = errorElement.parentElement.querySelector('.validation-warning');
+          warningElement && (warningElement.style.display = 'none');
+          return false;
+        }
       }
-    });
+
+
+      // Render asset entry rows for the 'new portfolio' option (Modified for Ticker, Amount, Date)
+      function renderAssetEntries() { // Renamed from renderPortfolioEntries
+        console.log("--- renderAssetEntries called ---"); // ADD THIS CONSOLE LOG
+        assetEntriesContainer.innerHTML = ''; // Clear current entries
+
+        newPortfolioEntries.forEach((entry, index) => {
+          const entryDiv = document.createElement('div');
+          entryDiv.className = 'asset-entry-row'; // Use the new class name (flex container)
+
+          // Ticker Input Container (Flex item 1)
+          const tickerContainer = document.createElement('div');
+          tickerContainer.className = 'asset-ticker-container'; // Use specific class for ticker container
+          tickerContainer.style.flex = '1'; tickerContainer.style.minWidth = '0';
+
+          // Ticker input
+          const tickerInput = document.createElement('input');
+          tickerInput.type = 'text'; tickerInput.placeholder = 'Ticker Symbol';
+          tickerInput.value = entry.ticker; tickerInput.dataset.index = index;
+          tickerInput.style.width = '100%';
+
+
+          // Create validation error and warning elements
+          const validationError = document.createElement('div'); validationError.className = 'validation-message validation-error';
+          const validationWarning = document.createElement('div'); validationWarning.className = 'validation-message validation-warning';
+
+
+          // Input event listener for ticker search and validation
+          let searchTO, validTO;
+          tickerInput.addEventListener('input', function() {
+            const index = parseInt(this.dataset.index);
+            newPortfolioEntries[index].ticker = this.value;
+            validationError.style.display = validationWarning.style.display = 'none';
+            clearTimeout(searchTO); clearTimeout(validTO);
+            searchTO = setTimeout(() => searchAlphaVantage(this), 500);
+            validTO = setTimeout(() => validateTicker(this.value, validationError), 1200);
+          });
+          tickerContainer.append(tickerInput, validationError, validationWarning);
+
+          // Amount Input Container (Flex item 2)
+          const amountContainer = document.createElement('div');
+          amountContainer.className = 'asset-input-container';
+          amountContainer.style.flex = '1'; amountContainer.style.minWidth = '0';
+
+          // Dollar Amount input
+          const amountInput = document.createElement('input');
+          amountInput.type = 'number'; amountInput.placeholder = 'Dollar Amount';
+          amountInput.min = '0'; amountInput.step = '0.01';
+          amountInput.value = entry.amount; amountInput.dataset.index = index;
+          amountInput.style.width = '100%';
+
+          amountInput.addEventListener('input', function() {
+            const index = parseInt(this.dataset.index);
+            newPortfolioEntries[index].amount = this.value;
+          });
+          amountContainer.appendChild(amountInput);
+
+          // Date Input Container (Flex item 3)
+          const dateContainer = document.createElement('div');
+          dateContainer.className = 'asset-input-container';
+          dateContainer.style.flex = '1'; dateContainer.style.minWidth = '0';
+
+          // Purchase Date input
+          const dateInput = document.createElement('input');
+          dateInput.type = 'date'; dateInput.placeholder = 'Purchase Date';
+          dateInput.value = entry.purchase_date || ''; dateInput.dataset.index = index;
+          dateInput.style.width = '100%';
+
+          dateInput.addEventListener('input', function() {
+            const index = parseInt(this.dataset.index);
+            newPortfolioEntries[index].purchase_date = this.value;
+          });
+          dateContainer.appendChild(dateInput);
+
+          // Remove button (Flex item 4)
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button'; removeBtn.className = 'remove-btn';
+          removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+          removeBtn.dataset.index = index;
+          removeBtn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            newPortfolioEntries.splice(index, 1);
+            renderAssetEntries();
+          });
+
+          entryDiv.append(tickerContainer, amountContainer, dateContainer, removeBtn);
+          assetEntriesContainer.appendChild(entryDiv);
+        });
+      }
+
+      // Add asset entry function for the 'new portfolio' option
+      function addAssetEntry() {
+        newPortfolioEntries.push({ticker:'', amount:'', purchase_date:''});
+        renderAssetEntries();
+      }
+
+      // --- Event Listeners ---
+
+      // Show/hide portfolio selections based on radio button choice
+      document.querySelectorAll('input[name="portfolio_option"]').forEach(function(radio) {
+        // console.log("Attaching listener to radio button:", radio); // Keep or remove this log
+
+        radio.addEventListener('change', function() {
+          console.log("Radio button changed:", this.value);
+
+          const isExisting = (this.value === 'existing');
+
+          console.log("existingPortfolioSelection:", existingPortfolioSelection);
+          console.log("newPortfolioSelection:", newPortfolioSelection);
+          console.log("portfolioIdSelect:", portfolioIdSelect);
+          console.log("newPortfolioNameInput:", newPortfolioNameInput);
+
+
+          existingPortfolioSelection.style.display = isExisting ? 'block' : 'none';
+          newPortfolioSelection.style.display = isExisting ? 'none' : 'block';
+
+          if(portfolioIdSelect) portfolioIdSelect.required = isExisting;
+          if(newPortfolioNameInput) newPortfolioNameInput.required = !isExisting;
+
+
+          if (isExisting) {
+              newPortfolioEntries = [];
+              renderAssetEntries(); // Render empty list
+              if(newPortfolioNameInput) newPortfolioNameInput.value = '';
+          } else {
+              // If switching to new, add default empty rows if the list is empty
+              if (newPortfolioEntries.length === 0) {
+                    for (let i = 0; i < 3; i++) {
+                        newPortfolioEntries.push({ ticker: "", amount: "", purchase_date: "" });
+                    }
+                    renderAssetEntries(); // Render default rows
+              }
+          }
+        });
+      });
+
+      // Add asset button event listener (Use new button ID)
+      document.getElementById('add-asset-btn').addEventListener('click', addAssetEntry);
+
+
+      // Form submission handling (Modified for AJAX, new portfolio data, and date range)
+      document.getElementById('efficient-frontier-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        const originalButtonHtml = submitButton.innerHTML;
+        const originalButtonDisabled = submitButton.disabled;
+
+        submitButton.innerHTML = 'Processing...';
+        submitButton.disabled = true;
+
+        // Determine portfolio data to send
+        const portfolioOption = document.querySelector('input[name="portfolio_option"]:checked').value;
+        let payload = {}; // Start with an empty payload
+
+        if (portfolioOption === 'existing') {
+            // Get selected existing portfolio ID
+            const portfolioIdSelect = document.getElementById('portfolio_id');
+            const selectedPortfolioId = portfolioIdSelect.value;
+            if (!selectedPortfolioId) {
+                alert("Please select an existing portfolio.");
+                submitButton.innerHTML = originalButtonHtml; submitButton.disabled = false;
+                return;
+            }
+            payload.portfolio_id = selectedPortfolioId;
+            console.log(`Submitting for existing portfolio ID: ${selectedPortfolioId}`);
+
+
+        } else { // portfolioOption === 'new'
+            // Get new portfolio name and asset entries
+            const newPortfolioName = newPortfolioNameInput.value.trim();
+            if (!newPortfolioName) {
+                alert("Please enter a name for the new portfolio.");
+                submitButton.innerHTML = originalButtonHtml; submitButton.disabled = false;
+                return;
+            }
+
+            // Filter and validate new asset entries before sending
+            const validAssetEntries = newPortfolioEntries.filter(entry => {
+                const ticker = entry.ticker.trim();
+                const amount = entry.amount;
+                const date = entry.purchase_date;
+
+                // Require ticker and a non-empty amount
+                if (!ticker || amount === "") {
+                    return false;
+                }
+
+                // Basic amount validation (must be non-negative number)
+                const amountNum = parseFloat(amount);
+                if (isNaN(amountNum) || amountNum < 0) {
+                    alert(`Invalid dollar amount for ticker ${ticker}: "${amount}". Please enter a non-negative number.`);
+                    return false;
+                }
+
+                // Basic date format validation (YYYY-MM-DD)
+                if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    alert(`Invalid date format for ticker ${ticker}: "${date}". Please useYYYY-MM-DD.`);
+                    return false;
+                }
+
+                return true;
+            });
+
+
+            if (validAssetEntries.length === 0) {
+                alert("Please add at least one asset with a ticker symbol and a dollar amount for the new portfolio.");
+                submitButton.innerHTML = originalButtonHtml; submitButton.disabled = false;
+                return;
+            }
+
+            // Perform async ticker validations for new entries before submission
+            let hasValidationErrors = false;
+            const validationPromises = [];
+            // Ensure assetEntriesContainer exists before querying its children
+            if (assetEntriesContainer) {
+                const assetInputRows = assetEntriesContainer.querySelectorAll('.asset-entry-row');
+
+                for (const entry of validAssetEntries) {
+                      const ticker = entry.ticker.trim();
+
+                      // Find the specific validation error element for this entry's ticker input
+                      const correspondingInput = assetInputRows[newPortfolioEntries.findIndex(item => item === entry)]
+                                                  ?.querySelector('.asset-ticker-container input[type="text"]');
+
+                      const validationErrorElement = correspondingInput ? correspondingInput.parentElement.querySelector('.validation-error') : null;
+
+                      if (validationErrorElement) {
+                            const tickerValidPromise = validateTicker(ticker, validationErrorElement)
+                              .then(isValid => {
+                                if (!isValid) {
+                                  hasValidationErrors = true;
+                                }
+                                return isValid;
+                              });
+                            validationPromises.push(tickerValidPromise);
+                      } else {
+                          console.error(`Validation element not found for ticker ${ticker}. Cannot validate.`);
+                          hasValidationErrors = true;
+                      }
+                }
+            } else {
+                console.error("Asset entries container not found.");
+                hasValidationErrors = true;
+            }
+
+
+            try {
+                  await Promise.all(validationPromises);
+            } catch (validationFetchError) {
+                  console.error('Error during ticker validation promises:', validationFetchError);
+                  alert('An error occurred during ticker validation. Please check your connection.');
+                  submitButton.innerHTML = originalButtonHtml; submitButton.disabled = false;
+                  return;
+            }
+
+
+            if (hasValidationErrors) {
+                alert("Please correct the invalid asset entries before submitting.");
+                submitButton.innerHTML = originalButtonHtml; submitButton.disabled = false;
+                return;
+            }
+
+
+            // Prepare data payload for new portfolio creation
+            payload.new_portfolio_data = {
+                name: newPortfolioName,
+                assets: validAssetEntries.map(entry => ({
+                    ticker: entry.ticker.trim(),
+                    amount: parseFloat(entry.amount), // Send as number
+                    purchase_date: entry.purchase_date || null // Send date string or null
+                }))
+            };
+            console.log(`Submitting data for new portfolio: ${newPortfolioName}`);
+            console.log("Payload:", payload);
+
+
+        } // End of else (new portfolio)
+
+        // --- Send AJAX request to backend calculation route ---
+        try {
+          const response = await fetch("{{ url_for('efficient_frontier.calculate_efficient_frontier') }}", {
+            method: 'POST', // Or PUT, depending on backend route definition
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload), // Send the collected payload
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Backend Error:', errorData.error || response.statusText);
+            alert(errorData.error || `Error calculating efficient frontier. Status: ${response.status}`);
+            return;
+          }
+
+          // --- Handle Successful Response ---
+          // Assuming backend redirects to a results page upon success
+          if (response.redirected) {
+            window.location.href = response.url; // Follow the backend redirect (This part works if backend sends redirect)
+          } else {
+            // If backend returns JSON results, process them here <-- MODIFY THIS PART
+            const results = await response.json();
+            console.log("Received calculation results (JSON):", results);
+            // alert("Calculation successful. Check console for JSON results."); // Placeholder
+
+            // --- Add logic to redirect if JSON contains the 'redirect' key ---
+            if (results && results.redirect) {
+                window.location.href = results.redirect; // Navigate to the URL provided in the JSON
+            } else {
+                // Handle cases where backend returns OK but not a redirect or the expected JSON
+                console.warn("Calculation successful, but no redirect instruction received in JSON.");
+                alert("Calculation successful, but could not navigate to results page."); // Inform the user
+            }
+          }
+
+
+        } catch (error) {
+          console.error('Fetch or unexpected error:', error);
+          alert(`An unexpected error occurred during calculation: ${error.message}`);
+        } finally {
+          // Restore button state
+          const submitButton = e.target.querySelector('button[type="submit"]');
+          if (submitButton) {
+                submitButton.innerHTML = originalButtonHtml;
+                submitButton.disabled = originalButtonDisabled;
+          }
+        }
+      });
+
+
+      // Logout handler (Keep if present in this template's script)
+      document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+        e.preventDefault();
+        try {
+          const res = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+          if (res.ok) {
+            window.location.href = "{{ url_for('auth.login_page') }}";
+          } else {
+            const errorData = await res.json();
+            console.error('Logout failed:', errorData.error || res.statusText);
+            alert('Logout failed: ' + (errorData.error || res.statusText));
+          }
+        } catch (err) {
+          console.error('Logout fetch error:', err);
+          alert('An error occurred during logout.');
+        }
+      });
+
+
+      // --- Initial Page Setup ---
+
+      // Initialize the page when the DOM is fully loaded
+      document.addEventListener('DOMContentLoaded', function() {
+        // Get references again as DOMContentLoaded ensures elements exist
+        const existingPortfolioRadio = document.getElementById('existing_portfolio_radio');
+        const newPortfolioRadio = document.getElementById('new_portfolio_radio');
+        const existingPortfolioSelection = document.getElementById('existing_portfolio_selection');
+        const newPortfolioSelection = document.getElementById('new_portfolio_selection');
+        const portfolioIdSelect = document.getElementById('portfolio_id');
+        const newPortfolioNameInput = document.getElementById('new_portfolio_name');
+        const assetEntriesContainer = document.getElementById('asset-entries-container'); // Get container here
+
+
+        // Add event listeners to radio buttons
+        document.querySelectorAll('input[name="portfolio_option"]').forEach(function(radio) {
+          // console.log("Attaching listener to radio button:", radio); // Keep or remove this log
+
+          radio.addEventListener('change', function() { // <-- This is around line 854/855
+            console.log("Radio button changed:", this.value);
+
+            const isExisting = (this.value === 'existing');
+
+            console.log("existingPortfolioSelection:", existingPortfolioSelection);
+            console.log("newPortfolioSelection:", newPortfolioSelection);
+            console.log("portfolioIdSelect:", portfolioIdSelect);
+            console.log("newPortfolioNameInput:", newPortfolioNameInput);
+
+
+            existingPortfolioSelection.style.display = isExisting ? 'block' : 'none';
+            newPortfolioSelection.style.display = isExisting ? 'none' : 'block';
+
+            if(portfolioIdSelect) portfolioIdSelect.required = isExisting;
+            if(newPortfolioNameInput) newPortfolioNameInput.required = !isExisting;
+
+
+            if (isExisting) {
+                newPortfolioEntries = [];
+                renderAssetEntries(); // Render empty list
+                if(newPortfolioNameInput) newPortfolioNameInput.value = '';
+            } else {
+                // If switching to new, add default empty rows if the list is empty
+                if (newPortfolioEntries.length === 0) {
+                      for (let i = 0; i < 3; i++) {
+                          newPortfolioEntries.push({ ticker: "", amount: "", purchase_date: "" });
+                      }
+                      renderAssetEntries(); // Render default rows
+                }
+            }
+          });
+        });
+
+        // Set initial display state of selection divs based on default checked radio button on load
+        const defaultCheckedRadio = document.querySelector('input[name="portfolio_option"]:checked');
+        if (defaultCheckedRadio) {
+              const isExisting = (defaultCheckedRadio.value === 'existing');
+              existingPortfolioSelection.style.display = isExisting ? 'block' : 'none';
+              newPortfolioSelection.style.display = isExisting ? 'none' : 'block';
+
+              // Set initial required attributes based on default checked radio
+              if(portfolioIdSelect) portfolioIdSelect.required = isExisting;
+              if(newPortfolioNameInput) newPortfolioNameInput.required = !isExisting;
+
+              // Render initial asset entry rows for the 'new portfolio' section
+              renderAssetEntries(); // Render the new portfolio section
+
+              // If 'new' is the default checked, make sure it has rows if empty
+              if (!isExisting && newPortfolioEntries.length === 0) {
+                    for (let i = 0; i < 3; i++) {
+                        newPortfolioEntries.push({ ticker: "", amount: "", purchase_date: "" });
+                    }
+                    renderAssetEntries();
+              }
+
+        } else {
+            // Default behavior if no radio button is checked (default to existing)
+            if(existingPortfolioRadio) existingPortfolioRadio.checked = true;
+            existingPortfolioSelection.style.display = 'block';
+            newPortfolioSelection.style.display = 'none';
+              if(portfolioIdSelect) portfolioIdSelect.required = true;
+              if(newPortfolioNameInput) newPortfolioNameInput.required = false;
+              renderAssetEntries(); // Still render the new section structure
+        }
+
+      });
+
+      document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+        e.preventDefault(); // Prevent default link behavior
+        try {
+          const res = await fetch('/logout', { method: 'POST', credentials: 'same-origin' });
+          if (res.ok) {
+            window.location.href = "{{ url_for('auth.login_page') }}"; // Use url_for for redirect
+          } else {
+            const errorData = await res.json();
+            console.error('Logout failed:', errorData.error || res.statusText);
+            alert('Logout failed: ' + (errorData.error || res.statusText));
+          }
+        } catch (err) {
+          console.error('Logout fetch error:', err);
+          alert('An error occurred during logout.');
+        }
+      });
   </script>
 </body>
 </html>

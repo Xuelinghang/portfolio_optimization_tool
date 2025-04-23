@@ -89,4 +89,4 @@ The application uses several external financial data APIs:
 1. Install dependencies listed in dependencies.md
 2. The application already has API keys configured - no additional setup required
 3. Run the application with `python run.py`
-4. Access the web interface at http://localhost:5000
+4. Access the web interface at http://localhost:5000s

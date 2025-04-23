@@ -342,34 +342,39 @@
   <!-- Header -->
   <div class="header">
     <div class="logo">
-      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+      <a href="{{ url_for('auth.index') }}" style="text-decoration: none; display: flex; align-items: center;">
         <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
         <div class="logo-text">Portfolio Optimizer</div>
       </a>
     </div>
     <div class="nav">
-      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('transactions.get_transactions') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
           <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_api.portfolio_analysis_selection') }}">Portfolio Analysis</a>
         </div>
       </div>
       <div class="dropdown">
         <a href="#">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('portfolio_api.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('portfolio_api.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
-      {% if username %}
-        <a href="{{ url_for('index') }}" style="text-decoration: none;">
-          <span>Hello, {{ username }}!</span>
+      {# Check if current_user is authenticated using Flask-Login #}
+      {% if current_user.is_authenticated %} {# <--- CHANGED check #}
+        {# Display username from current_user #}
+        <a href="{{ url_for('auth.index') }}" style="text-decoration: none;">
+          <span>Hello, {{ current_user.username }}!</span> {# <--- CHANGED to current_user.username #}
         </a>
-        <a href="#" id="logoutButton">Logout</a>
+        {# Provide a logout link (ensure backend route handles POST for logout) #}
+        <a href="#" id="logoutButton">Logout</a> {# The JS handles the POST request for logout #}
       {% else %}
-        <a href="{{ url_for('login_page') }}">Login</a>
-        <a href="{{ url_for('register_page') }}">Sign Up</a>
+        {# Show login and sign up links if not authenticated #}
+        <a href="{{ url_for('auth.login_page') }}">Login</a>
+        <a href="{{ url_for('auth.register_page') }}">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -391,8 +396,8 @@
         <div id="data-source-indicator" style="margin-top: 5px;"></div>
       </div>
       <div class="portfolio-actions">
-        <a href="{{ url_for('data_entry') }}?portfolio_id={{ portfolio.id }}">Edit Portfolio</a>
-        <a href="{{ url_for('download_portfolio', portfolio_id=portfolio.id) }}">Download</a>
+        <a href="{{ url_for('portfolio_api.data_entry') }}?portfolio_id={{ portfolio.id }}">Edit Portfolio</a>
+        <a href="{{ url_for('portfolio_api.download_portfolio', portfolio_id=portfolio.id) }}">Download</a>
       </div>
     </div>
     
@@ -439,7 +444,7 @@
           <div style="width: 100%; max-width: 900px; margin: 0 auto;">
             <h2 style="color: #2f855a; font-size: 1.5rem; margin-bottom: 15px;">Portfolio Growth</h2>
             <p style="margin-bottom: 15px; line-height: 1.6;">
-              $10,000 invested in January 1, 2011 would be worth <span id="end-value" style="font-weight: bold;">$40,287</span> as of <span id="end-date">March 31, 2025</span>, 
+              $<span id="start-balance-sentence" style="font-weight: bold;">10,000</span> invested in <span id="start-date-sentence" style="font-weight: bold;">January 1, 2011</span> would be worth <span id="end-value" style="font-weight: bold;">$40,287</span> as of <span id="end-date">March 31, 2025</span>, 
               which represents a cumulative return of <span id="cumulative-return" style="font-weight: bold;">302.87%</span>.
             </p>
             <h3 style="color: #2f855a; font-size: 1.3rem; margin: 15px 0 10px 0;">Return</h3>
@@ -734,29 +739,6 @@
           </div>
         </div>
         
-        <!-- Portfolio Asset Performance table -->
-        <div class="chart-container">
-          <div style="width: 100%; max-width: 900px; margin: 0 auto;">
-            <h2 style="color: #2f855a; text-align: left; margin-bottom: 15px;">Portfolio Asset Performance</h2>
-            <table class="holdings-table" id="portfolio-asset-performance-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>3 Month</th>
-                  <th>Year To Date</th>
-                  <th>1 year</th>
-                  <th>Expense Ratio</th>
-                  <th>Net</th>
-                  <th>Gross</th>
-                </tr>
-              </thead>
-              <tbody id="portfolio-asset-performance-table-body">
-                <!-- Will be populated dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
         <!-- Portfolio Risk Decomposition table -->
         <div class="chart-container">
           <div style="width: 100%; max-width: 900px; margin: 0 auto;">
@@ -795,11 +777,6 @@
             </table>
             <p style="font-size: 0.9rem; color: #5a5a5a; margin-top: 10px;">Return attribution decomposes portfolio gains into its constituent parts and identifies the contribution to returns by each of the assets.</p>
           </div>
-        </div>
-        
-        <!-- Annual Asset Returns Visualization -->
-        <div class="chart-container">
-          <div id="annual-asset-returns-chart" style="height: 400px; margin: 0 auto; max-width: 900px;"></div>
         </div>
         
         <!-- All holdings table -->
@@ -852,84 +829,65 @@
       });
     });
     
-    // Fetch portfolio data
+    // Fetch portfolio data and metrics
     async function fetchPortfolioData() {
       try {
-        // Hide data warning banner by default
+        // 0) Hide any previous warning
         document.getElementById('data-warning-banner').style.display = 'none';
-        
-        // Show loading indicators
+    
+        // 1) Show all the loaders
         document.querySelectorAll('.loading').forEach(loader => {
           loader.style.display = 'flex';
-        });
-        document.querySelectorAll('.content').forEach(content => {
-          content.style.display = 'none';
-        });
-
-        // Add a status message to the loading indicators
-        document.querySelectorAll('.loading').forEach(loader => {
-          // Create status text element if it doesn't exist
           if (!loader.querySelector('.loading-status')) {
             const statusElem = document.createElement('div');
             statusElem.className = 'loading-status';
             statusElem.style.marginLeft = '20px';
             statusElem.style.fontStyle = 'italic';
-            statusElem.textContent = 'Fetching real market data...';
             loader.appendChild(statusElem);
           }
+          loader.querySelector('.loading-status').textContent = 'Fetching market data…';
         });
-        
-        console.log(`Fetching real-time market data for portfolio: ${portfolioId}`);
-        const response = await fetch(`/dashboard/data/${portfolioId}`);
-        if (!response.ok) throw new Error('Failed to fetch portfolio data');
-        
-        const data = await response.json();
-        console.log('Portfolio data fetched successfully');
-        portfolioData = data;
-        holdings = data.holdings;
-        prices = data.prices;
-        dates = data.dates;
-        
-        // Check if any tickers have incomplete data
-        const hasIncompleteData = data.failed_tickers && data.failed_tickers.length > 0;
-        if (hasIncompleteData) {
-          const warningBanner = document.getElementById('data-warning-banner');
-          warningBanner.style.display = 'flex';
-          
-          // If specific failed tickers are provided, show them in the message
-          if (data.failed_tickers.length > 0) {
-            const tickerList = data.failed_tickers.join(', ');
-            warningBanner.querySelector('span').textContent = 
-              `Some tickers (${tickerList}) had incomplete data and were excluded from historical analysis.`;
-          }
-          
-          // Add event listener to close button if not already added
-          const closeButton = warningBanner.querySelector('.close-button');
-          if (!closeButton.hasListener) {
-            closeButton.addEventListener('click', function() {
-              warningBanner.style.display = 'none';
-            });
-            closeButton.hasListener = true;
+        document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+    
+        console.log(`1) Fetching holdings & price data for portfolio ${portfolioId}`);
+        const respData = await fetch(`/portfolio/${portfolioId}/data`);
+        if (!respData.ok) throw new Error('Failed to fetch /data');
+        const data = await respData.json();
+        console.log('  → Data endpoint returned', data);
+    
+        // 2) Assign the market / holdings payload
+        holdings      = data.holdings;
+        prices        = data.prices;
+        dates         = data.dates;
+        failedTickers = data.failed_tickers || [];
+    
+        console.log(`2) Fetching analytics metrics for portfolio ${portfolioId}`);
+        document.querySelectorAll('.loading-status')
+                .forEach(el => el.textContent = 'Calculating metrics…');
+    
+        const respMetrics = await fetch(`/portfolio/metrics/${portfolioId}`);
+        if (!respMetrics.ok) throw new Error('Failed to fetch /metrics');
+        metrics = await respMetrics.json();
+        console.log('  → Metrics endpoint returned', metrics);
+    
+        // 4) Show warning if needed
+        if (failedTickers.length) {
+          const banner = document.getElementById('data-warning-banner');
+          banner.style.display = 'flex';
+          banner.querySelector('span').textContent =
+            `Some tickers (${failedTickers.join(', ')}) had incomplete data and were excluded.`;
+          const btn = banner.querySelector('.close-button');
+          if (!btn.hasAttribute('data-listener-added')) {
+            btn.addEventListener('click', () => banner.style.display = 'none');
+            btn.setAttribute('data-listener-added', 'true');
           }
         }
-        
-        // Log the retrieved data structure to help with debugging
-        console.log(`Holdings: ${holdings.length} assets`);
-        console.log(`Prices: ${Object.keys(prices).length} tickers`);
-        console.log(`Dates: ${dates.length} data points`);
-        
-        // Hide all loading indicators and show content
-        document.querySelectorAll('.loading').forEach(loader => {
-          loader.style.display = 'none';
-        });
-        document.querySelectorAll('.content').forEach(content => {
-          content.style.display = 'block';
-        });
-        
-        // Calculate metrics
-        calculateMetrics();
-        
-        // Render all charts and tables
+    
+        // 5) Hide loaders, show real content
+        document.querySelectorAll('.loading').forEach(l => l.style.display = 'none');
+        document.querySelectorAll('.content').forEach(c => c.style.display = 'block');
+    
+        // 6) Render all
         renderSummaryCharts();
         renderPerformanceCharts();
         renderAllocationCharts();
@@ -937,1066 +895,1020 @@
         renderDrawdownsCharts();
         renderMetricsCards();
         renderHoldingsTable();
-        
-        // Add refresh button
+        renderPortfolioAssetsTable();
+        renderPortfolioRiskDecompositionTable();
+        renderPortfolioReturnDecompositionTable();
+    
+        // 7) Add refresh button
         addRefreshButton();
+    
       } catch (error) {
-        console.error('Error fetching portfolio data:', error);
-        
-        // Show error message in loading indicators
+        console.error('fetchPortfolioData error:', error);
         document.querySelectorAll('.loading').forEach(loader => {
-          loader.innerHTML = `
-            <div style="color: red; text-align: center;">
-              <p>Error loading portfolio data</p>
-              <p style="font-size: 0.9rem;">${error.message}</p>
-              <button id="retry-button" style="margin-top: 10px; padding: 8px 16px; background-color: #2f855a; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                Retry
-              </button>
-            </div>
-          `;
-        });
-        
-        // Add event listener to retry button
-        document.querySelectorAll('#retry-button').forEach(button => {
-          button.addEventListener('click', fetchPortfolioData);
+          // clear existing children
+          loader.replaceChildren();
+          // build error UI
+          const container = document.createElement('div');
+          container.style.color = 'red';
+          container.style.textAlign = 'center';
+    
+          const p1 = document.createElement('p');
+          p1.textContent = 'Error loading data';
+          const p2 = document.createElement('p');
+          p2.style.fontSize = '0.9rem';
+          p2.textContent = error.message;
+    
+          const btn = document.createElement('button');
+          btn.textContent = 'Retry';
+          btn.style.marginTop = '8px';
+          btn.style.padding = '6px 12px';
+          btn.style.background = '#2f855a';
+          btn.style.color = 'white';
+          btn.style.border = 'none';
+          btn.style.borderRadius = '4px';
+          btn.style.cursor = 'pointer';
+          btn.addEventListener('click', fetchPortfolioData);
+    
+          container.append(p1, p2, btn);
+          loader.appendChild(container);
         });
       }
     }
-    
+
     // Add refresh button to the portfolio header
     function addRefreshButton() {
-      // Check if refresh button already exists
       if (!document.getElementById('refresh-data-button')) {
-        const refreshButton = document.createElement('a');
-        refreshButton.id = 'refresh-data-button';
-        refreshButton.href = '#';
-        refreshButton.textContent = 'Refresh Market Data';
-        refreshButton.className = 'refresh-button';
-        refreshButton.style.backgroundColor = '#4299e1';
-        
-        // Add click event to refresh data
-        refreshButton.addEventListener('click', function(e) {
+        const btn = document.createElement('a');
+        btn.id = 'refresh-data-button';
+        btn.href = '#';
+        btn.textContent = 'Refresh Market Data';
+        btn.className = 'refresh-button';
+        btn.style.backgroundColor = '#4299e1';
+        btn.addEventListener('click', e => {
           e.preventDefault();
           fetchPortfolioData();
         });
-        
-        // Add to portfolio actions
-        document.querySelector('.portfolio-actions').appendChild(refreshButton);
+        document.querySelector('.portfolio-actions').appendChild(btn);
       }
-      
-      // Add real-time data indicator
-      const dataSourceIndicator = document.getElementById('data-source-indicator');
-      if (dataSourceIndicator) {
-        // Get the current timestamp
+    
+      const indicator = document.getElementById('data-source-indicator');
+      if (indicator) {
+        // clear existing
+        indicator.replaceChildren();
+    
         const now = new Date();
-        const formattedTime = now.toLocaleTimeString();
-        const formattedDate = now.toLocaleDateString();
-        
-        // Create real-time data indicator
-        const indicator = document.createElement('span');
-        indicator.className = 'real-time-indicator';
-        indicator.innerHTML = `
-          <i class="fas fa-sync-alt" style="margin-right: 5px;"></i>
-          Using real market data
-          <span style="font-size: 0.75rem; display: block; margin-top: 3px; opacity: 0.8;">
-            Last updated: ${formattedTime} on ${formattedDate}
-          </span>
-        `;
-        
-        // Clear existing content and add indicator
-        dataSourceIndicator.innerHTML = '';
-        dataSourceIndicator.appendChild(indicator);
-        
-        // Add data source information based on which APIs are used
-        const dataSources = [];
-        if (Object.keys(prices).some(ticker => ticker.startsWith('BTC') || ticker.startsWith('ETH'))) {
-          dataSources.push('CoinGecko');
-        }
-        if (Object.keys(prices).some(ticker => ['AAPL', 'MSFT', 'AMZN', 'GOOGL'].includes(ticker))) {
-          dataSources.push('Yahoo Finance');
-        }
-        if (Object.keys(prices).some(ticker => ['10YEAR', '5YEAR', '30YEAR'].includes(ticker))) {
-          dataSources.push('Alpha Vantage');
-        }
-        
-        if (dataSources.length > 0) {
-          const sourcesText = document.createElement('div');
-          sourcesText.style.fontSize = '0.7rem';
-          sourcesText.style.marginTop = '3px';
-          sourcesText.style.color = '#4a5568';
-          sourcesText.textContent = `Data sources: ${dataSources.join(', ')}`;
-          indicator.appendChild(sourcesText);
+        const time = now.toLocaleTimeString();
+        const date = now.toLocaleDateString();
+    
+        const spanRoot = document.createElement('span');
+        spanRoot.className = 'real-time-indicator';
+    
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-sync-alt';
+        icon.style.marginRight = '5px';
+        spanRoot.appendChild(icon);
+    
+        spanRoot.appendChild(document.createTextNode('Using real market data'));
+    
+        const lastUpdated = document.createElement('span');
+        lastUpdated.style.fontSize = '0.75rem';
+        lastUpdated.style.display = 'block';
+        lastUpdated.style.marginTop = '3px';
+        lastUpdated.style.opacity = '0.8';
+        lastUpdated.textContent = `Last updated: ${time} on ${date}`;
+        spanRoot.appendChild(lastUpdated);
+    
+        indicator.appendChild(spanRoot);
+    
+        const sources = [];
+        if (Object.keys(prices).some(t => /^BTC|ETH/.test(t))) sources.push('CoinGecko');
+        if (Object.keys(prices).some(t => ['AAPL','MSFT','AMZN','GOOGL'].includes(t))) sources.push('Yahoo Finance');
+        if (Object.keys(prices).some(t => ['10YEAR','5YEAR','30YEAR'].includes(t))) sources.push('Alpha Vantage');
+    
+        if (sources.length) {
+          const div = document.createElement('div');
+          div.style.fontSize = '0.7rem';
+          div.style.marginTop = '3px';
+          div.style.color = '#4a5568';
+          div.textContent = `Data sources: ${sources.join(', ')}`;
+          spanRoot.appendChild(div);
         }
       }
     }
     
-    // Calculate portfolio metrics
-    function calculateMetrics() {
-      // Calculate portfolio values over time
-      const portfolioValues = dates.map((date, i) => {
-        let value = 0;
-        for (const holding of holdings) {
-          const ticker = holding.ticker;
-          const weight = holding.Weight;
-          if (prices[ticker] && prices[ticker][i]) {
-            value += prices[ticker][i] * weight;
-          }
-        }
-        return value;
-      });
-      
-      // Calculate portfolio returns
-      const portfolioReturns = portfolioValues.map((value, i) => {
-        if (i === 0) return 0;
-        return (value / portfolioValues[i-1]) - 1;
-      }).slice(1);
-      
-      // Calculate total return
-      const totalReturn = (portfolioValues[portfolioValues.length - 1] / portfolioValues[0]) - 1;
-      
-      // Calculate volatility (annualized standard deviation)
-      const meanReturn = portfolioReturns.reduce((sum, r) => sum + r, 0) / portfolioReturns.length;
-      const variance = portfolioReturns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / portfolioReturns.length;
-      const dailyStd = Math.sqrt(variance);
-      const annualizedStd = dailyStd * Math.sqrt(252); // Assuming 252 trading days in a year
-      
-      // Calculate Sharpe ratio (assuming risk-free rate of 0 for simplicity)
-      const annualizedReturn = Math.pow(1 + totalReturn, 365 / dates.length) - 1;
-      const sharpeRatio = annualizedReturn / annualizedStd;
-      
-      // Calculate max drawdown
-      let maxDrawdown = 0;
-      let peak = portfolioValues[0];
-      
-      for (const value of portfolioValues) {
-        if (value > peak) {
-          peak = value;
-        }
-        
-        const drawdown = (peak - value) / peak;
-        if (drawdown > maxDrawdown) {
-          maxDrawdown = drawdown;
-        }
-      }
-      
-      // Store metrics
-      metrics = {
-        totalReturn,
-        annualizedReturn,
-        volatility: annualizedStd,
-        sharpeRatio,
-        maxDrawdown,
-        portfolioValues,
-        portfolioReturns,
-      };
-      
-      // Update metrics on the page
-      document.getElementById('total-return').textContent = formatPercentage(totalReturn);
-      document.getElementById('volatility').textContent = formatPercentage(annualizedStd);
-      document.getElementById('sharpe-ratio').textContent = sharpeRatio.toFixed(2);
-      document.getElementById('max-drawdown').textContent = formatPercentage(maxDrawdown);
-      
-      document.getElementById('cagr').textContent = formatPercentage(annualizedReturn);
-      document.getElementById('std-dev').textContent = formatPercentage(annualizedStd);
-      document.getElementById('sharpe').textContent = sharpeRatio.toFixed(2);
-      document.getElementById('sortino').textContent = calculateSortinoRatio(portfolioReturns).toFixed(2);
-      document.getElementById('drawdown').textContent = formatPercentage(maxDrawdown);
-      document.getElementById('calmar').textContent = (annualizedReturn / maxDrawdown).toFixed(2);
-      document.getElementById('beta').textContent = '1.00'; // Placeholder
-      document.getElementById('alpha').textContent = '0.00%'; // Placeholder
-    }
     
     // Calculate Sortino ratio (uses only negative returns for denominator)
     function calculateSortinoRatio(returns) {
-      const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-      const annualizedReturn = meanReturn * 252; // Assuming 252 trading days
-      
+      // Ensure returns is not empty
+      if (!returns || returns.length === 0) {
+          return 0.0; // Return 0 if no returns data
+      }
+
+      const meanReturn = returns.reduce((s, r) => s + r, 0) / returns.length;
+      // Assuming annual risk-free rate of 0.02
+      const rf_rate = 0.02;
+      const annualizedReturn = meanReturn * 252; // Assuming 252 trading days - Check if this aligns with backend calculation frequency (backend uses monthly)
+
       // Calculate downside deviation (standard deviation of negative returns only)
       const negativeReturns = returns.filter(r => r < 0);
-      const meanNegativeReturn = negativeReturns.reduce((sum, r) => sum + r, 0) / negativeReturns.length;
-      const downsideVariance = negativeReturns.reduce((sum, r) => sum + Math.pow(r - meanNegativeReturn, 2), 0) / negativeReturns.length;
-      const downsideDeviation = Math.sqrt(downsideVariance) * Math.sqrt(252); // Annualized
-      
-      return annualizedReturn / downsideDeviation;
+      // Handle case where there are no negative returns
+      if (negativeReturns.length === 0) {
+          return meanReturn > 0 ? Infinity : 0.0; // Simplified: Infinity if mean return > 0 and no downside
+      }
+
+      const meanNegativeReturn = negativeReturns.reduce((s, r) => s + r, 0) / negativeReturns.length;
+      const downsideVariance = negativeReturns.reduce((s, r) => s + Math.pow(r - meanNegativeReturn, 2), 0) / negativeReturns.length; // Variance of negative returns
+      const backendDownsideDeviationAnnual = metrics.overall_metrics ? metrics.overall_metrics['Downside Deviation Annual'] / 100 : null; // Assuming key name and %
+
+      if (backendDownsideDeviationAnnual !== null && backendDownsideDeviationAnnual > 0) {
+           return (annualizedReturn - rf_rate) / backendDownsideDeviationAnnual;
+      } else {
+           return 0.0; // Handle division by zero or missing backend value
+      }
     }
     
     // Format percentage values
     function formatPercentage(value) {
+      if (typeof value !== 'number' || !isFinite(value)) {
+           return 'N/A'; // Handle invalid input
+      }
       return (value * 100).toFixed(2) + '%';
     }
     
     // Render summary tab charts
     function renderSummaryCharts() {
-      // Portfolio growth chart
-      const growthTrace = {
-        x: dates,
-        y: metrics.portfolioValues,
-        type: 'scatter',
-        mode: 'lines',
-        name: 'Portfolio Value',
-        line: {
-          color: '#2f855a',
-          width: 2
-        }
-      };
-      
-      const growthLayout = {
-        title: {
-          text: 'Portfolio Growth',
-          font: {
-            size: 24,
-            color: '#2f855a'
-          },
-          x: 0,  // Left-aligned title for consistency
-          xanchor: 'left'
-        },
-        xaxis: {
-          title: 'Date'
-        },
-        yaxis: {
-          title: 'Value'
-        },
-        showlegend: false,
-        legend: {
-          x: 0.5,
-          y: 1,
-          xanchor: 'center',
-          orientation: 'h'
-        },
-        margin: {
-          l: 50,
-          r: 50,
-          t: 80,
-          b: 80
-        }
-      };
-      
-      Plotly.newPlot('growth-chart', [growthTrace], growthLayout);
-      
-      // Create summary holdings table and donut chart
+      const dates = metrics.portfolio_growth_data?.dates || [];
+      const values = metrics.portfolio_growth_data?.values || [];
+      const el = document.getElementById('growth-chart');
+    
+      if (el && dates.length && values.length) {
+        const trace = {
+          x: dates, y: values, type: 'scatter', mode: 'lines',
+          name: 'Portfolio Value',
+          line: { color: '#2f855a', width: 2 }
+        };
+        const layout = {
+          title: { text: 'Portfolio Growth', font: { size: 24, color: '#2f855a' }, x: 0, xanchor: 'left' },
+          xaxis: { title: 'Date', type: 'date' },
+          yaxis: { title: 'Value' },
+          showlegend: false,
+          margin: { l:50,r:50,t:80,b:80 },
+          plot_bgcolor:'white', paper_bgcolor:'white'
+        };
+        Plotly.newPlot(el, [trace], layout);
+      } else {
+        console.warn("Portfolio growth data not available.");
+        // clear & show fallback
+        el.replaceChildren();
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.textContent = 'Portfolio growth data not available.';
+        el.appendChild(p);
+      }
+    
       renderSummaryHoldingsTable();
-      
-      // Note: The allocation pie chart is now only rendered in the donut-allocation-chart element
-      // instead of the non-existent allocation-chart
     }
     
+ 
     // Render summary holdings table and donut chart
     function renderSummaryHoldingsTable() {
-      // Populate the summary holdings table
-      const tableBody = document.getElementById('summary-holdings-table');
-      tableBody.innerHTML = '';
-      
-      // Sort holdings by weight (descending)
-      const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight);
-      
-      // Create a pie chart with the same data for allocation (used in renderSummaryCharts)
-      const allocationLabels = sortedHoldings.map(h => h.ticker);
-      const allocationValues = sortedHoldings.map(h => h.Weight);
-      
-      sortedHoldings.forEach(holding => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-          <td>${holding.ticker}</td>
-          <td>${holding.Name || holding.ticker}</td>
-          <td>${formatPercentage(holding.Weight)}</td>
-        `;
-        
-        tableBody.appendChild(row);
+      const tbody = document.getElementById('summary-holdings-table');
+      tbody.replaceChildren();
+    
+      const sorted = [...holdings].sort((a,b) => b.Weight - a.Weight);
+    
+      sorted.forEach(h => {
+        const tr = document.createElement('tr');
+    
+        // Ticker
+        const tdT = document.createElement('td');
+        tdT.textContent = h.ticker;
+        tr.appendChild(tdT);
+    
+        // Name (company_name from back-end)
+        const tdN = document.createElement('td');
+        tdN.textContent = h.Name || h.ticker;
+        tr.appendChild(tdN);
+    
+        // Allocation (h.Weight is already 0.2727 etc.)
+        const tdA = document.createElement('td');
+        tdA.textContent = formatPercentage(h.Weight);
+        tr.appendChild(tdA);
+    
+        tbody.appendChild(tr);
       });
-      
-      // Create donut chart for allocation
-      console.log('Sorted Holdings:', sortedHoldings);
-      const donutLabels = sortedHoldings.map(h => h.Name);
-      const donutValues = sortedHoldings.map(h => h.Weight);
-      
-      // Color palette that matches the screenshot
-      const colors = [
-        '#3b82f6', // Blue
-        '#10b981', // Green
-        '#6366f1', // Indigo
-        '#8b5cf6', // Purple
-        '#60a5fa', // Light blue
-        '#a5b4fc', // Light indigo
-        '#c4b5fd'  // Light purple
-      ];
-      
-      const donutTrace = {
-        labels: donutLabels,
-        values: donutValues,
-        type: 'pie',
-        hole: 0.4,
-        textinfo: 'label+percent',
-        textposition: 'outside',
-        automargin: true,
-        marker: {
-          colors: colors
-        }
-      };
-      
-      const donutLayout = {
-        showlegend: true,
-        legend: {
-          orientation: 'h',
-          y: -0.2,
-          x: 0.5,
-          xanchor: 'center'
-        },
-        margin: {
-          l: 30,
-          r: 30,
-          t: 30,
-          b: 0
-        },
-        height: 300
-      };
-      
-      Plotly.newPlot('donut-allocation-chart', [donutTrace], donutLayout);
-    }
+    
+      // redraw the donut
+      const labels = sorted.map(h => h.ticker);
+      const values = sorted.map(h => h.Weight);
+      Plotly.newPlot('donut-allocation-chart',[{
+        labels, values, type:'pie', hole:0.4,
+        textinfo:'label+percent', textposition:'outside',
+        marker:{ colors:['#3b82f6','#10b981','#6366f1','#8b5cf6','#60a5fa','#a5b4fc','#c4b5fd'] }
+      }],{
+        legend:{orientation:'h',y:-0.2,x:0.5,xanchor:'center'},
+        height:300
+      });
+    }    
     
     // Render performance tab charts
     function renderPerformanceCharts() {
-      // Cumulative return chart
-      const cumulativeReturns = metrics.portfolioValues.map((value, i) => {
-        return (value / metrics.portfolioValues[0]) - 1;
-      });
-      
-      const cumulativeTrace = {
-        x: dates,
-        y: cumulativeReturns,
-        type: 'scatter',
-        mode: 'lines',
-        name: '',  // Remove the legend label since it's redundant with the title
-        line: {
-          color: '#2f855a',
-          width: 2
-        }
-      };
-      
-      const cumulativeLayout = {
-        title: {
-          text: 'Cumulative Return',
-          font: {
-            size: 24,
-            color: '#2f855a'
-          },
-          x: 0,
-          xanchor: 'left'
-        },
-        xaxis: {
-          title: 'Date'
-        },
-        yaxis: {
-          title: 'Return',
-          tickformat: '.0%'
-        },
-        showlegend: false,
-        margin: {
-          l: 50,
-          r: 50,
-          t: 80,
-          b: 80
-        }
-      };
-      
-      Plotly.newPlot('cumulative-return-chart', [cumulativeTrace], cumulativeLayout);
-      
-      // Performance Summary Table
+      // Cumulative return chart - Use portfolio growth data
+      const growthDates = metrics.portfolio_growth_data ? metrics.portfolio_growth_data.dates : [];
+      const growthValues = metrics.portfolio_growth_data ? metrics.portfolio_growth_data.values : [];
+      const cumulativeReturnChartElement = document.getElementById('cumulative-return-chart');
+
+      if (cumulativeReturnChartElement && growthDates.length > 0 && growthValues.length > 0) {
+          // Calculate cumulative returns based on the fetched growth values
+          const cumulativeReturns = growthValues.map((value, i) => {
+            // Ensure the starting value is not zero to avoid division by zero
+            const startValue = growthValues[0];
+            return startValue !== 0 ? (value / startValue) - 1 : 0; // Return 0 if startValue is 0
+          });
+
+          const cumulativeTrace = {
+            x: growthDates, // Use the growth dates
+            y: cumulativeReturns, // Use the calculated cumulative returns
+            type: 'scatter',
+            mode: 'lines',
+            name: '', // Remove the legend label
+            line: {
+              color: '#2f855a',
+              width: 2
+            }
+          };
+
+          const cumulativeLayout = {
+            title: {
+              text: 'Cumulative Return',
+              font: {
+                size: 24,
+                color: '#2f855a'
+              },
+              x: 0,
+              xanchor: 'left'
+            },
+            xaxis: {
+              title: 'Date',
+              type: 'date' // Specify x-axis type as date
+            },
+            yaxis: {
+              title: 'Return',
+              tickformat: '.0%' // Format y-axis ticks as percentage
+            },
+            showlegend: false, // Hide legend
+            margin: {
+              l: 50, r: 50, t: 80, b: 80
+            },
+            plot_bgcolor: 'white',
+            paper_bgcolor: 'white'
+          };
+
+          Plotly.newPlot('cumulative-return-chart', [cumulativeTrace], cumulativeLayout);
+      } else {
+          console.warn("Portfolio growth data not available to render cumulative return chart.");
+          if (cumulativeReturnChartElement) {
+              cumulativeReturnChartElement.innerHTML = '<p style="text-align: center;">Cumulative return data not available.</p>';
+          }
+      }
       renderPerformanceSummaryTable();
     }
     
-    // Render performance summary table
     function renderPerformanceSummaryTable() {
-      // Example data for the performance table
-      const startBalance = 10000; // Initial portfolio value
-      const endBalance = metrics.portfolioValues[metrics.portfolioValues.length - 1];
-      const cagr = metrics.annualizedReturn;
-      const stdDev = metrics.volatility;
-      const maxDrawdown = metrics.maxDrawdown;
-      const sharpeRatio = metrics.sharpeRatio;
-      const sortinoRatio = calculateSortinoRatio(metrics.portfolioReturns);
-      
-      // Mock best and worst year data (for demonstration)
-      const bestYear = 5.37;
-      const worstYear = -2.06;
-      
-      // Update the performance summary table
-      document.getElementById('start-balance').textContent = `$${startBalance.toFixed(2)}`;
-      document.getElementById('end-balance').textContent = `$${endBalance.toFixed(2)}`;
-      document.getElementById('performance-cagr').textContent = formatPercentage(cagr);
-      document.getElementById('performance-std-dev').textContent = formatPercentage(stdDev);
-      document.getElementById('best-year').textContent = formatPercentage(bestYear/100);
-      document.getElementById('worst-year').textContent = formatPercentage(worstYear/100);
-      document.getElementById('performance-drawdown').textContent = formatPercentage(maxDrawdown);
-      document.getElementById('performance-sharpe').textContent = sharpeRatio.toFixed(2);
-      document.getElementById('performance-sortino').textContent = sortinoRatio.toFixed(2);
+      const m = metrics.overall_metrics || {};
+    
+      document.getElementById('start-balance').textContent =
+        m['Start Balance']   != null ? `$${m['Start Balance'].toFixed(2)}`      : 'N/A';
+    
+      document.getElementById('end-balance').textContent =
+        m['End Balance']     != null ? `$${m['End Balance'].toFixed(2)}`        : 'N/A';
+    
+      document.getElementById('performance-cagr').textContent =
+        m['Annualized Return (CAGR)'] != null
+          ? formatPercentage(m['Annualized Return (CAGR)'])
+          : 'N/A';
+    
+      document.getElementById('performance-std-dev').textContent =
+        m['Standard Deviation'] != null
+          ? formatPercentage(m['Standard Deviation'])
+          : 'N/A';
+    
+      // best_year / worst_year are strings:
+      document.getElementById('best-year').textContent =
+        m['best_year'] || 'N/A';
+      document.getElementById('worst-year').textContent =
+        m['worst_year'] || 'N/A';
+    
+      document.getElementById('performance-drawdown').textContent =
+        m['Maximum Drawdown'] != null
+          ? formatPercentage(m['Maximum Drawdown'])
+          : 'N/A';
+    
+      document.getElementById('performance-sharpe').textContent =
+        m['Sharpe Ratio'] != null
+          ? m['Sharpe Ratio'].toFixed(2)
+          : 'N/A';
+    
+      document.getElementById('performance-sortino').textContent =
+        m['Sortino Ratio'] != null
+          ? m['Sortino Ratio'].toFixed(2)
+          : 'N/A';
+    }    
+    
+    function renderReturnsCharts() {
+      // Pull data from metrics
+      const annualData  = metrics.annual_returns_portfolio  || {};
+      const monthlyData = metrics.monthly_returns_data      || {};
+      const growthDates = metrics.portfolio_growth_data?.dates  || [];
+      const growthValues= metrics.portfolio_growth_data?.values || [];
+    
+      // --- Annual Returns Table ---
+      const annualTbody = document.getElementById('annual-returns-table-body');
+      annualTbody.replaceChildren();
+      const years = Object.keys(annualData).sort();
+      if (years.length) {
+        years.forEach(year => {
+          const tr = document.createElement('tr');
+          // Year
+          const tdY = document.createElement('td');
+          tdY.textContent = year;
+          tr.appendChild(tdY);
+          // Inflation placeholder
+          const tdI = document.createElement('td');
+          tdI.textContent = formatPercentage(0);
+          tr.appendChild(tdI);
+          // Portfolio Return
+          const tdP = document.createElement('td');
+          tdP.style.color = annualData[year] >= 0 ? '#2f855a' : '#ef4444';
+          tdP.textContent = formatPercentage(annualData[year] / 100);
+          tr.appendChild(tdP);
+          // Balance (closest ≤ Dec 31)
+          const dec31 = new Date(`${year}-12-31`);
+          let idx = growthDates
+            .map(d => new Date(d))
+            .map((d,i) => ({ diff: d <= dec31 ? dec31 - d : Infinity, i }))
+            .sort((a,b) => a.diff - b.diff)[0].i;
+          const bal = idx >= 0 ? growthValues[idx] : null;
+          const tdB = document.createElement('td');
+          tdB.textContent = bal != null ? `$${bal.toFixed(2)}` : 'N/A';
+          tr.appendChild(tdB);
+    
+          annualTbody.appendChild(tr);
+        });
+      } else {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.style.textAlign = 'center';
+        td.textContent = 'No annual data available.';
+        tr.appendChild(td);
+        annualTbody.appendChild(tr);
+      }
+    
+      // --- Monthly Returns Table ---
+      const monthlyTbody = document.getElementById('monthly-returns-table-body');
+      monthlyTbody.replaceChildren();
+      const monthlyDates = Object.keys(monthlyData).sort().reverse().slice(0, 12);
+      if (monthlyDates.length) {
+        monthlyDates.forEach(ds => {
+          const tr = document.createElement('tr');
+          const [yr, mo] = ds.split('-');
+          // Year
+          const tdY = document.createElement('td');
+          tdY.textContent = yr;
+          tr.appendChild(tdY);
+          // Month
+          const dateObj = new Date(ds);
+          const tdM = document.createElement('td');
+          tdM.textContent = dateObj.toLocaleString('default', { month: 'short' });
+          tr.appendChild(tdM);
+          // Portfolio Return
+          const pr = monthlyData[ds]?.portfolio;
+          const tdPR = document.createElement('td');
+          tdPR.style.color = pr >= 0 ? '#2f855a' : '#ef4444';
+          tdPR.textContent = pr != null ? formatPercentage(pr / 100) : '-';
+          tr.appendChild(tdPR);
+          // Balance
+          const idxB = growthDates.indexOf(ds);
+          const balB = idxB >= 0 ? growthValues[idxB] : null;
+          const tdB2 = document.createElement('td');
+          tdB2.textContent = balB != null ? `$${balB.toFixed(2)}` : 'N/A';
+          tr.appendChild(tdB2);
+    
+          monthlyTbody.appendChild(tr);
+        });
+      } else {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.style.textAlign = 'center';
+        td.textContent = 'No monthly returns data available.';
+        tr.appendChild(td);
+        monthlyTbody.appendChild(tr);
+      }
+    
+      // --- Monthly Returns Heatmap ---
+      const heatElt = document.getElementById('returns-heatmap-chart');
+      if (!Object.keys(monthlyData).length) {
+        heatElt.replaceChildren();
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.textContent = 'Monthly returns data not available.';
+        heatElt.appendChild(p);
+      } else {
+        // Build a map from "YYYY-MM" → portfolio return
+        const monthMap = {};
+        Object.entries(monthlyData).forEach(([dateStr, obj]) => {
+          const [y, m] = dateStr.split('-');
+          monthMap[`${y}-${m}`] = obj.portfolio;
+        });
+    
+        const heatmapYears = [...new Set(Object.keys(monthMap).map(k => k.split('-')[0]))]
+          .sort().reverse();
+        const monthsOrder = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+        const z = heatmapYears.map(year =>
+          monthsOrder.map(mon => {
+            const key = `${year}-${mon}`;
+            const val = monthMap[key];
+            return val != null ? val : 0;
+          })
+        );
+    
+        Plotly.newPlot(heatElt, [{
+          z, x: monthsOrder.map(m => new Date(0, +m-1).toLocaleString('default',{month:'short'})),
+          y: heatmapYears,
+          type: 'heatmap',
+          colorscale: [[0,'#ef4444'],[0.5,'#ffffff'],[1,'#2f855a']],
+          showscale: true,
+          hovertemplate: '%{y} %{x}: %{z:.1f}%<extra></extra>'
+        }], {
+          title: { text: 'Monthly Returns Heatmap', font:{ size:24, color:'#2f855a' }, x:0.5, xanchor:'center' },
+          xaxis: { title:'Month', type:'category' },
+          yaxis: { title:'Year',  type:'category' },
+          margin:{ l:50,r:50,t:80,b:50 },
+          plot_bgcolor:'white', paper_bgcolor:'white'
+        });
+      }
+    
+      // --- Annual Returns Bar Chart ---
+      const barElt = document.getElementById('returns-bar-chart');
+      if (!Object.keys(annualData).length) {
+        barElt.replaceChildren();
+        const p = document.createElement('p');
+        p.style.textAlign = 'center';
+        p.textContent = 'Annual portfolio returns data not available.';
+        barElt.appendChild(p);
+      } else {
+        const barYears = Object.keys(annualData).map(String).sort();
+        const barVals  = barYears.map(y => annualData[y] || 0);
+    
+        Plotly.newPlot(barElt, [{
+          x: barYears,
+          y: barVals,
+          type: 'bar',
+          marker:{
+            color: barVals.map(r => r>=0? '#2f855a':'#ef4444'),
+            line:{ color: barVals.map(r=>r>=0? '#1f5a3a':'#c53030'), width:1 }
+          },
+          hovertemplate:'%{x}: %{y:.1f}%<extra></extra>'
+        }], {
+          title:{ text:'Annual Returns', font:{size:24,color:'#2f855a'}, x:0.5, xanchor:'center' },
+          xaxis:{ title:'Year', type:'category' },
+          yaxis:{ title:'Return (%)', ticksuffix:'%', zeroline:true, zerolinecolor:'#888', zerolinewidth:1 },
+          showlegend:false,
+          margin:{l:50,r:50,t:80,b:50},
+          plot_bgcolor:'white', paper_bgcolor:'white'
+        });
+      }
+    }
+
+    // Portfolio Assets Table
+    function renderPortfolioAssetsTable() {
+      const tbody = document.getElementById('portfolio-assets-table-body');
+      tbody.replaceChildren(); // Clear old rows
+    
+      // data here is metrics.asset_metrics_data, which has lowercase keys from backend
+      const data = metrics.asset_metrics_data || {};
+      const tickers = Object.keys(data).sort();
+      if (!tickers.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9; // Span across 9 columns
+        td.style.textAlign = 'center';
+        td.textContent = 'No asset metrics data available.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+    
+      tickers.forEach(t => {
+        // m is the dictionary of metrics for this ticker from backend (e.g., {'cagr': 0.637, ...})
+        const m = data[t];
+        // Find the corresponding holding to get the name from the holdings array
+        const h = holdings.find(holding => holding.ticker.toUpperCase() === t.toUpperCase()) || {};
+        const name = h.Name || t; // Use the Name from holdings (company name or ticker), or ticker as fallback
+    
+        const tr = document.createElement('tr');
+    
+        // Create and append table cells (<td>) with correct data accessed using backend keys
+    
+        // Ticker
+        const tickerTd = document.createElement('td');
+        tickerTd.textContent = t;
+        tr.appendChild(tickerTd);
+    
+        // Name
+        const nameTd = document.createElement('td');
+        nameTd.textContent = name; // Use the name determined above
+        tr.appendChild(nameTd);
+    
+        // CAGR (use 'cagr' key from backend)
+        const cagrTd = document.createElement('td');
+        // Access using lowercase key 'cagr' and format as percentage
+        cagrTd.textContent = m.cagr != null ? formatPercentage(m.cagr) : '-'; // Assuming cagr is decimal
+        tr.appendChild(cagrTd);
+    
+        // Standard Deviation (use 'std_dev_annual' key from backend)
+        const stdDevTd = document.createElement('td');
+        // Access using lowercase key 'std_dev_annual' and format as percentage
+        stdDevTd.textContent = m.std_dev_annual != null ? formatPercentage(m.std_dev_annual) : '-'; // Assuming std_dev_annual is decimal
+        tr.appendChild(stdDevTd);
+    
+        // Best Year Return (use 'best_year_return' key from backend)
+        const bestYearReturnTd = document.createElement('td');
+        // Access using lowercase key 'best_year_return' and format as percentage
+        bestYearReturnTd.textContent = m.best_year_return != null ? formatPercentage(m.best_year_return) : '-'; // Assuming best_year_return is decimal
+        tr.appendChild(bestYearReturnTd);
+    
+        // Worst Year Return (use 'worst_year_return' key from backend)
+        const worstYearReturnTd = document.createElement('td');
+        // Access using lowercase key 'worst_year_return'
+        const worstYearReturnValue = m.worst_year_return != null ? m.worst_year_return : null;
+        if (worstYearReturnValue !== null) {
+            worstYearReturnTd.style.color = worstYearReturnValue >= 0 ? '#2f855a' : '#ef4444';
+            worstYearReturnTd.textContent = formatPercentage(worstYearReturnValue); // Assuming worst_year_return is decimal
+        } else worstYearReturnTd.textContent = '-';
+        tr.appendChild(worstYearReturnTd);
+    
+        // Maximum Drawdown (use 'max_drawdown' key from backend)
+        const maxDrawdownTd = document.createElement('td');
+        // Access using lowercase key 'max_drawdown'
+        const maxDrawdownValue = m.max_drawdown != null ? m.max_drawdown : null;
+        if (maxDrawdownValue !== null) {
+            maxDrawdownTd.style.color = maxDrawdownValue >= 0 ? '#2f855a' : '#ef4444';
+            maxDrawdownTd.textContent = formatPercentage(maxDrawdownValue); // Assuming max_drawdown is decimal
+        } else maxDrawdownTd.textContent = '-';
+        tr.appendChild(maxDrawdownTd);
+    
+        // Sharpe Ratio (use 'sharpe_ratio' key from backend)
+        const sharpeRatioTd = document.createElement('td');
+        // Access using lowercase key 'sharpe_ratio' and format to 2 decimal places
+        sharpeRatioTd.textContent = m.sharpe_ratio != null ? m.sharpe_ratio.toFixed(2) : '-';
+        tr.appendChild(sharpeRatioTd);
+    
+        // Sortino Ratio (use 'sortino_ratio' key from backend)
+        const sortinoRatioTd = document.createElement('td');
+        // Access using lowercase key 'sortino_ratio' and format to 2 decimal places
+        sortinoRatioTd.textContent = m.sortino_ratio != null ? m.sortino_ratio.toFixed(2) : '-';
+        tr.appendChild(sortinoRatioTd);
+    
+        tbody.appendChild(tr); // Append the constructed row to the tbody
+      });
     }
     
-    // Render returns tab charts and tables
-    function renderReturnsCharts() {
-      // Generate data for annual returns
-      const currentYear = new Date().getFullYear();
-      const years = [currentYear-5, currentYear-4, currentYear-3, currentYear-2, currentYear-1, currentYear];
-      
-      // Mock annual returns data for demonstration
-      const inflationRates = [0.018, 0.021, 0.023, 0.024, 0.042, 0.031];
-      const portfolioReturns = [0.073, 0.114, 0.085, -0.024, 0.196, 0.089];
-      const assetReturns = {
-        'AAPL': [0.061, 0.087, 0.104, -0.015, 0.204, 0.093],
-        'MSFT': [0.055, 0.143, 0.072, -0.031, 0.188, 0.092],
-        'VTI': [0.081, 0.105, 0.087, -0.025, 0.185, 0.074]
-      };
-      
-      // Calculate portfolio balance for each year based on returns
-      let balance = 10000; // Starting balance
-      const portfolioBalances = [balance];
-      
-      for (const returnVal of portfolioReturns) {
-        balance = balance * (1 + returnVal);
-        portfolioBalances.push(balance);
+    // Risk Decomposition Table
+    function renderPortfolioRiskDecompositionTable() {
+      const tbody = document.getElementById('portfolio-risk-decomposition-table-body');
+      tbody.replaceChildren(); // Clear old rows
+
+      // Data is an ARRAY from the backend: [{'ticker': '...', 'Name': '...', 'Contribution': ...}, ...]
+      const data = metrics.risk_decomposition_data || []; // Default to empty array
+
+      // Check if data is actually an array and if it has any elements
+      if (!Array.isArray(data) || !data.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3; // Adjust colspan if needed based on your table headers
+        td.style.textAlign = 'center';
+        td.textContent = 'No risk decomposition data available.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
       }
-      
-      // Populate annual returns table
-      const annualTableBody = document.getElementById('annual-returns-table-body');
-      annualTableBody.innerHTML = '';
-      
-      // Add asset columns to the annual returns table header if they don't exist
-      const annualTableHeader = document.querySelector('#annual-returns-table thead tr');
-      const existingColumns = annualTableHeader.querySelectorAll('th').length;
-      
-      if (existingColumns <= 4) { // Only add if we haven't already
-        for (const asset in assetReturns) {
-          const th = document.createElement('th');
-          th.textContent = asset;
-          annualTableHeader.appendChild(th);
+
+      // Iterate directly over the array of asset contribution objects
+      data.forEach(assetContribution => { // assetContribution is an object like {'ticker': '...', 'Name': '...', 'Contribution': ...}
+
+        // Access properties directly from the assetContribution object
+        const ticker = assetContribution.ticker;
+        const name = assetContribution.Name || ticker; // Use the Name property from the object, fallback to ticker
+        const contribution = assetContribution.Contribution; // Access the Contribution property
+
+        const tr = document.createElement('tr');
+
+        // Create and append table cells (<td>)
+        const tickerTd = document.createElement('td');
+        tickerTd.textContent = ticker; // Use the ticker from the object
+        tr.appendChild(tickerTd);
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = name; // Use the name determined above
+        tr.appendChild(nameTd);
+
+        const contributionTd = document.createElement('td');
+        // Format the contribution (backend sends decimal, format as percentage directly, no /100)
+        contributionTd.textContent = contribution != null ? formatPercentage(contribution) : '-';
+        // Optional: Add color based on contribution value if positive/negative
+        if (contribution != null) {
+            contributionTd.style.color = contribution >= 0 ? '#2f855a' : '#ef4444';
         }
-      }
-      
-      // Add rows to annual returns table
-      years.forEach((year, i) => {
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-          <td>${year}</td>
-          <td>${formatPercentage(inflationRates[i])}</td>
-          <td style="color: ${portfolioReturns[i] >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(portfolioReturns[i])}</td>
-          <td>$${portfolioBalances[i+1].toFixed(2)}</td>
-        `;
-        
-        // Add asset returns
-        for (const asset in assetReturns) {
-          const returnValue = assetReturns[asset][i];
-          const cell = document.createElement('td');
-          cell.style.color = returnValue >= 0 ? '#2f855a' : '#ef4444';
-          cell.textContent = formatPercentage(returnValue);
-          row.appendChild(cell);
-        }
-        
-        annualTableBody.appendChild(row);
+        tr.appendChild(contributionTd);
+
+        tbody.appendChild(tr); // Append the constructed row to the tbody
       });
-      
-      // Generate data for monthly returns
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      // Generate monthly returns table data (mock data for demonstration)
-      const monthlyTableBody = document.getElementById('monthly-returns-table-body');
-      monthlyTableBody.innerHTML = '';
-      
-      // Add asset columns to the monthly returns table header if they don't exist
-      const monthlyTableHeader = document.querySelector('#monthly-returns-table thead tr');
-      const existingMonthlyColumns = monthlyTableHeader.querySelectorAll('th').length;
-      
-      if (existingMonthlyColumns <= 4) { // Only add if we haven't already
-        for (const asset in assetReturns) {
-          const th = document.createElement('th');
-          th.textContent = asset;
-          monthlyTableHeader.appendChild(th);
-        }
+    }
+    
+    // Return Decomposition Table
+    function renderPortfolioReturnDecompositionTable() {
+      const tbody = document.getElementById('portfolio-return-decomposition-table-body');
+      tbody.replaceChildren(); // Clear old rows
+
+      // Data is an ARRAY from the backend: [{'ticker': '...', 'Name': '...', 'Contribution': ...}, ...]
+      const arr = metrics.return_decomposition_data;
+
+      // Check if data is actually an array and if it has any elements
+      if (!Array.isArray(arr) || !arr.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3; // Adjust colspan if needed based on your table headers
+        td.style.textAlign = 'center';
+        td.textContent = 'No return decomposition data available.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
       }
-      
-      // Mock monthly data for current and previous year
-      const monthlyData = [
-        // Current year
-        ...[...Array(12)].map((_, i) => {
-          const monthReturn = (Math.random() * 0.06) - 0.02; // Between -2% and 4%
-          const assetMonthlyReturns = {};
-          for (const asset in assetReturns) {
-            assetMonthlyReturns[asset] = (Math.random() * 0.08) - 0.03; // Between -3% and 5%
-          }
-          return {
-            year: currentYear,
-            month: months[i],
-            return: monthReturn,
-            balance: 10000 * (1 + monthReturn),
-            assetReturns: assetMonthlyReturns
-          };
-        }),
-        // Previous year
-        ...[...Array(12)].map((_, i) => {
-          const monthReturn = (Math.random() * 0.06) - 0.02; // Between -2% and 4%
-          const assetMonthlyReturns = {};
-          for (const asset in assetReturns) {
-            assetMonthlyReturns[asset] = (Math.random() * 0.08) - 0.03; // Between -3% and 5%
-          }
-          return {
-            year: currentYear - 1,
-            month: months[i],
-            return: monthReturn,
-            balance: 9500 * (1 + monthReturn),
-            assetReturns: assetMonthlyReturns
-          };
-        })
-      ];
-      
-      // Add rows to monthly returns table (most recent months first)
-      monthlyData
-        .sort((a, b) => {
-          // Sort by year (descending) and then by month index (descending)
-          if (a.year !== b.year) return b.year - a.year;
-          return months.indexOf(b.month) - months.indexOf(a.month);
-        })
-        .slice(0, 12) // Show only the last 12 months
-        .forEach(data => {
-          const row = document.createElement('tr');
-          
-          row.innerHTML = `
-            <td>${data.year}</td>
-            <td>${data.month}</td>
-            <td style="color: ${data.return >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(data.return)}</td>
-            <td>$${data.balance.toFixed(2)}</td>
-          `;
-          
-          // Add asset returns
-          for (const asset in assetReturns) {
-            const returnValue = data.assetReturns[asset];
-            const cell = document.createElement('td');
-            cell.style.color = returnValue >= 0 ? '#2f855a' : '#ef4444';
-            cell.textContent = formatPercentage(returnValue);
-            row.appendChild(cell);
-          }
-          
-          monthlyTableBody.appendChild(row);
-        });
-      
-      // Create returns heatmap
-      const heatmapData = {
-        z: [
-          [0.030, 0.021, -0.015, 0.037, 0.018, 0.022, 0.014, -0.027, 0.039, 0.016, 0.025, 0.011], // Current year
-          [0.024, -0.019, 0.033, 0.015, 0.029, -0.012, 0.031, 0.018, -0.022, 0.034, 0.019, 0.027], // Previous year
-          [0.037, 0.012, 0.028, -0.014, 0.033, 0.016, -0.021, 0.035, 0.013, -0.024, 0.032, 0.017], // 2 years ago
-        ],
-        x: months,
-        y: [currentYear, currentYear-1, currentYear-2],
-        type: 'heatmap',
-        colorscale: [
-          [0, '#ef4444'],      // Red for negative returns
-          [0.5, '#ffffff'],    // White for zero
-          [1, '#2f855a']       // Green for positive returns
-        ],
-        showscale: true,
-        hovertemplate: '%{y} %{x}: %{z:.1%}<extra></extra>'
-      };
-      
-      const heatmapLayout = {
-        title: {
-          text: 'Monthly Returns Heatmap',
-          font: {
-            size: 24,
-            color: '#2f855a'
-          },
-          x: 0.5,
-          xanchor: 'center'
-        },
-        xaxis: {
-          title: 'Month'
-        },
-        yaxis: {
-          title: 'Year'
-        },
-        margin: {
-          l: 50,
-          r: 50,
-          t: 80,
-          b: 50
+
+      // Sort the array by ticker alphabetically
+      arr.sort((a, b) => a.ticker.localeCompare(b.ticker));
+
+      // Iterate over the array of asset contribution objects
+      arr.forEach(item => { // item is an object like { ticker: '...', Name: '...', Contribution: ... }
+        const tr = document.createElement('tr');
+
+        // Create and append table cells (<td>)
+
+        // Ticker
+        const td0 = document.createElement('td');
+        td0.textContent = item.ticker; // Use the ticker from the object
+        tr.appendChild(td0);
+
+        // Name
+        const td1 = document.createElement('td');
+        td1.textContent = item.Name || item.ticker; // Use the Name property from the object, fallback to ticker
+        tr.appendChild(td1);
+
+        // Contribution
+        const td2 = document.createElement('td');
+        // Format the contribution (backend sends decimal, multiply by 100 for percentage display)
+        if (item.Contribution != null) { // Use != null for checking both null and undefined
+          td2.style.color = item.Contribution >= 0 ? '#2f855a' : '#ef4444'; // Color based on positive/negative contribution
+
+          // Assuming formatPercentage takes the decimal (e.g., 0.04) and returns a formatted string like "4.00%"
+          td2.textContent = formatPercentage(item.Contribution);
+
+          // If you don't have a formatPercentage helper, you can manually format:
+          // const percentageValue = item.Contribution * 100;
+          // td2.textContent = percentageValue.toFixed(2) + '%';
+
+        } else {
+          td2.textContent = '-'; // Display '-' if contribution is null or undefined
         }
-      };
-      
-      Plotly.newPlot('returns-heatmap-chart', [heatmapData], heatmapLayout);
-      
-      // Create annual returns bar chart
-      const barData = {
-        x: years,
-        y: portfolioReturns.map(r => r * 100), // Convert to percentages
-        type: 'bar',
-        marker: {
-          color: portfolioReturns.map(r => r >= 0 ? '#2f855a' : '#ef4444'),
-          line: {
-            color: portfolioReturns.map(r => r >= 0 ? '#1f5a3a' : '#c53030'),
-            width: 1
-          }
-        },
-        hovertemplate: '%{x}: %{y:.1f}%<extra></extra>'
-      };
-      
-      const barLayout = {
-        title: {
-          text: 'Annual Returns',
-          font: {
-            size: 24,
-            color: '#2f855a'
-          },
-          x: 0.5,
-          xanchor: 'center'
-        },
-        xaxis: {
-          title: 'Year'
-        },
-        yaxis: {
-          title: 'Return (%)',
-          ticksuffix: '%',
-          zeroline: true,
-          zerolinecolor: '#888',
-          zerolinewidth: 1
-        },
-        showlegend: false,
-        margin: {
-          l: 50,
-          r: 50,
-          t: 80,
-          b: 50
-        }
-      };
-      
-      Plotly.newPlot('returns-bar-chart', [barData], barLayout);
+        tr.appendChild(td2); // Append the cell to the row
+
+        tbody.appendChild(tr); // Append the constructed row to the tbody
+      });
     }
     
     // Render allocation tab charts
     function renderAllocationCharts() {
-      // Sectors bar chart
-      const sectors = [
-        'Technology', 
-        'Communication Services', 
-        'Financial Services', 
-        'Consumer Discretionary', 
-        'Healthcare', 
-        'Industrials', 
-        'Consumer Staples',
-        'Basic Materials',
-        'Energy',
-        'Real Estate',
-        'Utilities'
-      ];
-      
-      // Mock sector weights for demonstration (in real implementation, this would come from the portfolio data)
-      const sectorWeights = [
-        0.48, // Technology
-        0.10, // Communication Services
-        0.09, // Financial Services
-        0.11, // Consumer Discretionary
-        0.06, // Healthcare
-        0.05, // Industrials
-        0.04, // Consumer Staples
-        0.02, // Basic Materials
-        0.02, // Energy
-        0.015, // Real Estate
-        0.015  // Utilities
-      ];
-      
-      // Create the sectors bar chart (horizontal)
-      const sectorsTrace = {
-        y: sectors,
-        x: sectorWeights,
-        type: 'bar',
-        orientation: 'h',
-        marker: {
-          color: '#2f855a',  // Consistent green color
-        },
-        hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
-      };
-      
-      const sectorsLayout = {
-        title: {
-          text: 'Equity Sectors',
-          font: {
-            size: 24,
-            color: '#2f855a'
+      const sectorsData = metrics.sector_allocation_data || {};
+      if (Object.keys(sectorsData).length > 0) {
+        // Assuming sectorsData is a dictionary {sector_name: weight}
+        const sectors = Object.keys(sectorsData);
+        const sectorWeights = Object.values(sectorsData);
+        // Create the sectors bar chart (horizontal)
+        const sectorsTrace = {
+          y: sectors,
+          x: sectorWeights,
+          type: 'bar',
+          orientation: 'h',
+          marker: {
+            color: '#2f855a',  // Consistent green color
           },
-          x: 0.5,  // Center-aligned title for consistency
-          xanchor: 'center'
-        },
-        xaxis: {
-          title: '',
-          tickformat: ',.0%',  // Format as percentage
-          showgrid: true,
-          gridcolor: '#E0E0E0',
-          zeroline: false,
-          tickvals: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-        },
-        yaxis: {
-          title: '',
-          automargin: true
-        },
-        showlegend: false,
-        margin: {
-          l: 150,  // Leave room for sector names
-          r: 30,
-          t: 80,
-          b: 50
-        },
-        width: 900,
-        height: 500,
-        plot_bgcolor: 'white',
-        paper_bgcolor: 'white'
-      };
-      
-      Plotly.newPlot('sectors-chart', [sectorsTrace], sectorsLayout);
-      
-      // Top holdings bar chart
+          hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
+        };
+        const sectorsLayout = {
+          title: {
+            text: 'Equity Sectors',
+            font: {
+              size: 24,
+              color: '#2f855a'
+            },
+            x: 0.5,  // Center-aligned title for consistency
+            xanchor: 'center'
+          },
+          xaxis: {
+            title: '',
+            tickformat: ',.0%',  // Format as percentage
+            showgrid: true,
+            gridcolor: '#E0E0E0',
+            zeroline: false,
+            tickvals: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+          },
+          yaxis: {
+            title: '',
+            automargin: true
+          },
+          showlegend: false,
+          margin: {
+            l: 150,  // Leave room for sector names
+            r: 30,
+            t: 80,
+            b: 50
+          },
+          width: 900,
+          height: 500,
+          plot_bgcolor: 'white',
+          paper_bgcolor: 'white'
+        };
+        
+        Plotly.newPlot('sectors-chart', [sectorsTrace], sectorsLayout);
+      } else {
+        console.warn("Sector allocation data not available to render chart. Using default/empty.");
+      }
       const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight).slice(0, 10);
-      
-      const topHoldingsTrace = {
-        x: sortedHoldings.map(h => h.Weight),
-        y: sortedHoldings.map(h => h.ticker),
-        type: 'bar',
-        orientation: 'h',
-        marker: {
-          color: '#2f855a'
-        }
-      };
-      
-      const topHoldingsLayout = {
-        title: {
-          text: 'Top Holdings',
-          font: {
-            size: 24,
+      if (sortedHoldings.length > 0) {
+        const topHoldingsTrace = {
+          x: sortedHoldings.map(h => h.Weight),
+          y: sortedHoldings.map(h => h.ticker),
+          type: 'bar',
+          orientation: 'h',
+          marker: {
             color: '#2f855a'
           },
-          x: 0.5,
-          xanchor: 'center'
-        },
-        xaxis: {
-          title: 'Weight',
-          tickformat: '.0%'
-        },
-        yaxis: {
-          title: 'Ticker',
-          automargin: true
-        },
-        showlegend: false,
-        margin: {
-          l: 100,
-          r: 50,
-          t: 80,
-          b: 80
-        }
-      };
-      
-      Plotly.newPlot('top-holdings-chart', [topHoldingsTrace], topHoldingsLayout);
+          hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
+        };
+        
+        const topHoldingsLayout = {
+          title: {
+            text: 'Top Holdings',
+            font: {
+              size: 24,
+              color: '#2f855a'
+            },
+            x: 0.5,
+            xanchor: 'center'
+          },
+          xaxis: {
+            title: 'Weight',
+            tickformat: '.0%'
+          },
+          yaxis: {
+            title: 'Ticker',
+            automargin: true
+          },
+          showlegend: false,
+          margin: {
+            l: 100,
+            r: 50,
+            t: 80,
+            b: 80
+          }
+        };
+        Plotly.newPlot('top-holdings-chart', [topHoldingsTrace], topHoldingsLayout);
+      } else {
+        console.warn("Top holdings data not available to render chart.");
+      }
     }
     
-    // Render metrics cards - already taken care of in calculateMetrics()
+    // Render metrics cards and summary sentences
     function renderMetricsCards() {
-      // Already populated in calculateMetrics function
+      const overallMetrics = metrics.overall_metrics; // Get overall metrics from fetched data
+
+      if (overallMetrics) {
+          // Update main metric display elements (e.g., cards)
+          // These seem to be correctly targeted by ID already
+          const totalReturnCard = document.getElementById('total-return');
+          if (totalReturnCard) totalReturnCard.textContent = overallMetrics['Cumulative Return'] !== undefined ? formatPercentage(overallMetrics['Cumulative Return']) : '-'; // Assuming key name and is decimal
+
+          const volatilityCard = document.getElementById('volatility');
+          if (volatilityCard) volatilityCard.textContent = overallMetrics['Standard Deviation'] !== undefined ? formatPercentage(overallMetrics['Standard Deviation']) : '-'; // Assuming key name and is decimal
+
+          const sharpeRatioCard = document.getElementById('sharpe-ratio');
+          if (sharpeRatioCard) sharpeRatioCard.textContent = overallMetrics['Sharpe Ratio'] !== undefined ? overallMetrics['Sharpe Ratio'].toFixed(2) : '-'; // Assuming key name and is decimal
+
+          const maxDrawdownCard = document.getElementById('max-drawdown');
+          console.log("Debug (Frontend): Max Drawdown Card Value:", overallMetrics['Maximum Drawdown'], "Type:", typeof overallMetrics['Maximum Drawdown']); // Add this debug log
+          if (maxDrawdownCard) maxDrawdownCard.textContent = overallMetrics['Maximum Drawdown'] !== undefined ? formatPercentage(overallMetrics['Maximum Drawdown']) : '-'; // Assuming key name and is decimal
+
+
+          // Update metrics in tables or other sections (e.g., Performance Summary Table)
+          const cagrElement = document.getElementById('cagr');
+          if (cagrElement) cagrElement.textContent = overallMetrics['Annualized Return (CAGR)'] !== undefined ? formatPercentage(overallMetrics['Annualized Return (CAGR)']) : '-'; // Assuming key name and is decimal
+
+          const stdDevElement = document.getElementById('std-dev');
+          if (stdDevElement) stdDevElement.textContent = overallMetrics['Standard Deviation'] !== undefined ? formatPercentage(overallMetrics['Standard Deviation']) : '-';
+
+          const sharpeElement = document.getElementById('sharpe');
+          if (sharpeElement) sharpeElement.textContent = overallMetrics['Sharpe Ratio'] !== undefined ? overallMetrics['Sharpe Ratio'].toFixed(2) : '-';
+
+          const sortinoElement = document.getElementById('sortino');
+          if (sortinoElement) sortinoElement.textContent = overallMetrics['Sortino Ratio'] !== undefined ? overallMetrics['Sortino Ratio'].toFixed(2) : '-';
+
+          const drawdownElement = document.getElementById('drawdown');
+          if (drawdownElement) drawdownElement.textContent = overallMetrics['Maximum Drawdown'] !== undefined ? formatPercentage(overallMetrics['Maximum Drawdown']) : '-';
+
+          const calmarElement = document.getElementById('calmar');
+          if (calmarElement) calmarElement.textContent = overallMetrics['Calmar Ratio'] !== undefined ? overallMetrics['Calmar Ratio'].toFixed(2) : '-';
+
+          const betaElement = document.getElementById('beta');
+          if (betaElement) betaElement.textContent = overallMetrics['Beta'] !== undefined ? overallMetrics['Beta'].toFixed(2) : '-';
+
+          const alphaElement = document.getElementById('alpha');
+          if (alphaElement) alphaElement.textContent = overallMetrics['Alpha'] !== undefined ? formatPercentage(overallMetrics['Alpha']) : '-'; // Assuming Alpha is decimal and needs formatting
+
+
+          // --- Update sentences by targeting specific span IDs ---
+
+          // Portfolio Growth Sentence (Looks correct based on your last output)
+          const startBalanceSentenceSpan = document.getElementById('start-balance-sentence');
+          if (startBalanceSentenceSpan) startBalanceSentenceSpan.textContent = overallMetrics['Initial Investment Used'] !== undefined ? overallMetrics['Initial Investment Used'].toFixed(2) : 'N/A';
+
+          const startDateSentenceSpan = document.getElementById('start-date-sentence');
+          if (startDateSentenceSpan) startDateSentenceSpan.textContent = overallMetrics['Calculation Start Date'] || 'N/A';
+
+
+          const endValueSpan = document.getElementById('end-value');
+          if (endValueSpan) endValueSpan.textContent = overallMetrics['End Balance'] !== undefined ? overallMetrics['End Balance'].toFixed(2) : 'N/A';
+
+          const endDateSpan = document.getElementById('end-date');
+          if (endDateSpan) endDateSpan.textContent = overallMetrics['Calculation End Date'] || 'N/A';
+
+
+          const cumulativeReturnSpan = document.getElementById('cumulative-return');
+          if (cumulativeReturnSpan) cumulativeReturnSpan.textContent = overallMetrics['Cumulative Return'] !== undefined ? formatPercentage(overallMetrics['Cumulative Return']) : 'N/A';
+
+
+          // Return Sentence (Fix Best/Worst Year display)
+          const annualReturnSentenceSpan = document.getElementById('annual-return');
+          // Correctly format the Annualized Return (CAGR) for the sentence
+          const annualizedReturnSentence = overallMetrics['Annualized Return (CAGR)'] !== undefined ? formatPercentage(overallMetrics['Annualized Return (CAGR)']) : 'N/A'; // Assuming CAGR is decimal
+          if (annualReturnSentenceSpan) annualReturnSentenceSpan.textContent = annualizedReturnSentence;
+
+
+          const positiveMonthsSpan = document.getElementById('positive-months');
+          const totalMonths = overallMetrics['Total Periods'] !== undefined ? overallMetrics['Total Periods'] : 'N/A';
+          const positiveCount = overallMetrics['Monthly Positive Periods'] !== undefined ? overallMetrics['Monthly Positive Periods'] : 'N/A';
+          if (positiveMonthsSpan && totalMonths !== 'N/A' && positiveCount !== 'N/A') {
+                positiveMonthsSpan.textContent = `${positiveCount} out of ${totalMonths}`;
+          } else if (positiveMonthsSpan) {
+                positiveMonthsSpan.textContent = 'N/A';
+          }
+
+
+          const positiveMonthsPctSpan = document.getElementById('positive-months-pct');
+          const percentPositiveValue = (positiveCount !== 'N/A' && totalMonths !== 'N/A' && totalMonths > 0) ? (positiveCount / totalMonths) : null;
+          if (positiveMonthsPctSpan && percentPositiveValue !== null) {
+                positiveMonthsPctSpan.textContent = formatPercentage(percentPositiveValue);
+          } else if (positiveMonthsPctSpan) {
+                positiveMonthsPctSpan.textContent = 'N/A';
+          }
+          console.log("Debug (Frontend): Best/Worst Year Data from overallMetrics:", { // Update log keys for clarity
+            'best_year': overallMetrics['best_year'], // <--- Correct key name
+            'best_year_return': overallMetrics['best_year_return'], // <--- Correct key name
+            'worst_year': overallMetrics['worst_year'], // <--- Correct key name
+            'worst_year_return': overallMetrics['worst_year_return'] // <--- Correct key name
+          });
+
+          const bestYearLabelSpan = document.getElementById('best-year-label');
+        // Use the correct backend key 'best_year'
+          if (bestYearLabelSpan) bestYearLabelSpan.textContent = overallMetrics['best_year'] || 'N/A';
+
+          const bestYearReturnSpan = document.getElementById('best-year-return');
+         // Use the correct backend key 'best_year_return'
+            const bestYearReturnSentence = overallMetrics['best_year_return'] !== undefined ? formatPercentage(overallMetrics['best_year_return']) : 'N/A';
+          if (bestYearReturnSpan) bestYearReturnSpan.textContent = bestYearReturnSentence;
+
+          const worstYearLabelSpan = document.getElementById('worst-year-label');
+        // Use the correct backend key 'worst_year'
+          if (worstYearLabelSpan) worstYearLabelSpan.textContent = overallMetrics['worst_year'] || 'N/A';
+
+          const worstYearReturnSpan = document.getElementById('worst-year-return');
+         // Use the correct backend key 'worst_year_return'
+          const worstYearReturnSentence = overallMetrics['worst_year_return'] !== undefined ? formatPercentage(overallMetrics['worst_year_return']) : 'N/A';
+          if (worstYearReturnSpan) worstYearReturnSpan.textContent = worstYearReturnSentence;
+
+          // Risk Sentence (Fix Max Drawdown Scaling)
+          const maxDdPctSpan = document.getElementById('max-dd-pct'); // Target the span for Max Drawdown percentage
+          // Correctly format the Maximum Drawdown for the sentence
+          // Assuming overallMetrics['Maximum Drawdown'] is ALREADY a percentage like -16.81
+          console.log("Debug (Frontend): Max Drawdown Sentence Value:", overallMetrics['Maximum Drawdown'], "Type:", typeof overallMetrics['Maximum Drawdown']); // Add this debug log
+          const maxDrawdownSentence = overallMetrics['Maximum Drawdown'] !== undefined ? formatPercentage(overallMetrics['Maximum Drawdown']) : 'N/A'; // REMOVED '/ 100'
+          if (maxDdPctSpan) maxDdPctSpan.textContent = maxDrawdownSentence;
+
+
+          const maxDdStartSpan = document.getElementById('max-dd-start'); // Target the span for Drawdown Start Date
+          if (maxDdStartSpan) maxDdStartSpan.textContent = overallMetrics['Drawdown Start Date'] || 'N/A';
+
+          const maxDdEndSpan = document.getElementById('max-dd-end'); // Target the span for Drawdown End Date
+          if (maxDdEndSpan) maxDdEndSpan.textContent = overallMetrics['Drawdown End Date'] || 'N/A';
+
+
+          const recoveryTimeSpan = document.getElementById('recovery-time'); // Target the span for Recovery Time
+          if (recoveryTimeSpan) recoveryTimeSpan.textContent = overallMetrics['Drawdown Recovery Time'] || 'N/A'; // Use directly
+
+
+          const summarySharpeSpan = document.getElementById('summary-sharpe'); // Target the span for Sharpe Ratio
+          if (summarySharpeSpan) summarySharpeSpan.textContent = overallMetrics['Sharpe Ratio'] !== undefined ? overallMetrics['Sharpe Ratio'].toFixed(2) : 'N/A';
+
+
+      } else {
+          console.warn("Overall metrics data not available to render cards and sentences.");
+      }
     }
-    
     // Render holdings table
     function renderHoldingsTable() {
-      // Render all holdings table
-      const tableBody = document.getElementById('holdings-table-body');
-      tableBody.innerHTML = '';
-      
-      // Sort holdings by weight (descending)
-      const sortedHoldings = [...holdings].sort((a, b) => b.Weight - a.Weight);
-      
-      sortedHoldings.forEach(holding => {
-        const row = document.createElement('tr');
-        
-        // Calculate the return for this holding (placeholder for demo)
-        const returnValue = Math.random() * 0.2 - 0.05; // Random return between -5% and 15%
-        
-        row.innerHTML = `
-          <td>${holding.ticker}</td>
-          <td>${holding.Name || holding.ticker}</td>
-          <td>${holding.Category || 'Stock'}</td>
-          <td>${formatPercentage(holding.Weight)}</td>
-          <td>$${(holding.Weight * 10000).toFixed(2)}</td>
-          <td style="color: ${returnValue >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(returnValue)}</td>
-        `;
-        
-        tableBody.appendChild(row);
-      });
-      
-      // Render Portfolio Assets table
-      const assetsTableBody = document.getElementById('portfolio-assets-table-body');
-      if (assetsTableBody) {
-        assetsTableBody.innerHTML = '';
-        
-        // Sample asset metrics data (in a real implementation, this would be fetched from the backend)
-        const assetMetrics = {
-          'SPY': {
-            name: 'SPDR S&P 500 ETF Trust',
-            cagr: 0.1508,
-            stdev: 0.1202,
-            bestYear: 0.2489,
-            worstYear: -0.0455,
-            maxDrawdown: -0.0705,
-            sharpeRatio: 0.83,
-            sortinoRatio: 1.32
-          },
-          'QQQ': {
-            name: 'Invesco QQQ Trust',
-            cagr: 0.1197,
-            stdev: 0.1398,
-            bestYear: 0.2558,
-            worstYear: -0.0828,
-            maxDrawdown: -0.1022,
-            sharpeRatio: 0.53,
-            sortinoRatio: 0.81
-          },
-          'AAPL': {
-            name: 'Apple Inc',
-            cagr: 0.1266,
-            stdev: 0.2079,
-            bestYear: 0.3070,
-            worstYear: -0.1120,
-            maxDrawdown: -0.1142,
-            sharpeRatio: 0.44,
-            sortinoRatio: 0.75
-          },
-          'NVD': {
-            name: 'GraniteShares 2x Short NVDA Daily ETF',
-            cagr: -0.8684,
-            stdev: 0.6598,
-            bestYear: 0.1517,
-            worstYear: -0.9312,
-            maxDrawdown: -0.9350,
-            sharpeRatio: -2.52,
-            sortinoRatio: -2.16
-          },
-          'VWO': {
-            name: 'Vanguard FTSE Emerging Markets ETF',
-            cagr: 0.1077,
-            stdev: 0.0914,
-            bestYear: 0.1058,
-            worstYear: 0.0277,
-            maxDrawdown: -0.0575,
-            sharpeRatio: 0.63,
-            sortinoRatio: 1.10
-          }
-        };
-        
-        // Add rows to the portfolio assets table
-        sortedHoldings.forEach(holding => {
-          const ticker = holding.ticker;
-          const metrics = assetMetrics[ticker] || {
-            name: holding.Name || ticker,
-            cagr: Math.random() * 0.15,
-            stdev: Math.random() * 0.15 + 0.05,
-            bestYear: Math.random() * 0.3,
-            worstYear: Math.random() * 0.15 * -1,
-            maxDrawdown: Math.random() * 0.15 * -1,
-            sharpeRatio: Math.random() * 1.5,
-            sortinoRatio: Math.random() * 2
-          };
-          
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${ticker}</td>
-            <td>${metrics.name}</td>
-            <td>${formatPercentage(metrics.cagr)}</td>
-            <td>${formatPercentage(metrics.stdev)}</td>
-            <td>${formatPercentage(metrics.bestYear)}</td>
-            <td style="color: ${metrics.worstYear >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(metrics.worstYear)}</td>
-            <td style="color: ${metrics.maxDrawdown >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(metrics.maxDrawdown)}</td>
-            <td>${metrics.sharpeRatio.toFixed(2)}</td>
-            <td>${metrics.sortinoRatio.toFixed(2)}</td>
-          `;
-          
-          assetsTableBody.appendChild(row);
-        });
+      const tbody = document.getElementById('holdings-table-body');
+      tbody.replaceChildren(); // Clear old rows
+    
+      // Use metrics.holdings_table_data as the primary source for holding details
+      // This array contains objects with keys like ticker, Name, Category, Weight (decimal), DollarAmount, PurchaseDate, and initially zeroed metrics.
+      const rows = metrics.holdings_table_data || [];
+    
+      // Check if there's data to render
+      if (!rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6; // Set colspan to 6 to match the number of columns in the target table
+        td.style.textAlign = 'center';
+        td.textContent = 'No holdings data available.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
       }
-      
-      // Render Portfolio Asset Performance table
-      const assetPerformanceTableBody = document.getElementById('portfolio-asset-performance-table-body');
-      if (assetPerformanceTableBody) {
-        assetPerformanceTableBody.innerHTML = '';
-        
-        // Sample asset performance data
-        const assetPerformance = {
-          'SPY': {
-            name: 'SPDR S&P 500 ETF Trust',
-            threeMonth: -0.0455,
-            ytd: -0.0455,
-            oneYear: 0.0798,
-            expenseRatio: 0.0009,
-            net: 0.0009,
-            gross: 0.0009
-          },
-          'QQQ': {
-            name: 'Invesco QQQ Trust',
-            threeMonth: -0.0828,
-            ytd: -0.0828,
-            oneYear: 0.0610,
-            expenseRatio: 0.0020,
-            net: 0.0020,
-            gross: 0.0020
-          },
-          'AAPL': {
-            name: 'Apple Inc',
-            threeMonth: -0.1120,
-            ytd: -0.1120,
-            oneYear: 0.3015,
-            expenseRatio: 0,
-            net: 0,
-            gross: 0
-          },
-          'NVD': {
-            name: 'GraniteShares 2x Short NVDA Daily ETF',
-            threeMonth: 0.1517,
-            ytd: 0.1517,
-            oneYear: -0.7016,
-            expenseRatio: 0.0150,
-            net: 0.0150,
-            gross: 0.0173
-          },
-          'VWO': {
-            name: 'Vanguard FTSE Emerging Markets ETF',
-            threeMonth: 0.0277,
-            ytd: 0.0277,
-            oneYear: 0.1172,
-            expenseRatio: 0.0007,
-            net: 0.0007,
-            gross: 0.0007
+    
+      // Sort the rows (e.g., by Weight descending as in your original code)
+      rows
+        .sort((a, b) => b.Weight - a.Weight)
+        .forEach(h => { // h is an object from the rows array (metrics.holdings_table_data)
+          const tr = document.createElement('tr'); // Create a new table row
+    
+          // Ticker Column
+          const tdTicker = document.createElement('td');
+          tdTicker.textContent = h.ticker;
+          tr.appendChild(tdTicker);
+    
+          // Name Column
+          const tdName = document.createElement('td');
+          tdName.textContent = h.Name;
+          tr.appendChild(tdName);
+    
+          // Category Column
+          const tdCategory = document.createElement('td');
+          tdCategory.textContent = h.Category; // Assuming Category is available
+          tr.appendChild(tdCategory);
+    
+          // Weight Column (h.Weight is decimal like 0.1818, format as percentage)
+          const tdWeight = document.createElement('td');
+          // Assuming formatPercentage takes a decimal (e.g., 0.1818) and returns a string like "18.18%"
+          tdWeight.textContent = formatPercentage(h.Weight);
+          tr.appendChild(tdWeight);
+    
+          // Value Column (h.DollarAmount, format as currency)
+          const tdValue = document.createElement('td');
+          tdValue.textContent = `$${h.DollarAmount.toFixed(2)}`; // Format as currency
+          tr.appendChild(tdValue);
+    
+          // Return Column (Total Return / cumulative_return)
+          const tdReturn = document.createElement('td');
+          // Get the cumulative_return from the CORRECTED top-level metrics.asset_metrics_data
+          // This assumes the backend fix successfully populated metrics.asset_metrics_data with calculated values
+          const cumulativeReturn = metrics.asset_metrics_data?.[h.ticker]?.cumulative_return;
+    
+          if (cumulativeReturn != null) { // Check if the value is not null or undefined
+            tdReturn.style.color = cumulativeReturn >= 0 ? '#2f855a' : '#ef4444'; // Color based on positive/negative
+            // Assuming formatPercentage takes a decimal (e.g., 0.033) and returns a string like "3.30%"
+            tdReturn.textContent = formatPercentage(cumulativeReturn);
+          } else {
+            // Fallback if cumulative_return is not available for this ticker (shouldn't happen if backend is fixed)
+            tdReturn.textContent = '-'; // Or formatPercentage(0) for 0%
           }
-        };
-        
-        // Add rows to the portfolio asset performance table
-        sortedHoldings.forEach(holding => {
-          const ticker = holding.ticker;
-          const performance = assetPerformance[ticker] || {
-            name: holding.Name || ticker,
-            threeMonth: Math.random() * 0.2 - 0.1,
-            ytd: Math.random() * 0.2 - 0.1,
-            oneYear: Math.random() * 0.3 - 0.1,
-            expenseRatio: Math.random() * 0.005,
-            net: Math.random() * 0.005,
-            gross: Math.random() * 0.005 + 0.001
-          };
-          
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${performance.name}</td>
-            <td style="color: ${performance.threeMonth >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.threeMonth)}</td>
-            <td style="color: ${performance.ytd >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.ytd)}</td>
-            <td style="color: ${performance.oneYear >= 0 ? '#2f855a' : '#ef4444'}">${formatPercentage(performance.oneYear)}</td>
-            <td>${formatPercentage(performance.expenseRatio)}</td>
-            <td>${formatPercentage(performance.net)}</td>
-            <td>${formatPercentage(performance.gross)}</td>
-          `;
-          
-          assetPerformanceTableBody.appendChild(row);
+          tr.appendChild(tdReturn);
+    
+          // Append the completed row to the table body
+          tbody.appendChild(tr);
         });
-      }
-      
-      // Render Portfolio Risk Decomposition table
-      const riskDecompositionTableBody = document.getElementById('portfolio-risk-decomposition-table-body');
-      if (riskDecompositionTableBody) {
-        riskDecompositionTableBody.innerHTML = '';
-        
-        // Sample risk decomposition data
-        const riskDecomposition = {
-          'SPY': {
-            name: 'SPDR S&P 500 ETF Trust',
-            contribution: 0.2391
-          },
-          'QQQ': {
-            name: 'Invesco QQQ Trust',
-            contribution: 0.3039
-          },
-          'AAPL': {
-            name: 'Apple Inc',
-            contribution: 0.3219
-          },
-          'NVD': {
-            name: 'GraniteShares 2x Short NVDA Daily ETF',
-            contribution: 0.0169
-          },
-          'VWO': {
-            name: 'Vanguard FTSE Emerging Markets ETF',
-            contribution: 0.1181
-          }
-        };
-        
-        // Add rows to the portfolio risk decomposition table
-        sortedHoldings.forEach(holding => {
-          const ticker = holding.ticker;
-          const risk = riskDecomposition[ticker] || {
-            name: holding.Name || ticker,
-            contribution: Math.random()
-          };
-          
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${ticker}</td>
-            <td>${risk.name}</td>
-            <td>${formatPercentage(risk.contribution)}</td>
-          `;
-          
-          riskDecompositionTableBody.appendChild(row);
-        });
-      }
-      
-      // Render Portfolio Return Decomposition table
-      const returnDecompositionTableBody = document.getElementById('portfolio-return-decomposition-table-body');
-      if (returnDecompositionTableBody) {
-        returnDecompositionTableBody.innerHTML = '';
-        
-        // Sample return decomposition data
-        const returnDecomposition = {
-          'SPY': {
-            name: 'SPDR S&P 500 ETF Trust',
-            contribution: 502
-          },
-          'QQQ': {
-            name: 'Invesco QQQ Trust',
-            contribution: 421
-          },
-          'AAPL': {
-            name: 'Apple Inc',
-            contribution: 284
-          },
-          'NVD': {
-            name: 'GraniteShares 2x Short NVDA Daily ETF',
-            contribution: -1157
-          },
-          'VWO': {
-            name: 'Vanguard FTSE Emerging Markets ETF',
-            contribution: 270
-          }
-        };
-        
-        // Add rows to the portfolio return decomposition table
-        sortedHoldings.forEach(holding => {
-          const ticker = holding.ticker;
-          const returnData = returnDecomposition[ticker] || {
-            name: holding.Name || ticker,
-            contribution: Math.random() * 1000 - 200
-          };
-          
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${ticker}</td>
-            <td>${returnData.name}</td>
-            <td style="color: ${returnData.contribution >= 0 ? '#2f855a' : '#ef4444'}">$${returnData.contribution.toFixed(0)}</td>
-          `;
-          
-          returnDecompositionTableBody.appendChild(row);
-        });
-      }
-      
-      // Render Annual Asset Returns chart
-      renderAnnualAssetReturnsChart();
-    }
+    }  
     
     // Render Annual Asset Returns chart
     function renderAnnualAssetReturnsChart() {
@@ -2083,174 +1995,151 @@
       
       Plotly.newPlot('annual-asset-returns-chart', traces, layout);
     }
-    
     // Get color for different assets (to make each asset have a consistent color across charts)
     function getColorForAsset(ticker) {
-      const colorMap = {
-        'SPY': '#0000FF',  // Blue
-        'QQQ': '#4ECDC4',  // Teal
-        'AAPL': '#6B8CFF', // Light blue
-        'NVD': '#556B2F',  // Dark olive green
-        'VWO': '#00A6A6',  // Cyan
-        'BTC': '#FF9900',  // Orange
-        'ETH': '#3C3C3D'   // Dark gray
+      const m = {
+        SPY:'#0000FF',QQQ:'#4ECDC4',AAPL:'#6B8CFF',
+        NVD:'#556B2F',VWO:'#00A6A6',BTC:'#FF9900',ETH:'#3C3C3D'
       };
-      
-      return colorMap[ticker] || '#2f855a'; // Default to green
+      return m[ticker]||'#2f855a';
     }
-    
+
     // Render drawdowns charts and tables
     function renderDrawdownsCharts() {
-      // Always render the drawdowns data regardless of tab visibility
-      const drawdownsTab = document.getElementById('drawdowns');
-      
-      // Render drawdowns table
+      const growth = metrics.portfolio_growth_data || { dates: [], values: [] };
+      const dates = growth.dates.map(d => new Date(d));
+      const values = growth.values;
       const tableBody = document.getElementById('drawdowns-table-body');
+      const chartEl   = document.getElementById('drawdowns-chart');
+
+      // Helper to format duration (days → days/months/years)
+      function fmtDuration(ms) {
+        const days = Math.round(ms / (1000*60*60*24));
+        if (days >= 365) return (days/365).toFixed(1) + ' yrs';
+        if (days >= 30)  return Math.round(days/30) + ' mos';
+        return days + ' days';
+      }
+
+      if (dates.length < 2) {
+        // no data fallback
+        if (tableBody) {
+          tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">No drawdown data available.</td></tr>';
+        }
+        if (chartEl) {
+          chartEl.innerHTML = '<p style="text-align:center">Drawdown chart not available.</p>';
+        }
+        return;
+      }
+
+      // 1) compute drawdown series
+      let peakVal = values[0],  
+          ddSeries = [];
+      for (let i = 0; i < values.length; i++) {
+        peakVal = Math.max(peakVal, values[i]);
+        ddSeries.push((values[i]/peakVal) - 1);
+      }
+
+      // 2) detect periods: peak→trough→recovery
+      const periods = [];
+      let inDD = false,  cur = {};
+      for (let i = 0; i < ddSeries.length; i++) {
+        const dd = ddSeries[i];
+        if (dd < 0) {
+          if (!inDD) {
+            // start new
+            inDD = true;
+            cur = {
+              peakDate:   dates[i-1]   || dates[i],
+              startDate:  dates[i],
+              troughDD:   dd,
+              troughDate: dates[i],
+              recDate:    null
+            };
+          } else if (dd < cur.troughDD) {
+            cur.troughDD   = dd;
+            cur.troughDate = dates[i];
+          }
+        } else if (inDD) {
+          // recovery!
+          cur.recDate = dates[i];
+          periods.push(cur);
+          inDD = false;
+        }
+      }
+      // if still underwater at end
+      if (inDD) periods.push(cur);
+
+      // 3) render table
       if (tableBody) {
         tableBody.innerHTML = '';
-        
-        // Sample drawdowns data
-        const drawdowns = [
-          {
-            rank: 1,
-            start: 'Jan 2024',
-            end: 'Apr 2024',
-            length: '4 months',
-            recoveryBy: 'Aug 2024',
-            recoveryTime: '4 months',
-            underwaterPeriod: '8 months',
-            drawdown: -0.0969
-          },
-          {
-            rank: 2,
-            start: 'Feb 2025',
-            end: 'Mar 2025',
-            length: '2 months',
-            recoveryBy: null,
-            recoveryTime: null,
-            underwaterPeriod: null,
-            drawdown: -0.0365
-          },
-          {
-            rank: 3,
-            start: 'Oct 2024',
-            end: 'Oct 2024',
-            length: '1 month',
-            recoveryBy: 'Nov 2024',
-            recoveryTime: '1 month',
-            underwaterPeriod: '2 months',
-            drawdown: -0.0190
-          }
-        ];
-        
-        // Add rows to the drawdowns table
-        drawdowns.forEach(d => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${d.rank}</td>
-            <td>${d.start}</td>
-            <td>${d.end}</td>
-            <td>${d.length}</td>
-            <td>${d.recoveryBy || '-'}</td>
-            <td>${d.recoveryTime || '-'}</td>
-            <td>${d.underwaterPeriod || '-'}</td>
-            <td style="color: #ef4444">${formatPercentage(d.drawdown)}</td>
-          `;
-          
-          tableBody.appendChild(row);
-        });
+        if (!periods.length) {
+          tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center">No drawdown periods detected.</td></tr>';
+        } else {
+          periods.forEach((p, idx) => {
+            const tr = document.createElement('tr');
+            const lengthMs = p.troughDate - p.startDate;
+            const uwMs     = (p.recDate||dates[dates.length-1]) - p.startDate;
+            const recTxt   = p.recDate ? p.recDate.toISOString().slice(0,10) : '–';
+            [ 
+              idx+1,
+              p.startDate.toISOString().slice(0,10),
+              p.troughDate.toISOString().slice(0,10),
+              fmtDuration(lengthMs),
+              recTxt,
+              p.recDate ? fmtDuration(p.recDate - p.troughDate) : '–',
+              fmtDuration(uwMs),
+              formatPercentage(p.troughDD)
+            ].forEach((txt,i) => {
+              const td = document.createElement('td');
+              td.textContent = txt;
+              if (i === 7 && p.troughDD<0) td.style.color = '#ef4444';
+              tr.appendChild(td);
+            });
+            tableBody.appendChild(tr);
+          });
+        }
       }
-      
-      // Generate drawdowns visualization
-      const drawdownsChart = document.getElementById('drawdowns-chart');
-      if (drawdownsChart) {
-        // Simulate drawdowns over time
-        const drawdownDates = [];
-        const drawdownValues = [];
-        
-        // Generate date range from Jan 2024 to March 2025
-        const startDate = new Date(2024, 0, 1);
-        const endDate = new Date(2025, 2, 31);
-        
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 15)) {
-          drawdownDates.push(new Date(d));
+
+      // 4) aggregate monthly worst drawdown
+      const monthly = {};
+      ddSeries.forEach((dd,i) => {
+        const d = dates[i], key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        if (!monthly[key] || dd < monthly[key]) monthly[key] = dd;
+      });
+      const months = Object.keys(monthly).sort();
+      const mvals  = months.map(m => monthly[m]);
+
+      // 5) render chart
+      if (chartEl) {
+        chartEl.replaceChildren();
+        if (!months.length) {
+          const p = document.createElement('p');
+          p.style.textAlign = 'center';
+          p.textContent = 'Monthly drawdowns data not available.';
+          chartEl.appendChild(p);
+        } else {
+          const trace = {
+            x: months,
+            y: mvals,
+            type: 'scatter',
+            mode: 'lines',
+            fill: 'tozeroy',
+            line: { color: '#ef4444', width: 2 },
+            fillcolor: 'rgba(239, 68, 68, 0.2)',
+            hovertemplate: '%{x}<br>Drawdown: %{y:.2%}<extra></extra>'
+          };
+          const layout = {
+            title: { text: 'Monthly Worst Drawdown', font: { size: 24, color: '#2f855a' }, x: 0 },
+            xaxis: { title: 'Month', type: 'category', tickangle: -45 },
+            yaxis: { title: 'Drawdown', tickformat: '.0%', autorange: true },
+            margin: { l:50,r:50,t:80,b:100 },
+            plot_bgcolor: 'white',
+            paper_bgcolor: 'white',
+            showlegend: false,
+            height: 300
+          };
+          Plotly.newPlot(chartEl, [trace], layout);
         }
-        
-        // Generate drawdown values that match the pattern in the reference image
-        drawdownValues.push(0);  // Start at 0
-        
-        // First major drawdown (Jan 2024 - Jun 2024)
-        for (let i = 1; i < 7; i++) {
-          if (i < 5) {
-            drawdownValues.push(-0.02 * i * i);  // Accelerating drawdown
-          } else {
-            drawdownValues.push(-0.097 + (i - 5) * 0.02);  // Recovery begins
-          }
-        }
-        
-        // Recovery period (Jul 2024 - Sep 2024)
-        for (let i = 0; i < 3; i++) {
-          drawdownValues.push(-0.06 + i * 0.02);
-        }
-        
-        // Minor drawdown (Oct 2024)
-        drawdownValues.push(-0.019);
-        
-        // Recovery (Nov 2024)
-        drawdownValues.push(-0.005);
-        
-        // Period of no drawdown (Dec 2024 - Jan 2025)
-        drawdownValues.push(0);
-        drawdownValues.push(0);
-        
-        // Final drawdown (Feb 2025 - Mar 2025)
-        drawdownValues.push(-0.023);
-        drawdownValues.push(-0.0365);
-        
-        // Create the trace for the drawdown chart
-        const drawdownTrace = {
-          x: drawdownDates,
-          y: drawdownValues,
-          type: 'scatter',
-          mode: 'lines',
-          fill: 'tozeroy',
-          line: {
-            color: '#ef4444',
-            width: 2
-          },
-          fillcolor: 'rgba(239, 68, 68, 0.2)'
-        };
-        
-        const drawdownLayout = {
-          title: {
-            text: 'Drawdowns',
-            font: {
-              size: 24,
-              color: '#2f855a'
-            },
-            x: 0,
-            xanchor: 'left'
-          },
-          xaxis: {
-            title: 'Year'
-          },
-          yaxis: {
-            title: 'Drawdown',
-            tickformat: ',.0%',
-            range: [-0.12, 0.01]  // Set range to show drawdowns properly
-          },
-          showlegend: false,
-          margin: {
-            l: 50,
-            r: 50,
-            t: 80,
-            b: 50
-          },
-          paper_bgcolor: 'white',
-          plot_bgcolor: 'white'
-        };
-        
-        Plotly.newPlot('drawdowns-chart', [drawdownTrace], drawdownLayout);
       }
     }
     

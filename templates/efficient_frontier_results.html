@@ -220,34 +220,35 @@
   <!-- Header -->
   <div class="header">
     <div class="logo">
-      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+      <a href="{{ url_for('auth.index') }}" style="text-decoration: none; display: flex; align-items: center;">
         <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
         <div class="logo-text">Portfolio Optimizer</div>
       </a>
     </div>
     <div class="nav">
-      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('transactions.get_transactions') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
           <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
+          <a href="{{ url_for('portfolio_api.portfolio_analysis_selection') }}">Portfolio Analysis</a>
         </div>
       </div>
       <div class="dropdown">
         <a href="#">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('portfolio_api.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('portfolio_api.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
-      {% if username %}
-        <a href="{{ url_for('index') }}" style="text-decoration: none;">
-          <span>Hello, {{ username }}!</span>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('auth.index') }}" style="text-decoration: none;">
+          <span>Hello, {{ current_user.username }}!</span>
         </a>
         <a href="#" id="logoutButton">Logout</a>
       {% else %}
-        <a href="{{ url_for('login_page') }}">Login</a>
-        <a href="{{ url_for('register_page') }}">Sign Up</a>
+        <a href="{{ url_for('auth.login_page') }}">Login</a>
+        <a href="{{ url_for('auth.register_page') }}">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -255,13 +256,13 @@
   <div class="results-container">
     <h1>Efficient Frontier Analysis</h1>
     <p>Analysis period: {{ start_date }} to {{ end_date }}</p>
-    
+
     <div class="tabs">
       <div class="tab active" data-tab="summary">Summary</div>
       <div class="tab" data-tab="assets">Assets</div>
       <div class="tab" data-tab="portfolios">Portfolios</div>
     </div>
-    
+
     <!-- Summary Tab -->
     <div class="tab-content active" id="summary-tab">
       <div class="section">
@@ -270,14 +271,14 @@
           {{ efficient_frontier_chart|safe }}
         </div>
       </div>
-      
+
       <div class="section">
         <h2>Portfolio Transition Map</h2>
         <div class="chart-container">
           {{ transition_map_chart|safe }}
         </div>
       </div>
-      
+
       <div class="section">
         <h2>Performance Summary</h2>
         <div class="metrics-grid">
@@ -297,7 +298,7 @@
             <div class="metric-value">{{ "%.2f"|format(equal_weight_portfolio.sharpe) }}</div>
             <div class="metric-label">Sharpe Ratio</div>
           </div>
-          
+
           <!-- Tangency Portfolio -->
           <div class="metric-card">
             <div class="metric-label">Tangency Portfolio</div>
@@ -314,7 +315,7 @@
             <div class="metric-value">{{ "%.2f"|format(tangency_portfolio.sharpe) }}</div>
             <div class="metric-label">Sharpe Ratio</div>
           </div>
-          
+
           <!-- Max Information Ratio Portfolio -->
           <div class="metric-card">
             <div class="metric-label">Max Information Ratio Portfolio</div>
@@ -333,10 +334,9 @@
           </div>
         </div>
       </div>
-      
+
       <div class="section">
         <h2>Portfolio Comparison</h2>
-        <!-- Portfolio Comparison Table -->
         <table class="portfolio-table">
           <thead>
             <tr>
@@ -381,12 +381,11 @@
         </table>
       </div>
     </div>
-    
+
     <!-- Assets Tab -->
     <div class="tab-content" id="assets-tab">
       <div class="section">
         <h2>Asset Analysis</h2>
-        
         <table class="portfolio-table">
           <thead>
             <tr>
@@ -403,20 +402,20 @@
           <tbody>
             {% for asset in asset_metrics %}
             <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ asset['ticker'] }}</td>
-                <td>{{ "%.2f"|format(asset['Expected Return'] * 100) }}%</td>
-                <td>{{ "%.2f"|format(asset['Standard Deviation'] * 100) }}%</td>
-                <td>{{ "%.3f"|format(asset['Sharpe Ratio']) }}</td>
-                <td>{{ "%.2f"|format(asset['Expected Active Return'] * 100) }}%</td>
-                <td>{{ "%.2f"|format(asset['Tracking Error'] * 100) }}%</td>
-                <td>{{ "%.3f"|format(asset['Information Ratio']) }}</td>
-              </tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ asset['ticker'] }}</td>
+              <td>{{ "%.2f"|format(asset['Expected Return'] * 100) }}%</td>
+              <td>{{ "%.2f"|format(asset['Standard Deviation'] * 100) }}%</td>
+              <td>{{ "%.3f"|format(asset['Sharpe Ratio']) }}</td>
+              <td>{{ "%.2f"|format(asset['Expected Active Return'] * 100) }}%</td>
+              <td>{{ "%.2f"|format(asset['Tracking Error'] * 100) }}%</td>
+              <td>{{ "%.3f"|format(asset['Information Ratio']) }}</td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-      
+
       <div class="section">
         <h2>Asset Correlations</h2>
         <table class="correlation-table">
@@ -425,38 +424,37 @@
               <th>Name</th>
               <th>Ticker</th>
               {% for ticker in tickers %}
-                <th>{{ ticker }}</th>
+              <th>{{ ticker }}</th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
             {% for ticker in tickers %}
-              <tr>
-                <td>{{ ticker }}</td>
-                <td>{{ ticker }}</td>
-                {% for other_ticker in tickers %}
-                  <td class="correlation-cell" style="background-color: rgba(0, 128, 0, {{ correlations[ticker][other_ticker] }})">
-                    {{ "%.2f"|format(correlations[ticker][other_ticker]) }}
-                  </td>
-                {% endfor %}
-              </tr>
+            <tr>
+              <td>{{ ticker }}</td>
+              <td>{{ ticker }}</td>
+              {% for other_ticker in tickers %}
+              <td class="correlation-cell" style="background-color: rgba(0, 128, 0, {{ correlations[ticker][other_ticker] }})">
+                {{ "%.2f"|format(correlations[ticker][other_ticker]) }}
+              </td>
+              {% endfor %}
+            </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-    
+
     <!-- Portfolios Tab -->
     <div class="tab-content" id="portfolios-tab">
       <div class="section">
         <h2>Efficient Frontier Portfolios</h2>
-        
         <table class="portfolio-table">
           <thead>
             <tr>
               <th>#</th>
               {% for ticker in tickers %}
-                <th>{{ ticker }}</th>
+              <th>{{ ticker }}</th>
               {% endfor %}
               <th>Active Return</th>
               <th>Tracking Error</th>
@@ -465,27 +463,27 @@
           </thead>
           <tbody>
             {% for portfolio in efficient_portfolios %}
-              <tr>
-                <td>{{ loop.index }}</td>
-                {% for ticker in tickers %}
-                  <td>{{ "%.2f"|format(portfolio[ticker] * 100) }}%</td>
-                {% endfor %}
-                <td>{{ "%.2f"|format(portfolio['Active Return'] * 100) }}%</td>
-                <td>{{ "%.2f"|format(portfolio['Tracking Error'] * 100) }}%</td>
-                <td>{{ "%.3f"|format(portfolio['Information Ratio']) }}</td>
-              </tr>
+            <tr>
+              <td>{{ loop.index }}</td>
+              {% for ticker in tickers %}
+              <td>{{ "%.2f"|format(portfolio[ticker] * 100) }}%</td>
+              {% endfor %}
+              <td>{{ "%.2f"|format(portfolio['Active Return'] * 100) }}%</td>
+              <td>{{ "%.2f"|format(portfolio['Tracking Error'] * 100) }}%</td>
+              <td>{{ "%.3f"|format(portfolio['Information Ratio']) }}</td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
-    
+
     <div class="buttons">
       <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}" class="btn btn-primary">Back to Efficient Frontier Tool</a>
-      <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+      <a href="{{ url_for('auth.index') }}" class="btn btn-secondary">Back to Home</a>
     </div>
   </div>
-  
+
   <script>
     // Tab functionality
     document.querySelectorAll('.tab').forEach(function(tab) {
@@ -494,21 +492,18 @@
         document.querySelectorAll('.tab').forEach(function(t) {
           t.classList.remove('active');
         });
-        
         // Add active class to clicked tab
         this.classList.add('active');
-        
         // Hide all tab content
         document.querySelectorAll('.tab-content').forEach(function(content) {
           content.classList.remove('active');
         });
-        
         // Show selected tab content
         const tabId = this.getAttribute('data-tab') + '-tab';
         document.getElementById(tabId).classList.add('active');
       });
     });
-    
+
     // Logout handler
     document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
       e.preventDefault();

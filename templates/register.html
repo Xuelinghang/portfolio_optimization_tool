@@ -192,29 +192,40 @@
   <!-- Header with Logo and Navigation -->
   <div class="header">
     <div class="logo">
-      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
-        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" />
+      <a href="{{ url_for('auth.index') }}" style="text-decoration: none; display: flex; align-items: center;">
+        <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
         <div class="logo-text">Portfolio Optimizer</div>
       </a>
     </div>
     <div class="nav">
-      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('transactions.get_transactions') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
           <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
-          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+          <a href="{{ url_for('portfolio_api.portfolio_analysis_selection') }}">Portfolio Analysis</a>
         </div>
       </div>
       <div class="dropdown">
         <a href="#">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('portfolio_api.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('portfolio_api.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
-      <a href="{{ url_for('login_page') }}">Login</a>
-      <a href="{{ url_for('register_page') }}">Sign Up</a>
+      {# Check if current_user is authenticated using Flask-Login #}
+      {% if current_user.is_authenticated %} {# <--- CHANGED check #}
+        {# Display username from current_user #}
+        <a href="{{ url_for('auth.index') }}" style="text-decoration: none;">
+          <span>Hello, {{ current_user.username }}!</span> {# <--- CHANGED to current_user.username #}
+        </a>
+        {# Provide a logout link (ensure backend route handles POST for logout) #}
+        <a href="#" id="logoutButton">Logout</a> {# The JS handles the POST request for logout #}
+      {% else %}
+        {# Show login and sign up links if not authenticated #}
+        <a href="{{ url_for('auth.login_page') }}">Login</a>
+        <a href="{{ url_for('auth.register_page') }}">Sign Up</a>
+      {% endif %}
     </div>
   </div>
 

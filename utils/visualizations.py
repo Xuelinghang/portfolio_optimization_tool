@@ -1,9 +1,12 @@
+# In utils/visualizations.py
+
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import matplotlib.pyplot as plt
+# Removed matplotlib import as it wasn't used in the provided functions
+# import matplotlib.pyplot as plt
 
 def plot_portfolio_growth(portfolio_values, title="Portfolio Growth"):
     """
@@ -174,11 +177,12 @@ def plot_monthly_returns_heatmap(returns, title="Monthly Returns"):
     Returns:
         Plotly figure object
     """
-    # Resample to monthly if not already
+    # Resample to monthly if not already using 'ME'
+    # Use 'ME' for Month End frequency to avoid deprecation warning
     if not isinstance(returns.index.freq, pd.tseries.offsets.MonthEnd):
-        monthly_returns = returns.resample('M').apply(lambda x: (1 + x).prod() - 1)
+        monthly_returns = returns.resample('ME').apply(lambda x: (1 + x).prod() - 1) # Changed 'M' to 'ME'
     else:
-        monthly_returns = returns
+        monthly_returns = returns # Assuming 'ME' frequency if already resampled
     
     # Create a DataFrame with years as rows and months as columns
     returns_by_month = pd.DataFrame({
@@ -193,7 +197,9 @@ def plot_monthly_returns_heatmap(returns, title="Monthly Returns"):
     # Replace column numbers with month names
     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    heatmap_data.columns = month_names[:len(heatmap_data.columns)]
+    # Ensure the heatmap_data columns match the order of month_names
+    # The pivot correctly orders months 1-12
+    heatmap_data.columns = month_names
     
     # Create the heatmap
     fig = px.imshow(
@@ -217,7 +223,7 @@ def plot_monthly_returns_heatmap(returns, title="Monthly Returns"):
                 value = heatmap_data.iloc[i, j] * 100
                 text_color = 'black' if abs(value) < 5 else 'white'
                 fig.add_annotation(
-                    x=month,
+                    x=month_names[j], # Use month name for x coordinate
                     y=year,
                     text=f"{value:.1f}%",
                     showarrow=False,
@@ -247,11 +253,11 @@ def plot_rolling_returns(returns, window=36, title="Rolling Returns"):
     Returns:
         Plotly figure object
     """
-    # Convert to monthly if needed
+    # Convert to monthly if needed using 'ME'
     if not isinstance(returns.index.freq, pd.tseries.offsets.MonthEnd):
-        monthly_returns = returns.resample('M').apply(lambda x: (1 + x).prod() - 1)
+        monthly_returns = returns.resample('ME').apply(lambda x: (1 + x).prod() - 1) # Changed 'M' to 'ME'
     else:
-        monthly_returns = returns
+        monthly_returns = returns # Assuming 'ME' frequency if already resampled
     
     # Calculate rolling returns (annualized)
     rolling_return = (1 + monthly_returns).rolling(window=window).apply(
@@ -297,42 +303,53 @@ def plot_asset_returns_comparison(returns_data, period='1Y', title=None):
     
     # Calculate returns for the specified period
     for asset, returns in returns_data.items():
-        if len(returns) == 0:
+        if returns is None or len(returns) == 0: # Handle None or empty Series
             continue
             
         # Calculate return based on period
         if period == '3M':
-            # Last 3 months
+            # Last 3 months (requires daily data converted to monthly if needed)
+            # Assuming returns are monthly returns here based on typical usage
             if len(returns) >= 3:
                 period_return = (1 + returns.tail(3)).prod() - 1
             else:
-                period_return = np.nan
+                # If not enough monthly data, calculate from whatever data is available
+                # This might not be a true 3M return if data is less than 3 months
+                period_return = (1 + returns).prod() - 1 if len(returns) > 0 else np.nan
         elif period == 'YTD':
-            # Year to date
-            current_year = returns.index[-1].year
-            ytd_returns = returns[returns.index.year == current_year]
-            period_return = (1 + ytd_returns).prod() - 1 if not ytd_returns.empty else np.nan
+            # Year to date (requires daily data to find start of year price)
+            # Assuming returns are daily returns Series
+            if not returns.empty:
+                current_year = returns.index[-1].year
+                ytd_returns = returns[returns.index.year == current_year]
+                period_return = (1 + ytd_returns).prod() - 1 if not ytd_returns.empty else np.nan
+            else: period_return = np.nan
+
         elif period == '1Y':
-            # Last 12 months
+            # Last 12 months (requires monthly returns or 12 months of daily data to calculate monthly)
+            # Assuming returns are monthly returns Series
             if len(returns) >= 12:
                 period_return = (1 + returns.tail(12)).prod() - 1
             else:
-                period_return = (1 + returns).prod() - 1
+                # If not enough monthly data, calculate from available data
+                period_return = (1 + returns).prod() - 1 if len(returns) > 0 else np.nan
+
         elif period == '3Y':
-            # Last 3 years (annualized)
+            # Last 3 years (annualized, requires monthly returns)
             if len(returns) >= 36:
                 period_return = (1 + returns.tail(36)).prod() ** (1/3) - 1
             else:
                 period_return = np.nan
         elif period == '5Y':
-            # Last 5 years (annualized)
+            # Last 5 years (annualized, requires monthly returns)
             if len(returns) >= 60:
                 period_return = (1 + returns.tail(60)).prod() ** (1/5) - 1
             else:
                 period_return = np.nan
         else:
-            period_return = np.nan
-            
+            period_return = np.nan # Handle unknown periods
+
+
         if not np.isnan(period_return):
             assets.append(asset)
             period_returns.append(period_return * 100)  # Convert to percentage

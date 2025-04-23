@@ -298,35 +298,39 @@
   <!-- Header -->
   <div class="header">
     <div class="logo">
-      <a href="{{ url_for('index') }}" style="text-decoration: none; display: flex; align-items: center;">
+      <a href="{{ url_for('auth.index') }}" style="text-decoration: none; display: flex; align-items: center;">
         <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
         <div class="logo-text">Portfolio Optimizer</div>
       </a>
     </div>
     <div class="nav">
-      <a href="{{ url_for('transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('transactions.get_transactions') }}">Transactions</a>
       <div class="dropdown">
         <a href="#">Tools</a>
         <div class="dropdown-content">
           <a href="{{ url_for('efficient_frontier.efficient_frontier_page') }}">Efficient Frontier</a>
-          <a href="{{ url_for('portfolio_analysis_selection') }}">Portfolio Analysis</a>
+          <a href="{{ url_for('portfolio_api.portfolio_analysis_selection') }}">Portfolio Analysis</a>
         </div>
       </div>
       <div class="dropdown">
         <a href="#">My Models</a>
         <div class="dropdown-content">
-          <a href="{{ url_for('saved_portfolios') }}">My Saved Portfolios</a>
-          <a href="{{ url_for('data_entry') }}">Create New Portfolio</a>
+          <a href="{{ url_for('portfolio_api.saved_portfolios') }}">My Saved Portfolios</a>
+          <a href="{{ url_for('portfolio_api.data_entry') }}">Create New Portfolio</a>
         </div>
       </div>
-      {% if username %}
-        <a href="{{ url_for('index') }}" style="text-decoration: none;">
-          <span>Hello, {{ username }}!</span>
+      {# Check if current_user is authenticated using Flask-Login #}
+      {% if current_user.is_authenticated %} {# <--- CHANGED check #}
+        {# Display username from current_user #}
+        <a href="{{ url_for('auth.index') }}" style="text-decoration: none;">
+          <span>Hello, {{ current_user.username }}!</span> {# <--- CHANGED to current_user.username #}
         </a>
-        <a href="#" id="logoutButton">Logout</a>
+        {# Provide a logout link (ensure backend route handles POST for logout) #}
+        <a href="#" id="logoutButton">Logout</a> {# The JS handles the POST request for logout #}
       {% else %}
-        <a href="{{ url_for('login_page') }}">Login</a>
-        <a href="{{ url_for('register_page') }}">Sign Up</a>
+        {# Show login and sign up links if not authenticated #}
+        <a href="{{ url_for('auth.login_page') }}">Login</a>
+        <a href="{{ url_for('auth.register_page') }}">Sign Up</a>
       {% endif %}
     </div>
   </div>
@@ -363,7 +367,7 @@
                         </div>
                         
                         <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                            <a href="{{ url_for('view_dashboard', portfolio_id=portfolio.id) }}" class="btn" style="display: flex; align-items: center; font-size: 0.875rem; padding: 10px 16px;">
+                            <a href="{{ url_for('portfolio_api.view_dashboard', portfolio_id=portfolio.id) }}" class="btn" style="display: flex; align-items: center; font-size: 0.875rem; padding: 10px 16px;">
                                 <span>Analyze Portfolio</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-left: 6px;">
                                     <path d="M5 12h14"></path>
@@ -386,7 +390,7 @@
                 </div>
                 <h3 style="font-size: 1.25rem; font-weight: 600; color: #2d3748; margin-bottom: 12px;">No Portfolios Found</h3>
                 <p style="color: #6b7280; margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">You don't have any saved portfolios yet. Create a new portfolio to get started with your analysis.</p>
-                <a href="{{ url_for('data_entry') }}" class="btn">
+                <a href="{{ url_for('portfolio_api.data_entry') }}" class="btn">
                     Create New Portfolio
                 </a>
             </div>
@@ -394,7 +398,7 @@
     </div>
     
     <div class="action-bar">
-        <a href="{{ url_for('index') }}" class="back-link">
+        <a href="{{ url_for('auth.index') }}" class="back-link">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
@@ -402,7 +406,7 @@
             Back to Home
         </a>
         
-        <a href="{{ url_for('data_entry') }}" class="btn">
+        <a href="{{ url_for('portfolio_api.data_entry') }}" class="btn">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px; display: inline-block; vertical-align: middle;">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
