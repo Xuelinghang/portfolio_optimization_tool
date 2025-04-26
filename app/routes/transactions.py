@@ -162,6 +162,27 @@ def create_transaction():
     fees = float(data.get('fees') or 0.0)
     notes = data.get('notes', '').strip()
 
+    # Begin: Patch inserting missing Transaction creation
+    quantity = float(data.get('quantity') or 0.0)
+    price = float(data.get('price') or 0.0)
+    transaction_type = data.get('transaction_type', '').lower()
+    transaction_date = datetime.strptime(data['transaction_date'], "%Y-%m-%d")
+
+    tx = Transaction(
+        user_id=user_id,
+        portfolio_id=portfolio.id,
+        asset_id=asset.id,
+        transaction_type=transaction_type,
+        quantity=quantity,
+        price=price,
+        fees=fees,
+        notes=notes,
+        transaction_date=transaction_date
+    )
+    db.session.add(tx)
+    # End: Patch
+
+
     # ... (rest of the transaction creation and portfolio/holding update logic) ...
 
     try:
@@ -192,3 +213,23 @@ def create_transaction():
         current_app.logger.error(f"Error creating transaction: {e}")
         traceback.print_exc()
         return jsonify({'error': 'Database error saving transaction.'}), 500
+
+@transactions_bp.route('/<int:transaction_id>', methods=['DELETE'])
+@login_required
+def delete_transaction(transaction_id):
+    """Delete a transaction by ID."""
+    user_id = current_user.id
+    try:
+        tx = Transaction.query.filter_by(id=transaction_id, user_id=user_id).first()
+        if not tx:
+            return jsonify({'error': 'Transaction not found'}), 404
+
+        db.session.delete(tx)
+        db.session.commit()
+        return jsonify({'message': 'Transaction deleted successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting transaction {transaction_id}: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Database error deleting transaction.'}), 500

@@ -202,7 +202,9 @@ def get_portfolio_metrics(portfolio_id):
                 daily_prices, # Pass the cleaned daily price data DataFrame
                 aligned_weights,
                 holdings_list,
-                tickers_with_daily_data# Pass the aligned weights
+                tickers_with_daily_data,
+                portfolio.total_value
+                
             )
             print("Debug (Backend): metrics_results_dict['asset_metrics_data'] after calc:", metrics_results.get('asset_metrics_data'))
             print("Financial metrics calculation completed.")
@@ -246,34 +248,29 @@ def get_portfolio_metrics(portfolio_id):
             "overall_metrics": {
                 # Access data directly from 'portfolio_overall_metrics' sub-dictionary
                 "portfolio_name": metrics_results.get('portfolio_overall_metrics', {}).get('portfolio_name', portfolio.portfolio_name),
-                "Start Balance": float(metrics_results.get('portfolio_overall_metrics', {}).get('start_value', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('start_value', 0.0)) else 0.0,
-                "End Balance": float(metrics_results.get('portfolio_overall_metrics', {}).get('end_value', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('end_value', 0.0)) else 0.0,
+                "Start Balance": float(portfolio.total_value),
+                "End Balance": portfolio.total_value * (1 + metrics_results.get('portfolio_overall_metrics', {}).get('cumulative_return', 0.0)),
                 "Cumulative Return": float(metrics_results.get('portfolio_overall_metrics', {}).get('cumulative_return', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('cumulative_return', 0.0)) else 0.0,
-                # Fix scaling: CAGR is already a decimal in metrics_results, multiply by 100 here
-                "Annualized Return (CAGR)": float(metrics_results.get('portfolio_overall_metrics', {}).get('cagr', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('cagr', 0.0)) else 0.0,
-                # Fix scaling: Std Dev is already a decimal in metrics_results, multiply by 100 here
-                "Standard Deviation": float(metrics_results.get('portfolio_overall_metrics', {}).get('std_dev_annual', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('std_dev_annual', 0.0)) else 0.0,
+                "Annualized Return (CAGR)": (float(metrics_results.get('portfolio_overall_metrics', {}).get('cagr', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('cagr', 0.0)) else 0.0,
+                "Standard Deviation": (float(metrics_results.get('portfolio_overall_metrics', {}).get('std_dev_annual', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('std_dev_annual', 0.0)) else 0.0,
                 "Sharpe Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('sharpe_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('sharpe_ratio', 0.0)) else 0.0,
                  "Sortino Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('sortino_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('sortino_ratio', 0.0)) else 0.0,
-                # Fix scaling: Max Drawdown is already a decimal in metrics_results, multiply by 100 here
-                "Maximum Drawdown": float(metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_value', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_value', 0.0)) else 0.0,
+                "Maximum Drawdown": (float(metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_value', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_value', 0.0)) else 0.0,
                 "Drawdown Start Date": metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_start_date', None), # Dates are likely already formatted strings
                 "Drawdown End Date": metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_end_date', None), # Dates are likely already formatted strings
                 "Drawdown Recovery Time": metrics_results.get('portfolio_overall_metrics', {}).get('max_drawdown_recovery_time_months', 'N/A'),
                  "Monthly Positive Periods": metrics_results.get('portfolio_overall_metrics', {}).get('positive_periods', 'N/A'), # Assuming these are already formatted
                 "Total Periods": metrics_results.get('portfolio_overall_metrics', {}).get('total_periods', 'N/A'), # Assuming these are already formatted
                 "Gain/Loss Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('gain_loss_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('gain_loss_ratio', 0.0)) else 0.0,
-                 # Fix scaling: safe/perpetual withdrawal rates are likely decimals, multiply by 100
-                "Safe Withdrawal Rate": float(metrics_results.get('portfolio_overall_metrics', {}).get('safe_withdrawal_rate', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('safe_withdrawal_rate', 0.0)) else 0.0,
-                "Perpetual Withdrawal Rate": float(metrics_results.get('portfolio_overall_metrics', {}).get('perpetual_withdrawal_rate', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('perpetual_withdrawal_rate', 0.0)) else 0.0,
+                "Safe Withdrawal Rate": (float(metrics_results.get('portfolio_overall_metrics', {}).get('safe_withdrawal_rate', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('safe_withdrawal_rate', 0.0)) else 0.0,
+                "Perpetual Withdrawal Rate": (float(metrics_results.get('portfolio_overall_metrics', {}).get('perpetual_withdrawal_rate', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('perpetual_withdrawal_rate', 0.0)) else 0.0,
                 "Beta": float(metrics_results.get('portfolio_overall_metrics', {}).get('beta', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('beta', 0.0)) else 0.0,
-                # Fix scaling: Alpha is likely a decimal, multiply by 100
-                "Alpha": float(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) else 0.0,
+                "Alpha": (float(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) else 0.0,
                 "Calmar Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) else 0.0,
                 "best_year":   metrics_results['portfolio_overall_metrics']['best_year'],
-                "best_year_return":  metrics_results['portfolio_overall_metrics']['best_year_return'],
+                "best_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) else 0.0,
                 "worst_year":  metrics_results['portfolio_overall_metrics']['worst_year'],
-                "worst_year_return": metrics_results['portfolio_overall_metrics']['worst_year_return'],
+                "worst_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) else 0.0,
                 "Calculation Start Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_start_date', None), # Dates are likely already formatted strings
                 "Calculation End Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_end_date', None), # Dates are likely already formatted strings
                 "Initial Investment Used": float(metrics_results.get('portfolio_overall_metrics', {}).get('initial_investment_used', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('initial_investment_used', 0.0)) else 0.0,
@@ -302,14 +299,14 @@ def get_portfolio_metrics(portfolio_id):
                     "PurchaseDate": h['PurchaseDate'],
                     # Get per-asset metrics from the CORRECT nested location
                     # Access the nested 'asset_metrics_data' within 'portfolio_overall_metrics'
-                    "Total Return": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('cumulative_return', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('cumulative_return', 0.0)) else 0.0,
-                    "Annualized Return (CAGR)": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('cagr', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('cagr', 0.0)) else 0.0,
-                    "Standard Deviation": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('std_dev_annual', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('std_dev_annual', 0.0)) else 0.0,
-                    "Sharpe Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('sharpe_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('sharpe_ratio', 0.0)) else 0.0,
-                    "Sortino Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('sortino_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('sortino_ratio', 0.0)) else 0.0,
-                     "Maximum Drawdown": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('max_drawdown', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('max_drawdown', 0.0)) else 0.0,
-                     "Best Year Return": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('best_year_return', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('best_year_return', 0.0)) else 0.0,
-                     "Worst Year Return": float(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('worst_year_return', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).get(h['ticker'], {}).get('worst_year_return', 0.0)) else 0.0,
+                    "Total Return": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('cumulative_return', 0.0)),
+                    "Annualized Return (CAGR)": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('CAGR', 0.0)),
+                    "Standard Deviation": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Standard Deviation', 0.0)),
+                    "Sharpe Ratio": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Sharpe Ratio', 0.0)),
+                    "Sortino Ratio": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Sortino Ratio', 0.0)),
+                    "Maximum Drawdown": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Maximum Drawdown', 0.0)),
+                    "Best Year Return": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Best Year Return', 0.0)),
+                    "Worst Year Return": float(metrics_results.get('asset_metrics_data', {}).get(h['ticker'], {}).get('Worst Year Return', 0.0)),
 
                  } for h in holdings_list
             ],
@@ -330,14 +327,14 @@ def get_portfolio_metrics(portfolio_id):
                  # Get calculated asset metrics from the correct nested source
                  # Iterate over the nested asset_metrics_data and map lowercase keys to capitalized keys
                  ticker: {
-                    "CAGR": float(metrics.get('cagr', 0.0)) if np.isfinite(metrics.get('cagr', 0.0)) else 0.0,
-                    "Standard Deviation": float(metrics.get('std_dev_annual', 0.0)) if np.isfinite(metrics.get('std_dev_annual', 0.0)) else 0.0,
-                    "Maximum Drawdown": float(metrics.get('max_drawdown', 0.0)) if np.isfinite(metrics.get('max_drawdown', 0.0)) else 0.0,
-                    "Sharpe Ratio": float(metrics.get('sharpe_ratio', 0.0)) if np.isfinite(metrics.get('sharpe_ratio', 0.0)) else 0.0,
-                    "Sortino Ratio": float(metrics.get('sortino_ratio', 0.0)) if np.isfinite(metrics.get('sortino_ratio', 0.0)) else 0.0,
-                    "Best Year Return": float(metrics.get('best_year_return', 0.0)) if np.isfinite(metrics.get('best_year_return', 0.0)) else 0.0,
-                    "Worst Year Return": float(metrics.get('worst_year_return', 0.0)) if np.isfinite(metrics.get('worst_year_return', 0.0)) else 0.0,
-                 } for ticker, metrics in metrics_results.get('portfolio_overall_metrics', {}).get('asset_metrics_data', {}).items() # <-- FETCH FROM THE CORRECT NESTED LOCATION
+                    "CAGR": float(metrics.get('cagr', 0.0)),
+                    "Standard Deviation": float(metrics.get('std_dev_annual', 0.0)),
+                    "Maximum Drawdown": float(metrics.get('max_drawdown', 0.0)),
+                    "Sharpe Ratio": float(metrics.get('sharpe_ratio', 0.0)),
+                    "Sortino Ratio": float(metrics.get('sortino_ratio', 0.0)),
+                    "Best Year Return": float(metrics.get('best_year_return', 0.0)),
+                    "Worst Year Return": float(metrics.get('worst_year_return', 0.0)),
+                 } for ticker, metrics in metrics_results.get('asset_metrics_data', {}).items() # <-- FETCH FROM THE CORRECT NESTED LOCATION
             },
 
 
@@ -365,6 +362,21 @@ def get_portfolio_metrics(portfolio_id):
         formatted_metrics['correlations_data'] = correlations_data
         print("Structuring JSON response for frontend dashboard completed.")
         print("Debug: formatted_metrics before jsonify:", formatted_metrics)
+        
+        # Construct asset_metrics_data from holdings_table_data (safe and valid syntax)
+        asset_metrics_data = {}
+        for holding in formatted_metrics.get("holdings_table_data", []):
+            asset_metrics_data[holding["ticker"]] = {
+                "CAGR": holding.get("Annualized Return (CAGR)", 0.0),
+                "Standard Deviation": holding.get("Standard Deviation", 0.0),
+                "Maximum Drawdown": holding.get("Maximum Drawdown", 0.0),
+                "Sharpe Ratio": holding.get("Sharpe Ratio", 0.0),
+                "Sortino Ratio": holding.get("Sortino Ratio", 0.0),
+                "Best Year Return": holding.get("Best Year Return", 0.0),
+                "Worst Year Return": holding.get("Worst Year Return", 0.0)
+            }
+        formatted_metrics["asset_metrics_data"] = asset_metrics_data
+
         return jsonify(formatted_metrics), 200
 
     except Exception as e:

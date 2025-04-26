@@ -403,7 +403,7 @@
             {% for asset in asset_metrics %}
             <tr>
               <td>{{ loop.index }}</td>
-              <td>{{ asset['ticker'] }}</td>
+              <td>{{ asset['Asset'] }}</td>
               <td>{{ "%.2f"|format(asset['Expected Return'] * 100) }}%</td>
               <td>{{ "%.2f"|format(asset['Standard Deviation'] * 100) }}%</td>
               <td>{{ "%.3f"|format(asset['Sharpe Ratio']) }}</td>
@@ -431,10 +431,11 @@
           <tbody>
             {% for ticker in tickers %}
             <tr>
-              <td>{{ ticker }}</td>
+              <td>{{ ticker_names.get(ticker, ticker) }}</td>
               <td>{{ ticker }}</td>
               {% for other_ticker in tickers %}
-              <td class="correlation-cell" style="background-color: rgba(0, 128, 0, {{ correlations[ticker][other_ticker] }})">
+              <td class="correlation-cell"
+                style="background-color: rgba(0, 128, 0, {{ correlations[ticker][other_ticker] | abs }})">
                 {{ "%.2f"|format(correlations[ticker][other_ticker]) }}
               </td>
               {% endfor %}

@@ -35,6 +35,8 @@ from utils.financial_metrics import (
     calculate_tangency_portfolio,
     calculate_max_info_ratio_portfolio,
     generate_equal_weight_portfolio,
+    generate_efficient_frontier_chart,
+    generate_transition_map,
 )
 
 efficient_frontier_bp = Blueprint('efficient_frontier', __name__)
@@ -78,20 +80,24 @@ def calculate_efficient_frontier():
     if not data:
         return jsonify({'error': 'No data received'}), 400
 
-    # 1. Determine portfolio vs. new assets
-    portfolio = None
-    tickers = []
-    portfolio_name = "Custom Portfolio"
-    start_date = None
-    end_date = None
-    holdings_list = []
+    # 1. Read incoming payload
+    portfolio_id = data.get('portfolio_id')
+    new_data     = data.get('new_portfolio_data')
 
-    # Existing portfolio
-    if data.get('portfolio_id'):
+    # 2. Initialize common vars
+    portfolio       = None
+    tickers         = []
+    portfolio_name  = "Custom Portfolio"
+    start_date      = None
+    end_date        = None
+    holdings_list   = []
+
+    # 3A. Branch: existing saved portfolio
+    if portfolio_id:
         try:
             portfolio = (
                 Portfolio.query
-                .filter_by(id=data['portfolio_id'], user_id=user_id)
+                .filter_by(id=portfolio_id, user_id=user_id)
                 .options(joinedload(Portfolio.holdings).joinedload(PortfolioAsset.asset))
                 .first()
             )
@@ -105,14 +111,13 @@ def calculate_efficient_frontier():
                     tickers.append(tick)
                     holdings_list.append({
                         'ticker': tick,
-                        'Name': h.asset.company_name or tick,
-                        'Category': h.asset.asset_type or 'Unknown',
-                        'Weight': float(h.allocation_pct or 0.0),
+                        'Name':    h.asset.company_name or tick,
+                        'Category':h.asset.asset_type  or 'Unknown',
+                        'Weight':  float(h.allocation_pct  or 0.0),
                         'DollarAmount': float(h.dollar_amount or 0.0),
                         'PurchaseDate': h.purchase_date.strftime('%Y-%m-%d') if h.purchase_date else None
                     })
 
-            # Date range
             sd = data.get('start_date'); ed = data.get('end_date')
             start_date = pd.to_datetime(sd) if sd else None
             end_date   = pd.to_datetime(ed) if ed else None
@@ -124,14 +129,13 @@ def calculate_efficient_frontier():
                 end_date = datetime.now(UTC)
 
         except Exception as e:
-            print(f"Error loading existing portfolio: {e}")
+            current_app.logger.error(f"Error loading existing portfolio: {e}")
             traceback.print_exc()
             db.session.rollback()
             return jsonify({'error': 'Error fetching portfolio details'}), 500
 
-    # New temporary portfolio
-    elif data.get('new_portfolio_data'):
-        new_data = data['new_portfolio_data']
+    # 3B. Branch: new temporary portfolio
+    elif new_data:
         portfolio_name = new_data.get('name', portfolio_name)
         entries = new_data.get('assets', [])
         if not entries:
@@ -149,22 +153,11 @@ def calculate_efficient_frontier():
             except:
                 continue
 
-            dt_obj = None
-            if pd_str:
-                try:
-                    dt_obj = datetime.strptime(pd_str, '%Y-%m-%d').date()
-                except:
-                    pass
-
             ticker = t.strip().upper()
-            asset_obj = (
-                Asset.query
-                .filter_by(symbol=ticker, user_id=user_id)
-                .first()
-            )
+            asset_obj = Asset.query.filter_by(symbol=ticker, user_id=user_id).first()
             if asset_obj:
                 name = asset_obj.company_name or ticker
-                cat  = asset_obj.asset_type or 'Unknown'
+                cat  = asset_obj.asset_type    or 'Unknown'
             else:
                 try:
                     details = fetch_and_map_asset_details(ticker)
@@ -177,9 +170,9 @@ def calculate_efficient_frontier():
             tickers.append(ticker)
             holdings_list.append({
                 'ticker': ticker,
-                'Name': name,
-                'Category': cat,
-                'Weight': 0.0,
+                'Name':    name,
+                'Category':cat,
+                'Weight':  0.0,
                 'DollarAmount': amt,
                 'PurchaseDate': pd_str
             })
@@ -189,7 +182,7 @@ def calculate_efficient_frontier():
 
         dates = [
             pd.to_datetime(h['PurchaseDate']).date()
-            for h in holdings_list if h['PurchaseDate']
+            for h in holdings_list if h.get('PurchaseDate')
         ]
         start_date = min(dates) if dates else None
         end_date   = datetime.now(UTC)
@@ -197,56 +190,39 @@ def calculate_efficient_frontier():
     else:
         return jsonify({'error': 'Select a portfolio or provide asset data'}), 400
 
-    # No tickers?
-    if not tickers:
-        return jsonify({'error': 'No tickers found for calculation'}), 400
-
-    # ---- DEDUPE TICKERS & HOLDINGS ----
-    # Remove duplicate tickers while preserving order:
+    # 4. Dedupe tickers & holdings
     seen = set()
-    unique_tickers = []
     unique_holdings = []
     for h in holdings_list:
         t = h['ticker']
         if t not in seen:
             seen.add(t)
             unique_holdings.append(h)
-    unique_tickers = list(seen)
-
-    tickers = unique_tickers
+    tickers = list(seen)
     holdings_list = unique_holdings
-    # ------------------------------------
 
-    # 2. Fetch historical prices
+    # 5. Fetch historical prices
     historical = {}
     db_assets = {
         a.symbol.upper(): a
-        for a in Asset.query.filter(
-            Asset.symbol.in_(tickers),
-            Asset.user_id == user_id
-        ).all()
+        for a in Asset.query.filter(Asset.symbol.in_(tickers), Asset.user_id == user_id).all()
     }
     for ticker in tickers:
         asset_obj = db_assets.get(ticker)
         if not asset_obj:
             continue
         df = get_historical_data_for_asset(
-            asset_obj.id,
-            start_date=start_date,
-            end_date=end_date
+            asset_obj.id, start_date=start_date, end_date=end_date
         )
         if isinstance(df, pd.DataFrame) and not df.empty:
             historical[ticker] = df['price']
 
     price_df = pd.DataFrame(historical)
     if price_df.empty:
-        return jsonify({
-            'error': 'No sufficient historical data available for calculation'
-        }), 400
+        return jsonify({'error': 'No sufficient historical data available for calculation'}), 400
 
-    # 3. Clean & align
-    if not isinstance(price_df.index, pd.DatetimeIndex):
-        price_df.index = pd.to_datetime(price_df.index)
+    # 6. Clean & align prices
+    price_df.index = pd.to_datetime(price_df.index)
     price_df = (
         price_df
         .resample('D').last()
@@ -255,22 +231,20 @@ def calculate_efficient_frontier():
     )
     tickers_with_data = price_df.columns.tolist()
     if not tickers_with_data:
-        return jsonify({
-            'error': 'No valid daily price data after cleaning'
-        }), 404
+        return jsonify({'error': 'No valid daily price data after cleaning'}), 404
 
-    # 4. Initial weights
+    # 7. Compute initial weights
     initial_amounts = {}
     if portfolio:
         for h in portfolio.holdings:
-            tick = h.asset.symbol.upper()
-            if tick in tickers_with_data:
-                initial_amounts[tick] = h.dollar_amount or 0.0
+            t = h.asset.symbol.upper()
+            if t in tickers_with_data:
+                initial_amounts[t] = h.dollar_amount or 0.0
     else:
         for h in holdings_list:
-            tick = h['ticker']
-            if tick in tickers_with_data:
-                initial_amounts[tick] = h['DollarAmount']
+            t = h['ticker']
+            if t in tickers_with_data:
+                initial_amounts[t] = h['DollarAmount']
 
     total_amt = sum(initial_amounts.values())
     if total_amt <= 0:
@@ -282,64 +256,40 @@ def calculate_efficient_frontier():
         ])
     weights_series = pd.Series(weights, index=tickers_with_data)
 
-    # 5. Calculate metrics + frontier + growth
+    # 8. Calculate metrics, frontier, and save results
     try:
-        # Portfolio metrics
-        metrics_results = calculate_portfolio_metrics(
-            price_df,
-            weights_series,
-            holdings_list,
-            tickers_with_data
-        )
+        metrics_results        = calculate_portfolio_metrics(
+                                    price_df, weights_series, holdings_list, tickers_with_data
+                                )
+        portfolio_values       = (price_df * weights_series.values).sum(axis=1)
+        returns_data           = calculate_returns(price_df)
+        efficient_portfolios   = generate_efficient_frontier(returns_data)
+        asset_metrics_df       = calculate_asset_metrics(returns_data)
+        tangency_portfolio     = calculate_tangency_portfolio(returns_data)
+        max_info_portfolio     = calculate_max_info_ratio_portfolio(returns_data)
+        equal_weight_portfolio = generate_equal_weight_portfolio(returns_data)
 
-        # Compute portfolio growth series
-        portfolio_values = (price_df * weights_series.values).sum(axis=1)
-        if portfolio_values.empty:
-            return jsonify({
-                'error': 'Calculation helper failed to produce portfolio growth data'
-            }), 500
-
-        # Returns DataFrame for frontier & other portfolios
-        returns_data = calculate_returns(price_df)
-        efficient_portfolios  = generate_efficient_frontier(returns_data)
-        asset_metrics_df      = calculate_asset_metrics(returns_data)
-        tangency_portfolio    = calculate_tangency_portfolio(returns_data)
-        max_info_portfolio    = calculate_max_info_ratio_portfolio(returns_data)
-        equal_weight_portfolio= generate_equal_weight_portfolio(returns_data)
-
-        # 6. Prepare results payload
+        # 8A. Build the base payload
         results_for_save = {
-            'portfolio_name': portfolio_name,
-            'portfolio_overall_metrics': metrics_results.get('portfolio_overall_metrics', {}),
-            'portfolio_growth_data': {
-                'dates': portfolio_values.index.strftime('%Y-%m-%d').tolist(),
-                'values': portfolio_values.tolist()
-            },
-            'efficient_portfolios': efficient_portfolios.to_dict(orient='records'),
-            'asset_metrics': asset_metrics_df.to_dict(orient='records'),
-            'tangency_portfolio': tangency_portfolio,
-            'max_info_portfolio': max_info_portfolio,
-            'equal_weight_portfolio': equal_weight_portfolio,
-            'risk_decomposition_data': metrics_results.get('risk_decomposition_data', []),
-            'return_decomposition_data': metrics_results.get('return_decomposition_data', []),
-            'holdings_table_data': metrics_results.get('holdings_table_data', []),
-            'annual_returns_portfolio': metrics_results.get('annual_returns_portfolio', {}),
-            'monthly_returns_data': metrics_results.get('monthly_returns_data', {}),
-            'asset_metrics_data': metrics_results.get('asset_metrics_data', {}),
-            'sector_allocation_data': metrics_results.get('sector_allocation_data', {}),
-            'correlations_data': metrics_results.get('correlations_data', {}),
-            'calculation_period': {
-                'start_date': portfolio_values.index.min().strftime('%Y-%m-%d'),
-                'end_date':   portfolio_values.index.max().strftime('%Y-%m-%d'),
-                'initial_investment': float(
-                    metrics_results.get('portfolio_overall_metrics', {})
-                    .get('initial_investment_used', 0.0)
-                )
-            },
-            'metrics_calculation_date': datetime.now().strftime('%Y-%m-%d')
+            'portfolio_name':           portfolio_name,
+            **metrics_results,
+            'efficient_portfolios':     efficient_portfolios.to_dict(orient='records'),
+            'asset_metrics':            asset_metrics_df.to_dict(orient='records'),
+            'tangency_portfolio':       tangency_portfolio,
+            'max_info_portfolio':       max_info_portfolio,
+            'equal_weight_portfolio':   equal_weight_portfolio
         }
 
-        # Save results
+        # 8B. Add tickers & correlations
+        cor_matrix = price_df.corr()
+        results_for_save['tickers']            = tickers_with_data
+        results_for_save['correlations_data']  = cor_matrix.to_dict()
+
+        # 8C. Add ticker → company‐name map for correlations “Name” column
+        ticker_names = {h['ticker']: h['Name'] for h in holdings_list}
+        results_for_save['ticker_names']       = ticker_names
+
+        # 9. Persist and return
         rec = CalculationResult(
             id=str(uuid4()),
             user_id=user_id,
@@ -357,7 +307,7 @@ def calculate_efficient_frontier():
         }), 200
 
     except Exception as e:
-        print(f"CRITICAL ERROR during calculation: {e}")
+        current_app.logger.error(f"CRITICAL ERROR during calculation: {e}")
         traceback.print_exc()
         db.session.rollback()
         return jsonify({
@@ -365,32 +315,66 @@ def calculate_efficient_frontier():
         }), 500
 
 
-@efficient_frontier_bp.route('/results/<uuid:result_id>', methods=['GET'])
+@efficient_frontier_bp.route('/results/<string:result_id>', methods=['GET'])
 def efficient_frontier_results_page(result_id):
     """Render the results page for a completed calculation."""
     if 'user_id' not in session:
         flash('Please log in to access this page', 'warning')
         return redirect(url_for('auth.login_page'))
 
-    user_id = session.get('user_id')
-    try:
-        rec = CalculationResult.query.filter_by(
-            id=str(result_id),
-            user_id=user_id
-        ).first()
-        if not rec:
-            flash('Results not found or unauthorized.', 'warning')
-            return redirect(url_for('efficient_frontier.efficient_frontier_page'))
-
-        results_data = rec.results_data
-        return render_template(
-            'efficient_frontier_results.html',
-            **results_data
-        )
-
-    except Exception as e:
-        print(f"Error rendering results page: {e}")
-        traceback.print_exc()
-        db.session.rollback()
-        flash('Error displaying results.', 'danger')
+    user_id = session['user_id']
+    rec = CalculationResult.query.filter_by(
+        id=result_id,
+        user_id=user_id
+    ).first()
+    if not rec:
+        flash('Results not found or unauthorized.', 'warning')
         return redirect(url_for('efficient_frontier.efficient_frontier_page'))
+
+    # Load the JSON we saved earlier
+    data = rec.results_data
+
+    # Rebuild DataFrames for chart generators
+    ef_df     = pd.DataFrame(data.get('efficient_portfolios', []))
+    assets_df = pd.DataFrame(data.get('asset_metrics', []))
+
+    # Generate the two Plotly chart snippets
+    ef_chart_html         = generate_efficient_frontier_chart(
+                                ef_df,
+                                data.get('tangency_portfolio', {}),
+                                data.get('max_info_portfolio', {}),
+                                assets_df
+                            )
+    transition_map_chart  = generate_transition_map(ef_df)
+
+    # Pull out correlations table data
+    tickers      = data.get('tickers', [])
+    correlations = data.get('correlations_data', {})
+
+    # And now the new ticker → company-name map
+    ticker_names = data.get('ticker_names', {})
+
+    # Finally render
+    return render_template(
+        'efficient_frontier_results.html',
+
+        # Chart placeholders
+        efficient_frontier_chart = ef_chart_html,
+        transition_map_chart     = transition_map_chart,
+
+        # Correlation table data
+        tickers     = tickers,
+        correlations= correlations,
+        ticker_names= ticker_names,
+
+        # Tab data
+        efficient_portfolios    = data.get('efficient_portfolios', []),
+        asset_metrics           = data.get('asset_metrics', []),
+        tangency_portfolio      = data.get('tangency_portfolio', {}),
+        max_info_portfolio      = data.get('max_info_portfolio', {}),
+        equal_weight_portfolio  = data.get('equal_weight_portfolio', {}),
+
+        # Date range display
+        start_date = data.get('calculation_period', {}).get('start_date'),
+        end_date   = data.get('calculation_period', {}).get('end_date'),
+    )
