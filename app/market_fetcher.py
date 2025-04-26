@@ -1056,7 +1056,17 @@ def fetch_market_data(historical=False):
     # --- Loop through unique symbols instead of all_assets ---
     for i, symbol in enumerate(unique_symbols):
         # Get the original Asset object associated with this unique symbol
+        
         asset = asset_map.get(symbol)
+        if not asset:
+            print(f"Error: Could not find asset object for normalized symbol {symbol}. Skipping.")
+            continue
+
+        asset_type = asset.asset_type.lower() if asset.asset_type else "unknown"
+        if asset_type == "unknown":
+            print(f"Warning: asset type is Unknown for {asset.symbol}. Assuming 'stock' as fallback.")
+            asset_type = "stock"
+
         if not asset:
             # This should ideally not happen if asset_map is built correctly from all_assets
             print(f"Error: Could not find asset object for normalized symbol {symbol}. Skipping.")
@@ -1090,7 +1100,7 @@ def fetch_market_data(historical=False):
 
                 print(f"  Fetching historical data for range: {start_date_str} to {end_date_str}")
 
-                if asset.asset_type and asset.asset_type.lower() in ["stock", "etf"]:
+                if asset.asset_type and asset_type in ["stock", "etf"]:
                     # Try Yahoo Finance for the specific date range
                     print(f"  Trying Yahoo Finance for data for {asset.symbol}...")
                     # Pass calculated start and end dates INSTEAD OF period="max"
@@ -1103,7 +1113,7 @@ def fetch_market_data(historical=False):
                          price_or_df = fetch_alpha_vantage_data(asset.symbol, function="TIME_SERIES_DAILY", start_date=start_date_str, end_date=end_date_str)
 
 
-                elif asset.asset_type and asset.asset_type.lower() == "crypto":
+                elif asset.asset_type and asset_type == "crypto":
                     print(f"  Trying CoinGecko for historical data for {asset.symbol}...")
                     
                     # --- Get CoinGecko ID map and look up the ID ---
@@ -1137,7 +1147,7 @@ def fetch_market_data(historical=False):
                          price_or_df = None
 
 
-                elif asset.asset_type and asset.asset_type.lower() == "bond":
+                elif asset.asset_type and asset_type == "bond":
                     # Try FRED first for the specific date range
                     print(f"  Trying FRED for historical data for {asset.symbol}...")
                     fred_series_id = None
@@ -1189,7 +1199,7 @@ def fetch_market_data(historical=False):
             else: # --- Latest Price Fetch Logic (historical=False) ---
                  price = None # Reset price variable for latest fetch
 
-                 if asset.asset_type and asset.asset_type.lower() in ["stock", "etf"]:
+                 if asset.asset_type and asset_type in ["stock", "etf"]:
                      # Try Yahoo Finance for latest price
                      print(f"  Trying Yahoo Finance for latest price for {asset.symbol}...")
                      price = fetch_yahoo_data(asset.symbol, period="current", start_date=None, end_date=None)
@@ -1204,7 +1214,7 @@ def fetch_market_data(historical=False):
                                print(f"Failed to get latest price for {asset.symbol} from Alpha Vantage GLOBAL_QUOTE.")
 
 
-                 elif asset.asset_type and asset.asset_type.lower() == "crypto":
+                 elif asset.asset_type and asset_type == "crypto":
                      print(f"  Trying CoinGecko for latest price for {asset.symbol}...")
                      # --- Get CoinGecko ID map and look up the ID ---
                      coingecko_map = _get_coingecko_id_map()
@@ -1240,7 +1250,7 @@ def fetch_market_data(historical=False):
                          price = None # Ensure result is None
 
 
-                 elif asset.asset_type and asset.asset_type.lower() == "bond":
+                 elif asset.asset_type and asset_type == "bond":
                      # Try Alpha Vantage bond yield quote
                      print(f"  Trying Alpha Vantage for latest bond yield for {asset.symbol}...")
                      maturity = None
