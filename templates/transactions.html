@@ -179,8 +179,29 @@
   </div>
 
   <script>
-    console.log('RAW TRANSACTIONS INJECTED→', {{ transactions | tojson | safe }});
-    let allTransactions = {{ transactions | tojson | safe }};
+
+    async function updatePortfolioProfile(portfolioId) {
+      try {
+        const response = await fetch(`/portfolio/api/update-profile/${portfolioId}`, {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Profile update error:', error.error || response.statusText);
+          alert('Failed to update portfolio profile.');
+        } else {
+          console.log('Portfolio profile updated successfully.');
+        }
+      } catch (err) {
+        console.error('Error during profile update:', err);
+        alert('An error occurred while updating portfolio profile.');
+      }
+    }
+
+
+    console.log("RAW TRANSACTIONS INJECTED:", {{ transactions | tojson | safe }});
+    const allTransactions = {{ transactions | tojson | safe }};
 
     let currentPage = 1;
     const entriesPerPage = 20; 
@@ -511,6 +532,7 @@
         const successResponse = await response.json();
         const newTransaction = successResponse.transaction;
         allTransactions.unshift(newTransaction);
+        await updatePortfolioProfile(newTransaction.portfolio_id);
 
         addTransactionForm.reset();
         document.getElementById('transaction-date').value = "{{ now_date }}";

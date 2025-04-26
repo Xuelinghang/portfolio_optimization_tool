@@ -1557,7 +1557,7 @@
           marker: {
             color: '#2f855a',  // Consistent green color
           },
-          hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
+          hovertemplate: '%{y}: %{x:.2f}%<extra></extra>'
         };
         const sectorsLayout = {
           title: {
@@ -1571,7 +1571,7 @@
           },
           xaxis: {
             title: '',
-            tickformat: ',.0%',  // Format as percentage
+            tickformat: ',.2f',  // Format as percentage
             showgrid: true,
             gridcolor: '#E0E0E0',
             zeroline: false,
@@ -1608,7 +1608,7 @@
           marker: {
             color: '#2f855a'
           },
-          hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
+          hovertemplate: '%{y}: %{x:.1f}%<extra></extra>'
         };
         
         const topHoldingsLayout = {
@@ -1622,7 +1622,7 @@
             xanchor: 'center'
           },
           xaxis: {
-            title: 'Weight',
+            title: 'Weight (%)',
             tickformat: '.0%'
           },
           yaxis: {
@@ -1925,7 +1925,7 @@
         },
         yaxis: {
           title: 'Return',
-          tickformat: ',.0%',
+          tickformat: ',.0f',
           ticksuffix: '%',
           zeroline: true,
           zerolinecolor: '#888',

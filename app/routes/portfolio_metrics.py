@@ -243,6 +243,9 @@ def get_portfolio_metrics(portfolio_id):
              print("Error: calculate_portfolio_metrics did not return a dictionary.")
              metrics_results = {} # Default to empty dictionary
 
+        
+        
+        
         formatted_metrics = {
             # Overall portfolio metrics (from metrics_results['portfolio_overall_metrics'])
             "overall_metrics": {
@@ -268,9 +271,9 @@ def get_portfolio_metrics(portfolio_id):
                 "Alpha": (float(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) else 0.0,
                 "Calmar Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) else 0.0,
                 "best_year":   metrics_results['portfolio_overall_metrics']['best_year'],
-                "best_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) else 0.0,
+                "best_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) else 0.0,
                 "worst_year":  metrics_results['portfolio_overall_metrics']['worst_year'],
-                "worst_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) * 100.0) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) else 0.0,
+                "worst_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) else 0.0,
                 "Calculation Start Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_start_date', None), # Dates are likely already formatted strings
                 "Calculation End Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_end_date', None), # Dates are likely already formatted strings
                 "Initial Investment Used": float(metrics_results.get('portfolio_overall_metrics', {}).get('initial_investment_used', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('initial_investment_used', 0.0)) else 0.0,
@@ -294,7 +297,7 @@ def get_portfolio_metrics(portfolio_id):
                     "ticker": h['ticker'],
                     "Name": h['Name'],
                     "Category": h['Category'],
-                    "Weight": float(h['Weight']) / 100,
+                    "Weight": float(h['Weight']),
                     "DollarAmount": float(h['DollarAmount']),
                     "PurchaseDate": h['PurchaseDate'],
                     # Get per-asset metrics from the CORRECT nested location
@@ -341,6 +344,7 @@ def get_portfolio_metrics(portfolio_id):
             # Data for Allocation Charts (Assuming sector data is available or can be derived)
             # Access data directly from 'sector_allocation_data' if calculate_portfolio_metrics populates it
             "sector_allocation_data": metrics_results.get('sector_allocation_data', {}),
+            
 
             # Other potential data: risk correlations, beta/alpha matrices, etc.
             # Access data directly from 'correlations_data'
