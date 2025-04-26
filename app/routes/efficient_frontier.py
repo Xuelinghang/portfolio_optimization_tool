@@ -78,13 +78,33 @@ def calculate_efficient_frontier():
     if not data:
         return jsonify({'error': 'No data received'}), 400
 
+    # After successfully processing calculation, redirect to results page
+    portfolio_id = data.get('portfolio_id')
+    if portfolio_id:
     # 1. Determine portfolio vs. new assets
-    portfolio = None
-    tickers = []
-    portfolio_name = "Custom Portfolio"
-    start_date = None
-    end_date = None
-    holdings_list = []
+        portfolio = None
+        tickers = []
+        portfolio_name = "Custom Portfolio"
+        start_date = None
+        end_date = None
+        holdings_list = []
+
+    # Existing portfolio
+        if data.get('portfolio_id'):
+            latest_result = (
+                CalculationResult.query
+                .filter_by(user_id=user_id)
+                .order_by(CalculationResult.timestamp.desc())
+                .first()
+            )
+            if latest_result:
+                return jsonify({
+                    'redirect': url_for('efficient_frontier.efficient_frontier_results_page',
+                                    result_id=latest_result.id)
+                })
+            else:
+                return jsonify({'error': 'Calculation result not found.'}), 404
+
 
     # Existing portfolio
     if data.get('portfolio_id'):
@@ -365,7 +385,7 @@ def calculate_efficient_frontier():
         }), 500
 
 
-@efficient_frontier_bp.route('/results/<uuid:result_id>', methods=['GET'])
+@efficient_frontier_bp.route('/results/<string:result_id>', methods=['GET'])
 def efficient_frontier_results_page(result_id):
     """Render the results page for a completed calculation."""
     if 'user_id' not in session:

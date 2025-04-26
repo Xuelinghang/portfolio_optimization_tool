@@ -799,7 +799,7 @@ def get_portfolio_data(portfolio_id):
                  "Name": holding.asset.company_name or h.asset.symbol,
                  "Category": holding.asset.asset_type or "Unknown",
                  "Sector": holding.asset.sector,
-                 'Weight': float(holding.allocation_pct) if holding.allocation_pct is not None else 0.0,
+                 'Weight': (float(holding.allocation_pct) / 100.0) if holding.allocation_pct is not None else 0.0,
                  'DollarAmount': float(holding.dollar_amount),
                  'PurchaseDate': holding.purchase_date.strftime('%Y-%m-%d') if holding.purchase_date else None, # Format date
                  'start_date': "", # Placeholder (can be removed if not used by frontend)

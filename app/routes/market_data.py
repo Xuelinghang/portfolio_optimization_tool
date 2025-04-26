@@ -15,7 +15,7 @@ from io import StringIO
 
 from app import db
 from app.models import User, Portfolio, Asset, MarketData, PortfolioAsset, Transaction, CalculationResult
-from .market_fetcher import (
+from market_fetcher import (
     fetch_yahoo_data,
     fetch_alpha_vantage_data,
     _get_coingecko_id_map,

@@ -135,20 +135,20 @@ def fetch_coingecko_simple_price(coin_id: str, vs_currency: str = "usd") -> floa
 
 # --- Helper functions for fetching data ---
 def map_alpha_vantage_type(av_type):
-    if not av_type: return 'Unknown'
+    if not av_type:
+        return 'Unknown'
     av_type_lower = av_type.lower()
-    if av_type_lower in ['equity', 'stock']:
-        return 'stock' # Map Equity and Stock to 'stock'
+    if av_type_lower in ['equity', 'stock', 'common stock', 'preferred stock']:
+        return 'stock'
     elif av_type_lower == 'etf':
-        return 'etf' # Map ETF to 'etf'
+        return 'etf'
     elif av_type_lower in ['fund', 'mutual fund']:
-        return 'fund' # Map Funds/Mutual Funds to 'fund' (or 'mutualfund' if preferred)
+        return 'fund'
     elif av_type_lower == 'cryptocurrency':
         return 'crypto'
     elif av_type_lower == 'index':
-        return 'index' # Map Index to 'index'
-    return 'Unknown' # Default
-
+        return 'index'
+    return 'Unknown'
 
 # Similarly in map_yfinance_type function
 def map_yfinance_type(yf_type):
@@ -1438,7 +1438,7 @@ if __name__ == "__main__":
     print("Setting up test Flask app context...")
     test_app = Flask(__name__)
     # Load config (replace with your actual config loading if complex)
-    test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////Users/wangjinchan/Desktop/Duke/2025_SPRING/512/portfolio_optimization_tool/instance/portfolio.db"
+    test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/lx94/test/portfolio_optimization_tool/instance/portfolio.db"
     test_app.secret_key = "test_secret_key" # Set a dummy secret key if session is needed
 
     # Need to import the Asset model to add assets
@@ -1495,5 +1495,55 @@ if __name__ == "__main__":
         #     if scheduler:
         #         scheduler.shutdown()
         #     print("Test scheduler shut down.")
+
+    print("Exiting market_fetcher.py __main__ block.")
+    
+    if __name__ == "__main__":
+        print("Running market_fetcher.py directly.")
+        from flask import Flask
+        print("Setting up test Flask app context...")
+        test_app = Flask(__name__)
+        test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/lx94/test/portfolio_optimization_tool/instance/portfolio.db"
+        test_app.secret_key = "test_secret_key"
+
+        from app.models import Asset
+        db.init_app(test_app)
+
+        with test_app.app_context():
+            print("Test app context created.")
+            print("Checking/creating database tables...")
+            db.create_all()
+            print("Database tables checked/created in test context.")
+
+            if Asset.query.count() == 0:
+                print("Asset table is empty. Adding test assets...")
+                test_assets_to_add = [
+                    Asset(symbol='AAPL', company_name='Apple Inc.', asset_type='stock', user_id=1),
+                    Asset(symbol='MSFT', company_name='Microsoft Corp.', asset_type='stock', user_id=1),
+                    Asset(symbol='BTC-USD', company_name='Bitcoin', asset_type='crypto', user_id=1),
+                ]
+                db.session.bulk_save_objects(test_assets_to_add)
+                db.session.commit()
+                print(f"Added {len(test_assets_to_add)} test assets.")
+            else:
+                print("Asset table is not empty. Skipping adding test assets.")
+
+            # --- NEW PATCH: Update assets with Unknown type ---
+            from app.market_fetcher import fetch_and_map_asset_details
+            unknown_assets = Asset.query.filter_by(asset_type="Unknown").all()
+            for asset in unknown_assets:
+                print(f"Fixing type for unknown asset: {asset.symbol}...")
+                details = fetch_and_map_asset_details(asset.symbol)
+                if details and details.get("type") != "Unknown":
+                    print(f"  -> Updating {asset.symbol} to type: {details['type']}")
+                    asset.asset_type = details["type"]
+                else:
+                    print(f"  -> Could not identify type for {asset.symbol}. Leaving as Unknown.")
+            db.session.commit()
+            print("Asset type fix patch complete.\n")
+
+            print("Fetching market data immediately for testing...")
+            fetch_market_data(historical=True)
+            print("Market data fetcher test completed.")
 
     print("Exiting market_fetcher.py __main__ block.")

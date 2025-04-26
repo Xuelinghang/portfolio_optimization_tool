@@ -1,3 +1,21 @@
+
+sector_map = {
+    'AAPL': 'Technology',
+    'NVDA': 'Technology',
+    'MSFT': 'Technology',
+    'AMZN': 'Consumer Discretionary',
+    'TSLA': 'Consumer Discretionary',
+    'GOOGL': 'Communication Services',
+    'META': 'Communication Services',
+    'BRK.B': 'Financials',
+    'JPM': 'Financials',
+    'JNJ': 'Healthcare',
+    'XOM': 'Energy',
+    'V': 'Financials',
+    'PG': 'Consumer Staples'
+}
+
+
 # In utils/financial_metrics.py
 
 import pandas as pd
@@ -30,7 +48,7 @@ def calculate_returns(price_data):
 
 
 # This function will now accept daily prices, weights, holdings_list, and tickers_with_daily_data
-def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_with_daily_data):
+def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_with_daily_data, initial_investment=1.0):
     """
     Calculate comprehensive portfolio performance metrics, including significant drawdowns, Beta, and Alpha.
 
@@ -130,12 +148,7 @@ def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_wi
 
 
     # --- Calculate portfolio values over time (starting with an initial investment) ---
-    initial_prices_sum = daily_prices.iloc[0].sum() if not daily_prices.empty else 0.0
-    initial_investment_for_calc = initial_prices_sum
-
-    if initial_investment_for_calc <= 0:
-         print("Warning: Initial portfolio value is zero or negative. Portfolio growth calculation may be invalid.")
-         initial_investment_for_calc = 1.0
+    initial_investment_for_calc = float(initial_investment)
 
 
     # Calculate cumulative product of (1 + daily returns)
@@ -501,7 +514,7 @@ def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_wi
         sector_weights = {}
         for holding in holdings_list:
             # Ensure 'Sector' and 'Weight' keys exist and are valid
-            sector = holding.get("Sector", "Unknown") # Default to "Unknown" if sector is missing or None
+            sector = holding.get("Sector") or sector_map.get(holding.get("ticker"), "Unknown") # Default to "Unknown" if sector is missing or None
             weight = holding.get("Weight") # Get the weight
 
             if weight is not None and np.isfinite(weight) and weight > 0:
@@ -772,6 +785,31 @@ def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_wi
         "monthly_drawdowns": monthly_drawdowns_dict, # Use the calculated monthly_drawdowns_dict
         "significant_drawdowns": significant_drawdowns_list # Use the calculated significant_drawdowns_list
     }
+
+    
+    # --- FINAL PATCH: Correct Max Drawdown using raw prices ---
+    equity_curve = portfolio_values_series.dropna()
+    rolling_max = equity_curve.cummax()
+    drawdown_series = equity_curve / rolling_max - 1.0
+    max_drawdown_value = drawdown_series.min()
+    max_drawdown_date = drawdown_series.idxmin()
+    peak_before_drawdown_date = equity_curve.loc[:max_drawdown_date].idxmax()
+
+    # Format recovery time
+    recovery_date = equity_curve.loc[max_drawdown_date:].idxmax()
+    if recovery_date > max_drawdown_date:
+        recovery_duration = recovery_date - max_drawdown_date
+        recovery_time_formatted = f"{recovery_duration.days // 30} months"
+    else:
+        recovery_time_formatted = "N/A"
+
+    metrics_results_dict['portfolio_overall_metrics'].update({
+        'max_drawdown_value': float(max_drawdown_value),
+        'max_drawdown_start_date': peak_before_drawdown_date.strftime('%Y-%m-%d') if peak_before_drawdown_date else None,
+        'max_drawdown_end_date': max_drawdown_date.strftime('%Y-%m-%d') if max_drawdown_date else None,
+        'max_drawdown_recovery_time_months': recovery_time_formatted
+    })
+
 
     return metrics_results_dict
 

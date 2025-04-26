@@ -1385,96 +1385,48 @@
     // Portfolio Assets Table
     function renderPortfolioAssetsTable() {
       const tbody = document.getElementById('portfolio-assets-table-body');
-      tbody.replaceChildren(); // Clear old rows
+      tbody.replaceChildren();
     
-      // data here is metrics.asset_metrics_data, which has lowercase keys from backend
-      const data = metrics.asset_metrics_data || {};
-      const tickers = Object.keys(data).sort();
-      if (!tickers.length) {
+      const assetData = metrics.asset_metrics_data || {};
+    
+      Object.entries(assetData).forEach(([ticker, data]) => {
         const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 9; // Span across 9 columns
-        td.style.textAlign = 'center';
-        td.textContent = 'No asset metrics data available.';
-        tr.appendChild(td);
+    
+        const tdTicker = document.createElement('td');
+        tdTicker.textContent = ticker;
+        tr.appendChild(tdTicker);
+    
+        const tdName = document.createElement('td');
+        tdName.textContent = holdings.find(h => h.ticker === ticker)?.Name || ticker;
+        tr.appendChild(tdName);
+    
+        const fields = [
+          'CAGR', 'Standard Deviation', 'Best Year Return', 'Worst Year Return',
+          'Maximum Drawdown', 'Sharpe Ratio', 'Sortino Ratio'
+        ];
+    
+        fields.forEach(field => {
+          const td = document.createElement('td');
+          let value = data[field];
+    
+          // Patch: If field needs to be displayed as a percentage
+          if (['CAGR', 'Standard Deviation', 'Best Year Return', 'Worst Year Return', 'Maximum Drawdown'].includes(field)) {
+            value = value * 100;
+          }
+    
+          if (typeof value === 'number' && !isNaN(value)) {
+            td.textContent = value.toFixed(2) + (field === 'Sharpe Ratio' || field === 'Sortino Ratio' ? '' : '%');
+          } else {
+            td.textContent = '-';
+          }
+    
+          tr.appendChild(td);
+        });
+    
         tbody.appendChild(tr);
-        return;
-      }
-    
-      tickers.forEach(t => {
-        // m is the dictionary of metrics for this ticker from backend (e.g., {'cagr': 0.637, ...})
-        const m = data[t];
-        // Find the corresponding holding to get the name from the holdings array
-        const h = holdings.find(holding => holding.ticker.toUpperCase() === t.toUpperCase()) || {};
-        const name = h.Name || t; // Use the Name from holdings (company name or ticker), or ticker as fallback
-    
-        const tr = document.createElement('tr');
-    
-        // Create and append table cells (<td>) with correct data accessed using backend keys
-    
-        // Ticker
-        const tickerTd = document.createElement('td');
-        tickerTd.textContent = t;
-        tr.appendChild(tickerTd);
-    
-        // Name
-        const nameTd = document.createElement('td');
-        nameTd.textContent = name; // Use the name determined above
-        tr.appendChild(nameTd);
-    
-        // CAGR (use 'cagr' key from backend)
-        const cagrTd = document.createElement('td');
-        // Access using lowercase key 'cagr' and format as percentage
-        cagrTd.textContent = m.cagr != null ? formatPercentage(m.cagr) : '-'; // Assuming cagr is decimal
-        tr.appendChild(cagrTd);
-    
-        // Standard Deviation (use 'std_dev_annual' key from backend)
-        const stdDevTd = document.createElement('td');
-        // Access using lowercase key 'std_dev_annual' and format as percentage
-        stdDevTd.textContent = m.std_dev_annual != null ? formatPercentage(m.std_dev_annual) : '-'; // Assuming std_dev_annual is decimal
-        tr.appendChild(stdDevTd);
-    
-        // Best Year Return (use 'best_year_return' key from backend)
-        const bestYearReturnTd = document.createElement('td');
-        // Access using lowercase key 'best_year_return' and format as percentage
-        bestYearReturnTd.textContent = m.best_year_return != null ? formatPercentage(m.best_year_return) : '-'; // Assuming best_year_return is decimal
-        tr.appendChild(bestYearReturnTd);
-    
-        // Worst Year Return (use 'worst_year_return' key from backend)
-        const worstYearReturnTd = document.createElement('td');
-        // Access using lowercase key 'worst_year_return'
-        const worstYearReturnValue = m.worst_year_return != null ? m.worst_year_return : null;
-        if (worstYearReturnValue !== null) {
-            worstYearReturnTd.style.color = worstYearReturnValue >= 0 ? '#2f855a' : '#ef4444';
-            worstYearReturnTd.textContent = formatPercentage(worstYearReturnValue); // Assuming worst_year_return is decimal
-        } else worstYearReturnTd.textContent = '-';
-        tr.appendChild(worstYearReturnTd);
-    
-        // Maximum Drawdown (use 'max_drawdown' key from backend)
-        const maxDrawdownTd = document.createElement('td');
-        // Access using lowercase key 'max_drawdown'
-        const maxDrawdownValue = m.max_drawdown != null ? m.max_drawdown : null;
-        if (maxDrawdownValue !== null) {
-            maxDrawdownTd.style.color = maxDrawdownValue >= 0 ? '#2f855a' : '#ef4444';
-            maxDrawdownTd.textContent = formatPercentage(maxDrawdownValue); // Assuming max_drawdown is decimal
-        } else maxDrawdownTd.textContent = '-';
-        tr.appendChild(maxDrawdownTd);
-    
-        // Sharpe Ratio (use 'sharpe_ratio' key from backend)
-        const sharpeRatioTd = document.createElement('td');
-        // Access using lowercase key 'sharpe_ratio' and format to 2 decimal places
-        sharpeRatioTd.textContent = m.sharpe_ratio != null ? m.sharpe_ratio.toFixed(2) : '-';
-        tr.appendChild(sharpeRatioTd);
-    
-        // Sortino Ratio (use 'sortino_ratio' key from backend)
-        const sortinoRatioTd = document.createElement('td');
-        // Access using lowercase key 'sortino_ratio' and format to 2 decimal places
-        sortinoRatioTd.textContent = m.sortino_ratio != null ? m.sortino_ratio.toFixed(2) : '-';
-        tr.appendChild(sortinoRatioTd);
-    
-        tbody.appendChild(tr); // Append the constructed row to the tbody
       });
     }
+    
     
     // Risk Decomposition Table
     function renderPortfolioRiskDecompositionTable() {
