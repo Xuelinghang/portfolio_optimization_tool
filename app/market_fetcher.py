@@ -1503,7 +1503,7 @@ if __name__ == "__main__":
     print("Setting up test Flask app context...")
     test_app = Flask(__name__)
     # Load config (replace with your actual config loading if complex)
-    test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/lx94/test/portfolio_optimization_tool/instance/portfolio.db"
+    test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////Users/wangjinchan/Desktop/Duke/2025_SPRING/512/portfolio_optimization_tool/instance/portfolio.db"
     test_app.secret_key = "test_secret_key" # Set a dummy secret key if session is needed
 
     # Need to import the Asset model to add assets
@@ -1568,7 +1568,7 @@ if __name__ == "__main__":
         from flask import Flask
         print("Setting up test Flask app context...")
         test_app = Flask(__name__)
-        test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/lx94/test/portfolio_optimization_tool/instance/portfolio.db"
+        test_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////Users/wangjinchan/Desktop/Duke/2025_SPRING/512/portfolio_optimization_tool/instance/portfolio.db"
         test_app.secret_key = "test_secret_key"
 
         from app.models import Asset

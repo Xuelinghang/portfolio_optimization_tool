@@ -290,8 +290,9 @@ def calculate_efficient_frontier():
 
     # --- 6) Calculate and save everything ---
     try:
-        metrics_results        = calculate_portfolio_metrics(
-            price_df, weights_series, holdings_list, ui_tickers
+        asset_prices = price_df[ui_tickers]
+        metrics_results = calculate_portfolio_metrics(
+            asset_prices, weights_series, holdings_list, ui_tickers
         )
         efficient_portfolios   = generate_efficient_frontier(returns_data)
         asset_metrics_df       = calculate_asset_metrics(returns_data)
@@ -337,110 +338,72 @@ def calculate_efficient_frontier():
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @efficient_frontier_bp.route('/results/<string:result_id>', methods=['GET'])
+@login_required
 def efficient_frontier_results_page(result_id):
     """Render the results page for a completed calculation."""
-    # Using session check instead of @login_required decorator here
-    if 'user_id' not in session:
-        flash('Please log in to access this page', 'warning')
-        return redirect(url_for('auth.login_page')) # Adjust 'auth.login_page' if needed
+    # Use Flask-Login current_user instead of session
+    user_id = current_user.id
 
-    user_id = session['user_id'] # Get user_id from session
-
-    # Fetch the result record
+    # --- Fetch record ---
     try:
         rec = CalculationResult.query.filter_by(
             id=result_id,
             user_id=user_id
         ).first()
     except Exception as e:
-        current_app.logger.error(f"Database error fetching CalculationResult id {result_id} for user {user_id}: {e}")
-        flash('An error occurred while retrieving results. Please try again later.', 'danger')
-        return redirect(url_for('efficient_frontier.efficient_frontier_page')) # Redirect to input page on DB error
+        current_app.logger.error(
+            f"Error fetching CalculationResult {result_id} for user {user_id}: {e}"
+        )
+        flash('Error retrieving results. Please try again later.', 'danger')
+        return redirect(url_for('efficient_frontier.efficient_frontier_page'))
 
     if not rec:
-        flash('Results not found or you are not authorized to view them.', 'warning')
+        flash('Results not found or access denied.', 'warning')
         return redirect(url_for('efficient_frontier.efficient_frontier_page'))
 
-    # Load the results data
     data = rec.results_data
-    if not data or not isinstance(data, dict):
-        current_app.logger.error(f"Results data is missing or invalid for calculation id: {result_id}")
-        flash('Calculation data is missing or corrupted.', 'danger')
+    if not isinstance(data, dict):
+        current_app.logger.error(
+            f"Invalid results_data for CalculationResult {result_id}"
+        )
+        flash('Calculation data is invalid. Please recalculate.', 'danger')
         return redirect(url_for('efficient_frontier.efficient_frontier_page'))
 
-
-    # Rebuild DataFrames for chart generators if needed by the functions
-    # Ensure functions handle potential missing data gracefully
+    # --- Rebuild DataFrames & charts ---
     try:
-        ef_df     = pd.DataFrame(data.get('efficient_portfolios', []))
-        assets_df = pd.DataFrame(data.get('asset_metrics', []))
+        ef_df      = pd.DataFrame(data.get('efficient_portfolios', []))
+        assets_df  = pd.DataFrame(data.get('asset_metrics', []))
 
-        # Generate the two Plotly chart snippets
-        ef_chart_html         = generate_efficient_frontier_chart(
-                                    ef_df,
-                                    data.get('tangency_portfolio', {}),
-                                    data.get('max_info_portfolio', {}),
-                                    assets_df
-                                )
-        transition_map_chart  = generate_transition_map(ef_df)
+        ef_chart_html        = generate_efficient_frontier_chart(
+                                   ef_df,
+                                   data.get('tangency_portfolio', {}),
+                                   data.get('max_info_portfolio', {}),
+                                   assets_df
+                               )
+        transition_map_chart = generate_transition_map(ef_df)
     except Exception as e:
-        current_app.logger.exception(f"Error generating charts for calculation id {result_id}: {e}")
-        flash('Error generating charts for display.', 'warning')
-        # Set charts to None or empty strings so the template doesn't break
-        ef_chart_html = None
+        current_app.logger.exception(
+            f"Chart generation error for result {result_id}: {e}"
+        )
+        flash('Error generating result charts.', 'warning')
+        ef_chart_html        = None
         transition_map_chart = None
 
-
-    # --- Extract data for template ---
-    # Use .get() with defaults for robustness
-
-    # Tickers, Correlations, Names
-    tickers      = data.get('tickers', []) # Variable name is 'tickers'
-    correlations = data.get('correlations_data', {}) # Variable name is 'correlations'
-    ticker_names = data.get('ticker_names', {})
-
-    # Portfolio Metrics & Specific Portfolios
-    efficient_portfolios    = data.get('efficient_portfolios', [])
-    asset_metrics           = data.get('asset_metrics', [])
-    tangency_portfolio      = data.get('tangency_portfolio', {})
-    max_info_portfolio      = data.get('max_info_portfolio', {})
-    equal_weight_portfolio  = data.get('equal_weight_portfolio', {})
-
-    start_date = data.get('start_date')
-    end_date   = data.get('end_date')
-
-
-    # --- Render the template ---
-    try:
-        return render_template(
-            'efficient_frontier_results.html', # Verify this template path
-
-            # Chart placeholders
-            efficient_frontier_chart = ef_chart_html,
-            transition_map_chart     = transition_map_chart,
-
-            # Correlation table data - FIXES APPLIED HERE
-            tickers=tickers,          # Use the variable 'tickers'
-            correlations=correlations, # Use the variable 'correlations'
-            ticker_names=ticker_names,
-
-            # Tab data
-            efficient_portfolios    = efficient_portfolios,
-            asset_metrics           = asset_metrics,
-            tangency_portfolio      = tangency_portfolio,
-            max_info_portfolio      = max_info_portfolio,
-            equal_weight_portfolio  = equal_weight_portfolio,
-
-            # Date range display (pass None if not available)
-            start_date = start_date,
-            end_date   = end_date,
-
-            # Pass other useful info if needed by the template
-            portfolio_name = data.get('portfolio_name', 'Analysis Results'),
-            calculation_timestamp = rec.timestamp
-        )
-    except Exception as e:
-        # Catch potential Jinja2 rendering errors
-        current_app.logger.exception(f"Error rendering results template for calculation id {result_id}: {e}")
-        flash('An error occurred while displaying the results page.', 'danger')
-        return redirect(url_for('efficient_frontier.efficient_frontier_page'))
+    # --- Render template ---
+    return render_template(
+        'efficient_frontier_results.html',
+        efficient_frontier_chart = ef_chart_html,
+        transition_map_chart     = transition_map_chart,
+        tickers                  = data.get('tickers', []),
+        correlations             = data.get('correlations_data', {}),
+        ticker_names             = data.get('ticker_names', {}),
+        efficient_portfolios     = data.get('efficient_portfolios', []),
+        asset_metrics            = data.get('asset_metrics', []),
+        tangency_portfolio       = data.get('tangency_portfolio', {}),
+        max_info_portfolio       = data.get('max_info_portfolio', {}),
+        equal_weight_portfolio   = data.get('equal_weight_portfolio', {}),
+        start_date               = data.get('start_date'),
+        end_date                 = data.get('end_date'),
+        portfolio_name           = data.get('portfolio_name', 'Analysis Results'),
+        calculation_timestamp    = rec.timestamp
+    )

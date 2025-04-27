@@ -87,7 +87,7 @@ class Asset(db.Model):
     symbol = db.Column(db.String(10), nullable=False)
     company_name = db.Column(db.String(100), nullable=True)
     asset_type = db.Column(db.String(10), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     sector = db.Column(db.String(50), nullable=True)
 
     market_data = db.relationship("MarketData", backref="asset", lazy=True)

@@ -1,8 +1,9 @@
+# app/config.py
+
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
@@ -17,3 +18,19 @@ class Config:
         SQLALCHEMY_DATABASE_URI = database_url
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # ← Make sure this is present exactly like this:
+    COMMON_TICKERS = [
+        'AAPL','MSFT','GOOG','AMZN','TSLA',
+        'SPY','QQQ','IWM','TLT','GLD',
+        'NVDA','META','BRK.A','JPM','V',
+        'JNJ','UNH','XOM','PG','AMD',
+        'INTC','CRM','ADBE','PYPL','NFLX',
+        'DIS','KO','PEP','T','F',
+        'GM','BA','GE','VOO','IVV',
+        'VTI','AGG','BND','HYG','LQD',
+        'GOVT','SHY','IEF','VCIT','VCLT',
+        'MUB','BTC','ETH','USDT','USDC',
+        'XRP','SOL','BNB','DOGE','ADA',
+        'TRX'
+    ]
