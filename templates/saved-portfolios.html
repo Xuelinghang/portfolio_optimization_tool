@@ -481,9 +481,9 @@
             <tr id="portfolio-row-{{ portfolio_data.id }}"> {# Access the 'id' key from the dictionary #}
               <td>{{ loop.index }}</td>
               <td>{{ portfolio_data.portfolio_name }}</td> {# Access the 'portfolio_name' key #}
-              <td>{{ portfolio_data.num_assets }}</td> {# Access the 'num_assets' key #}
+              <td>{{ portfolio_data.number_of_assets }}</td> {# Access the 'num_assets' key #}
               {# Access the 'created_at' key - it's already formatted as a string in the route #}
-              <td>{{ portfolio_data.created_at }}</td> {# <--- CORRECTED line #}
+              <td>{{ portfolio_data.date_created }}</td> {# <--- CORRECTED line #}
               <td>
                 <div class="action-buttons">
                   <button class="action-btn btn-view" onclick="location.href='{{ url_for('portfolio_api.view_dashboard', portfolio_id=portfolio_data.id) }}'"> {# Use portfolio_data.id #}

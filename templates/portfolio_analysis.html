@@ -444,7 +444,7 @@
           <div style="width: 100%; max-width: 900px; margin: 0 auto;">
             <h2 style="color: #2f855a; font-size: 1.5rem; margin-bottom: 15px;">Portfolio Growth</h2>
             <p style="margin-bottom: 15px; line-height: 1.6;">
-              $<span id="start-balance-sentence" style="font-weight: bold;">10,000</span> invested in <span id="start-date-sentence" style="font-weight: bold;">January 1, 2011</span> would be worth <span id="end-value" style="font-weight: bold;">$40,287</span> as of <span id="end-date">March 31, 2025</span>, 
+              $<span id="start-balance-sentence" style="font-weight: bold;">10,000</span> invested in <span id="start-date-sentence" style="font-weight: bold;">January 1, 2011</span> would be worth $<span id="end-value" style="font-weight: bold;">$40,287</span> as of <span id="end-date">March 31, 2025</span>, 
               which represents a cumulative return of <span id="cumulative-return" style="font-weight: bold;">302.87%</span>.
             </p>
             <h3 style="color: #2f855a; font-size: 1.3rem; margin: 15px 0 10px 0;">Return</h3>
@@ -1608,7 +1608,7 @@
           marker: {
             color: '#2f855a'
           },
-          hovertemplate: '%{y}: %{x:.1f}%<extra></extra>'
+          hovertemplate: '%{y}: %{x:.1%}<extra></extra>'
         };
         
         const topHoldingsLayout = {
