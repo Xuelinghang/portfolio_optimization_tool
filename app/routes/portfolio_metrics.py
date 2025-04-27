@@ -150,7 +150,7 @@ def get_portfolio_metrics(portfolio_id):
          print("No sufficient historical data found in DB for metrics calculation after checking all tickers.")
          # Adjust the error message to reflect the actual dynamic date range used
          return jsonify({
-             "error": f"Insufficient market data in the database for portfolio metrics calculation for the period from {start_date_for_db_fetch.date() if start_date_for_db_fetch else 'Default (1 Year)'} to {end_date_for_db_fetch.date()}. Ensure assets have data saved via background jobs for this period.",
+             "error": f"Insufficient market data in the database for portfolio metrics calculation for the period from {start_date_for_db_fetch if start_date_for_db_fetch else 'Default (1 Year)'} to {end_date_for_db_fetch.date()}. Ensure assets have data saved via background jobs for this period.",
              "portfolio_name": portfolio.portfolio_name
          }), 404
 

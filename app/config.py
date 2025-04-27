@@ -1,0 +1,19 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+class Config:
+    SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+
+    database_url = os.getenv('DATABASE_URL')
+    if database_url and database_url.startswith('sqlite:///'):
+        relative_path = database_url.replace('sqlite:///', '')
+        absolute_path = os.path.join(basedir, relative_path)
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{absolute_path}"
+    else:
+        SQLALCHEMY_DATABASE_URI = database_url
+
+    SQLALCHEMY_TRACK_MODIFICATIONS = False

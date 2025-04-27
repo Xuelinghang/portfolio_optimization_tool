@@ -7,6 +7,7 @@ from flask_bcrypt import Bcrypt
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
+from app.config import Config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,47 +25,44 @@ def create_app():
     static_folder = os.path.join(project_root, 'static')
     template_folder = os.path.join(project_root, 'templates')
 
-    # Create Flask app with explicit paths (optional but can help)
+    # Create Flask app
     app = Flask(__name__, static_folder=static_folder, template_folder=template_folder)
 
-    db_path = os.path.join(project_root, 'instance', 'portfolio.db')
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", f"sqlite:///{db_path}")
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # LOAD CONFIG FROM config.py
+    app.config.from_object(Config)  # <-- PATCH THIS (use your Config class)
 
-    # Set the secret key for session management (REQUIRED by Flask-Login)
-    # IMPORTANT: Change 'my_default_secret_key' to a real, random, secret key for production
-    app.secret_key = os.getenv("SECRET_KEY", "my_default_secret_key") # <--- Ensure SECRET_KEY is set
+    # No need to manually set SQLALCHEMY_DATABASE_URI anymore
+    # No need to manually set SECRET_KEY anymore
 
-    # Initialize extensions with the app instance
+    # Initialize extensions
     db.init_app(app)
     bcrypt.init_app(app)
     migrate = Migrate(app, db)
-
-    login_manager.init_app(app) # <--- ADDED Flask-Login initialization
+    login_manager.init_app(app)
     login_manager.login_view = 'auth.login_page'
 
+    # Register blueprints
     from app.routes.auth import auth_bp
     from app.routes.portfolio_api import portfolio_bp
     from app.routes.portfolio_metrics import metrics_bp
     from app.routes.transactions import transactions_bp
     from app.routes.efficient_frontier import efficient_frontier_bp
     from app.routes.admin import admin_bp
-    # Conditionally import market_data if it exists
+
     try:
         from app.routes.market_data import market_bp
         app.register_blueprint(market_bp, url_prefix="/market")
     except ImportError:
         print("Warning: app/routes/market_data.py not found. Skipping market blueprint registration.")
-        pass
 
-    # Register blueprints with prefixes where appropriate
-    app.register_blueprint(auth_bp) # Explicitly register auth with a prefix
-    app.register_blueprint(portfolio_bp, url_prefix="/portfolio") # Portfolio blueprint with prefix
-    app.register_blueprint(metrics_bp) # Metrics blueprint with prefix
-    app.register_blueprint(transactions_bp, url_prefix="/transactions") # Transactions blueprint with prefix
-    app.register_blueprint(efficient_frontier_bp, url_prefix="/efficient-frontier") # Give efficient frontier a prefix
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(portfolio_bp, url_prefix="/portfolio")
+    app.register_blueprint(metrics_bp)
+    app.register_blueprint(transactions_bp, url_prefix="/transactions")
+    app.register_blueprint(efficient_frontier_bp, url_prefix="/efficient-frontier")
     app.register_blueprint(admin_bp)
 
     with app.app_context():
         db.create_all()
+
     return app

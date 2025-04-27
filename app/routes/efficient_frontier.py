@@ -226,7 +226,7 @@ def calculate_efficient_frontier():
         spy_ser = df_spy['price'] if 'price' in df_spy else df_spy.iloc[:,0]
     else:
         tmp = fetch_alpha_vantage_data(
-            'SPY', start_date=start_date, end_date=end_date
+            'SPY',"TIME_SERIES_DAILY", start_date=start_date, end_date=end_date
         )
         if not tmp:
             return jsonify({'error': 'Failed SPY fetch'}), 500

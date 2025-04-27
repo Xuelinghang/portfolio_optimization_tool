@@ -103,17 +103,11 @@ def data_entry():
     return render_template('data-entry.html', username=username, portfolio=portfolio)
 
 # Route to handle saving a NEW portfolio (manual entry form submit)
+# --- PATCHED create_portfolio() ---
+
 @portfolio_bp.route('/portfolios', methods=['POST'])
-@login_required # <--- ADDED Flask-Login decorator to require login
+@login_required
 def create_portfolio():
-    """
-    Handles the creation of a new portfolio with assets from a manual form submission.
-    Expects JSON payload with 'portfolioName' and 'portfolioData' (list of asset entries).
-    Saves Portfolio, Asset (if new, with determined type), and PortfolioAsset records (with purchase date).
-    """
-    # The @login_required decorator handles authentication
-    # Access user ID via current_user from Flask-Login
-    
     user_id = current_user.id
     data = request.get_json()
 
@@ -130,15 +124,14 @@ def create_portfolio():
         print(f"Create portfolio failed: 'portfolioData' is not a list. Received type: {type(portfolio_data)}")
         return jsonify({"error": "Invalid data format for portfolio assets"}), 400
 
-    # --- Process and Validate incoming asset data, including purchase date ---
     total_value = 0.0
     valid_portfolio_entries_with_date = []
     assets_to_validate = []
 
     for entry in portfolio_data:
         if not isinstance(entry, dict):
-             print(f"Skipping invalid entry (not a dict) in incoming data: {entry}")
-             continue
+            print(f"Skipping invalid entry (not a dict) in incoming data: {entry}")
+            continue
 
         ticker = entry.get('ticker')
         amount_str = entry.get('amount')
@@ -151,21 +144,18 @@ def create_portfolio():
         try:
             amount = float(amount_str)
             if amount < 0:
-                 print(f"Skipping entry with negative amount: {entry}")
-                 continue
-
+                print(f"Skipping entry with negative amount: {entry}")
+                continue
         except ValueError:
             print(f"Skipping entry (invalid amount format): {entry}")
             continue
 
-        # --- Parse Purchase Date String ---
         purchase_date_obj = None
         if purchase_date_str:
-             try:
-                 purchase_date_obj = datetime.strptime(purchase_date_str, '%Y-%m-%d').date()
-             except ValueError:
-                  print(f"Warning: Invalid date format received for ticker {ticker}: '{purchase_date_str}'. Expected %Y-%m-%d. Storing as None.")
-
+            try:
+                purchase_date_obj = datetime.strptime(purchase_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                print(f"Warning: Invalid date format received for ticker {ticker}: '{purchase_date_str}'. Expected %Y-%m-%d. Storing as None.")
 
         valid_portfolio_entries_with_date.append({
             'ticker': ticker.strip().upper(),
@@ -176,16 +166,14 @@ def create_portfolio():
         total_value += amount
 
     if not valid_portfolio_entries_with_date:
-         print(f"Create portfolio failed: No valid assets with non-negative amounts were provided for '{portfolio_name}'. Total value calculated: {total_value}")
-         return jsonify({"error": "No valid assets with non-negative amounts were provided"}), 400
+        print(f"Create portfolio failed: No valid assets with non-negative amounts were provided for '{portfolio_name}'. Total value calculated: {total_value}")
+        return jsonify({"error": "No valid assets with non-negative amounts were provided"}), 400
 
     if total_value <= 0:
         print(f"Warning: Total portfolio value is {total_value} for portfolio '{portfolio_name}'. Allocations will be 0%.")
 
-
-    # --- Create new Portfolio object and add to session ---
     new_portfolio = Portfolio(
-        user_id=user_id, # Link to the current_user ID
+        user_id=user_id,
         portfolio_name=portfolio_name,
         total_value=total_value,
         created_at=datetime.utcnow(),
@@ -193,84 +181,67 @@ def create_portfolio():
     db.session.add(new_portfolio)
 
     try:
-        db.session.flush() # Flush to get the portfolio ID
+        db.session.flush()
         print(f"Created new Portfolio object in session: '{new_portfolio.portfolio_name}' (ID will be {new_portfolio.id} after commit) with calculated total value {new_portfolio.total_value}.")
     except Exception as flush_err:
-         db.session.rollback()
-         print(f"Error during portfolio flush for '{new_portfolio.portfolio_name}': {flush_err}")
-         traceback.print_exc()
-         return jsonify({"error": "Database error preparing portfolio"}), 500
+        db.session.rollback()
+        print(f"Error during portfolio flush for '{new_portfolio.portfolio_name}': {flush_err}")
+        traceback.print_exc()
+        return jsonify({"error": "Database error preparing portfolio"}), 500
 
-
-    # --- Add PortfolioAsset entries for the validated data, including the purchase date and Asset type ---
     for entry in valid_portfolio_entries_with_date:
         try:
-             ticker = entry['ticker'] # Already normalized and uppercase
-             amount = entry['amount']
-             purchase_date_obj = entry['purchase_date'] # This is the datetime.date object or None
+            ticker = entry['ticker']
+            amount = entry['amount']
+            purchase_date_obj = entry['purchase_date']
 
-             # --- Asset Finding/Creation ---
-             # Find the Asset record by normalized symbol and user_id
-             asset = Asset.query.filter_by(symbol=ticker, user_id=user_id).first()
-             if not asset:
-                 print(f"Asset '{ticker}' not found for user {user_id}. Creating new Asset.")
+            asset = Asset.query.filter_by(symbol=ticker, user_id=user_id).first()
+            if not asset:
+                print(f"Asset '{ticker}' not found for user {user_id}. Creating new Asset.")
+                asset_full_details = fetch_and_map_asset_details(ticker)
+                determined_asset_type = asset_full_details.get('type', 'stock')
+                determined_company_name = asset_full_details.get('name', f"{ticker} Company")
 
-                 # --- Fetch full details using the helper function ---
-                 # Ensure fetch_and_map_asset_details is imported
-                 # from ..market_fetcher import fetch_and_map_asset_details # Example import - already imported
-                 asset_full_details = fetch_and_map_asset_details(ticker)
+                asset = Asset(symbol=ticker, asset_type=determined_asset_type, user_id=user_id, company_name=determined_company_name)
+                db.session.add(asset)
 
-                 # --- Use details from the helper function to create the Asset record ---
-                 determined_asset_type = asset_full_details.get('type', 'stock')
-                 determined_company_name = asset_full_details.get('name', f"{ticker} Company")
+                try:
+                    db.session.flush()
+                    print(f"Created new Asset: {asset.symbol} (ID: {asset.id}, Type: {asset.asset_type}, Name: {asset.company_name}) for user {user_id}")
+                    # --- PATCH ---
+                    assets_to_validate.append((ticker, determined_asset_type))
+                except Exception as asset_flush_err:
+                    print(f"Error flushing new Asset {ticker}: {asset_flush_err}. Skipping this asset entry.")
+                    traceback.print_exc()
+                    db.session.rollback()
+                    continue
 
-                 asset = Asset(symbol=ticker, asset_type=determined_asset_type, user_id=user_id, company_name=determined_company_name)
-                 db.session.add(asset)
-
-                 # Flush the asset addition to ensure asset.id is set for the foreign key reference
-                 try:
-                     db.session.flush()
-                     print(f"Created new Asset: {asset.symbol} (ID: {asset.id}, Type: {asset.asset_type}, Name: {asset.company_name}) for user {user_id}")
-                 except Exception as asset_flush_err:
-                      print(f"Error flushing new Asset {ticker}: {asset_flush_err}. Skipping this asset entry.")
-                      traceback.print_exc()
-                      db.session.rollback()
-                      continue # Skip creating PortfolioAsset for this entry
-
-
-             # --- PortfolioAsset Creation ---
-             if asset and asset.id:
-                 allocation_pct = (amount / total_value) * 100 if total_value > 0 else 0.0
-
-                 portfolio_asset = PortfolioAsset(
-                     portfolio_id=new_portfolio.id,
-                     asset_id=asset.id,
-                     dollar_amount=amount,
-                     allocation_pct=allocation_pct,
-                     purchase_date=purchase_date_obj
-                 )
-                 db.session.add(portfolio_asset)
-                 print(f"Added PortfolioAsset for {ticker} ({amount}, date: {purchase_date_obj}, Asset Type: {asset.asset_type}) to session for portfolio ID {new_portfolio.id}. Allocation: {allocation_pct:.2f}%")
-
+            if asset and asset.id:
+                allocation_pct = (amount / total_value) * 100 if total_value > 0 else 0.0
+                portfolio_asset = PortfolioAsset(
+                    portfolio_id=new_portfolio.id,
+                    asset_id=asset.id,
+                    dollar_amount=amount,
+                    allocation_pct=allocation_pct,
+                    purchase_date=purchase_date_obj
+                )
+                db.session.add(portfolio_asset)
+                print(f"Added PortfolioAsset for {ticker} ({amount}, date: {purchase_date_obj}, Asset Type: {asset.asset_type}) to session for portfolio ID {new_portfolio.id}. Allocation: {allocation_pct:.2f}%")
 
         except Exception as e:
-             print(f"Unexpected error processing portfolio entry {entry}: {e}. Skipping this asset.")
-             traceback.print_exc()
-             continue
+            print(f"Unexpected error processing portfolio entry {entry}: {e}. Skipping this asset.")
+            traceback.print_exc()
+            continue
 
-    # --- Final Commit ---
-    new_portfolio.total_value = total_value # Recalculate total value based on processed valid entries
-
+    new_portfolio.total_value = total_value
 
     try:
         db.session.commit()
-
         for symbol, asset_type in assets_to_validate:
             try:
                 validate_and_fetch_asset_data(symbol, asset_type)
             except Exception as e:
                 print(f"Warning: Fetching market data failed for {symbol}: {e}")
-
         print(f"Portfolio '{new_portfolio.portfolio_name}' (ID: {new_portfolio.id}) and its assets committed successfully.")
         return jsonify({"message": "Portfolio saved", "portfolio_id": new_portfolio.id}), 201
     except Exception as commit_err:
@@ -278,6 +249,7 @@ def create_portfolio():
         print(f"CRITICAL ERROR during final commit for portfolio '{new_portfolio.portfolio_name}': {commit_err}")
         traceback.print_exc()
         return jsonify({"error": "Database error saving portfolio"}), 500
+
 
 # Route to handle updating an EXISTING portfolio (manual entry form submit)
 @portfolio_bp.route('/portfolios/<int:portfolio_id>', methods=['PUT', 'POST'])
