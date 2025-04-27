@@ -15,6 +15,8 @@ from sqlalchemy.orm import joinedload
 
 from app import db # Assuming db is initialized in app/__init__.py
 from app.models import User, Portfolio, Asset, MarketData, PortfolioAsset, Transaction, CalculationResult
+from app.market_fetcher import validate_and_fetch_asset_data
+
 # Import fetcher functions needed in this file
 from app.market_fetcher import (
     fetch_yahoo_data, # Used in get_market_data_by_ticker fallback
@@ -60,9 +62,18 @@ def saved_portfolios():
         flash('Error loading portfolios. Please try again.', 'danger')
         portfolios = []
 
-    return render_template('saved-portfolios.html',
-                           username=username,
-                           portfolios=portfolios) # Pass portfolios list
+    
+    enriched_portfolios = []
+    for portfolio in portfolios:
+        enriched_portfolios.append({
+            "id": portfolio.id,
+            "portfolio_name": portfolio.portfolio_name,
+            "number_of_assets": len(portfolio.holdings) if hasattr(portfolio, 'holdings') and portfolio.holdings else 0,
+            "date_created": portfolio.created_at.strftime('%Y-%m-%d') if hasattr(portfolio, 'created_at') and portfolio.created_at else 'N/A',
+        })
+
+    return render_template('saved-portfolios.html', username=username, portfolios=enriched_portfolios)
+
 
 # Route for the data entry page (Create/Edit Portfolio)
 @portfolio_bp.route('/data-entry', methods=['GET'])
@@ -222,6 +233,8 @@ def create_portfolio():
                       traceback.print_exc()
                       db.session.rollback()
                       continue # Skip creating PortfolioAsset for this entry
+                  
+                 validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
 
 
              # --- PortfolioAsset Creation ---
@@ -409,6 +422,9 @@ def update_portfolio(portfolio_id):
                       traceback.print_exc()
                       db.session.rollback()
                       continue # Skip creating PortfolioAsset for this entry
+                 
+                 validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
+
 
 
              # --- PortfolioAsset Creation ---
@@ -658,6 +674,9 @@ def upload_csv():
                           traceback.print_exc()
                           db.session.rollback() # Rollback the failed asset addition attempt
                           continue # Skip creating PortfolioAsset for this entry
+                      
+                     validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
+
 
 
                  # --- PortfolioAsset Creation ---

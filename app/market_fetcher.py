@@ -1013,6 +1013,61 @@ def store_market_data(asset, price=None, prices_df=None):
         print(traceback.format_exc()) # Print traceback for debug
 
 
+
+def validate_and_fetch_asset_data(symbol, asset_type):
+    """
+    Validate a new ticker and fetch its historical price data immediately after adding.
+    Should be called when a new asset is created.
+    """
+    print(f"[Validation] Starting validation and data fetch for {symbol} ({asset_type})...")
+    try:
+        normalized_symbol = symbol.replace(".", "-").upper()
+        asset_obj = Asset.query.filter_by(symbol=symbol).first()
+        if not asset_obj:
+            print(f"[Validation] Asset {symbol} not found in database. Aborting validation.")
+            return False
+
+        price_or_df = None
+        end_date = datetime.now(UTC)
+        start_date = end_date - timedelta(days=365)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
+
+        if asset_type.lower() in ["stock", "etf"]:
+            print(f"[Validation] Trying Yahoo Finance for {normalized_symbol}...")
+            price_or_df = fetch_yahoo_data(normalized_symbol, start_date=start_date_str, end_date=end_date_str, interval="1d")
+            if price_or_df is None or (isinstance(price_or_df, pd.DataFrame) and price_or_df.empty):
+                print(f"[Validation] Yahoo failed for {normalized_symbol}. Trying Alpha Vantage...")
+                price_or_df = fetch_alpha_vantage_data(normalized_symbol, function="TIME_SERIES_DAILY", start_date=start_date_str, end_date=end_date_str)
+        elif asset_type.lower() == "crypto":
+            print(f"[Validation] Trying CoinGecko for {normalized_symbol}...")
+            coingecko_map = _get_coingecko_id_map()
+            coingecko_id = coingecko_map.get(normalized_symbol)
+            if coingecko_id:
+                price_or_df = fetch_coingecko_data(coingecko_id, start_date=start_date_str, end_date=end_date_str)
+        elif asset_type.lower() == "bond":
+            print(f"[Validation] Trying FRED for bond {normalized_symbol}...")
+            price_or_df = fetch_fred_data(normalized_symbol, start_date=start_date_str, end_date=end_date_str)
+        else:
+            print(f"[Validation] Unknown asset type {asset_type} for {symbol}. Skipping fetch.")
+            return False
+
+        if price_or_df is None or (isinstance(price_or_df, pd.DataFrame) and price_or_df.empty):
+            print(f"[Validation] No valid data fetched for {symbol}. Validation failed.")
+            return False
+
+        print(f"[Validation] Data fetched successfully for {symbol}. Storing...")
+        store_market_data(asset_obj, prices_df=price_or_df)
+        db.session.commit()
+        print(f"[Validation] Data stored successfully for {symbol}. Validation passed.")
+        return True
+
+    except Exception as e:
+        print(f"[Validation] Exception during validation for {symbol}: {e}")
+        db.session.rollback()
+        return False
+
+
 def fetch_market_data(historical=False):
     """
     Fetch market data for all assets in database. Requires an active application context.

@@ -270,9 +270,9 @@ def get_portfolio_metrics(portfolio_id):
                 "Beta": float(metrics_results.get('portfolio_overall_metrics', {}).get('beta', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('beta', 0.0)) else 0.0,
                 "Alpha": (float(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('alpha', 0.0)) else 0.0,
                 "Calmar Ratio": float(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('calmar_ratio', 0.0)) else 0.0,
-                "best_year":   metrics_results['portfolio_overall_metrics']['best_year'],
+                "best_year": metrics_results.get('portfolio_overall_metrics', {}).get('best_year', 'N/A'),
                 "best_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('best_year_return', 0.0)) else 0.0,
-                "worst_year":  metrics_results['portfolio_overall_metrics']['worst_year'],
+                "worst_year": metrics_results.get('portfolio_overall_metrics', {}).get('worst_year', 'N/A'),
                 "worst_year_return": (float(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0))) if np.isfinite(metrics_results.get('portfolio_overall_metrics', {}).get('worst_year_return', 0.0)) else 0.0,
                 "Calculation Start Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_start_date', None), # Dates are likely already formatted strings
                 "Calculation End Date": metrics_results.get('portfolio_overall_metrics', {}).get('calculation_end_date', None), # Dates are likely already formatted strings

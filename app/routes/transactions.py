@@ -21,7 +21,7 @@ from app.models import (
     PortfolioAsset, Transaction, CalculationResult
 )
 from sqlalchemy.orm import joinedload
-from app.market_fetcher import fetch_and_map_asset_details
+from app.market_fetcher import fetch_and_map_asset_details, validate_and_fetch_asset_data
 
 transactions_bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
@@ -157,6 +157,10 @@ def create_transaction():
 
         db.session.add(asset) # Add the new asset object to the session
         db.session.flush() # Flush to get the asset.id
+
+        # Immediately validate and fetch historical data
+        validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
+
 
 
     fees = float(data.get('fees') or 0.0)
