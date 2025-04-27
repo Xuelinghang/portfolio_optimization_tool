@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 .env
 echo "instance/*.db"instance/*.db
+app/__pycache__/models.cpython-312.pyc
+app/__pycache__/market_fetcher.cpython-312.pyc
+instance/portfolio.db

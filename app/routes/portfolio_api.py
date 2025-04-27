@@ -113,6 +113,7 @@ def create_portfolio():
     """
     # The @login_required decorator handles authentication
     # Access user ID via current_user from Flask-Login
+    
     user_id = current_user.id
     data = request.get_json()
 
@@ -132,6 +133,7 @@ def create_portfolio():
     # --- Process and Validate incoming asset data, including purchase date ---
     total_value = 0.0
     valid_portfolio_entries_with_date = []
+    assets_to_validate = []
 
     for entry in portfolio_data:
         if not isinstance(entry, dict):
@@ -185,7 +187,8 @@ def create_portfolio():
     new_portfolio = Portfolio(
         user_id=user_id, # Link to the current_user ID
         portfolio_name=portfolio_name,
-        total_value=total_value
+        total_value=total_value,
+        created_at=datetime.utcnow(),
     )
     db.session.add(new_portfolio)
 
@@ -233,8 +236,6 @@ def create_portfolio():
                       traceback.print_exc()
                       db.session.rollback()
                       continue # Skip creating PortfolioAsset for this entry
-                  
-                 validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
 
 
              # --- PortfolioAsset Creation ---
@@ -263,6 +264,13 @@ def create_portfolio():
 
     try:
         db.session.commit()
+
+        for symbol, asset_type in assets_to_validate:
+            try:
+                validate_and_fetch_asset_data(symbol, asset_type)
+            except Exception as e:
+                print(f"Warning: Fetching market data failed for {symbol}: {e}")
+
         print(f"Portfolio '{new_portfolio.portfolio_name}' (ID: {new_portfolio.id}) and its assets committed successfully.")
         return jsonify({"message": "Portfolio saved", "portfolio_id": new_portfolio.id}), 201
     except Exception as commit_err:
@@ -423,7 +431,7 @@ def update_portfolio(portfolio_id):
                       db.session.rollback()
                       continue # Skip creating PortfolioAsset for this entry
                  
-                 validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
+                 
 
 
 
@@ -452,6 +460,13 @@ def update_portfolio(portfolio_id):
 
     try:
         db.session.commit()
+
+        for symbol, asset_type in assets_to_validate:
+            try:
+                validate_and_fetch_asset_data(symbol, asset_type)
+            except Exception as e:
+                print(f"Warning: Fetching market data failed for {symbol}: {e}")
+
         print(f"Portfolio '{portfolio.portfolio_name}' (ID: {portfolio_id}) updated and its assets committed successfully.")
         return jsonify({"message": "Portfolio updated"}), 200
     except Exception as commit_err:
@@ -675,7 +690,7 @@ def upload_csv():
                           db.session.rollback() # Rollback the failed asset addition attempt
                           continue # Skip creating PortfolioAsset for this entry
                       
-                     validate_and_fetch_asset_data(asset.symbol, asset.asset_type)
+                     
 
 
 

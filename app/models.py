@@ -103,6 +103,7 @@ class Portfolio(db.Model):
     user_id         = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     portfolio_name  = db.Column(db.String(100), nullable=False)
     total_value     = db.Column(db.Float, nullable=False, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Use datetime.now(UTC) for timezone-aware UTC datetime
     purchase_date   = db.Column(db.DateTime, default=datetime.now(UTC))
 
