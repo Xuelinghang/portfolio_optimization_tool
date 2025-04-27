@@ -181,6 +181,35 @@ def create_transaction():
     )
     db.session.add(tx)
     # End: Patch
+    # --- Update or Create PortfolioAsset holding after a transaction ---
+
+    holding = PortfolioAsset.query.filter_by(
+    portfolio_id=portfolio.id,
+    asset_id=asset.id
+    ).first()
+
+    if holding:
+    # Update the existing holding
+        if transaction_type == 'buy':
+            holding.dollar_amount = (holding.dollar_amount or 0) + (quantity * price)
+        elif transaction_type == 'sell':
+            holding.dollar_amount = (holding.dollar_amount or 0) - (quantity * price)
+    else:
+    # Create new holding
+        holding = PortfolioAsset(
+            portfolio_id=portfolio.id,
+            asset_id=asset.id,
+            dollar_amount=(quantity * price),
+            allocation_pct=0.0,  # Optional: recalculate later
+            purchase_date=transaction_date
+        )
+        db.session.add(holding)
+
+    # --- Update Portfolio total value ---
+    if transaction_type == 'buy':
+        portfolio.total_value = (portfolio.total_value or 0) + (quantity * price)
+    elif transaction_type == 'sell':
+        portfolio.total_value = (portfolio.total_value or 0) - (quantity * price)
 
 
     # ... (rest of the transaction creation and portfolio/holding update logic) ...

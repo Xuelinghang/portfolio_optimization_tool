@@ -693,7 +693,7 @@ def calculate_portfolio_metrics(daily_prices, weights, holdings_list, tickers_wi
             'downside_deviation_monthly': float(downside_deviation_monthly), # Store as decimal
             'downside_deviation_annual': float(downside_deviation_annual), # Store as decimal
             'mean_daily_return': float(portfolio_daily_returns_series.mean()) if not portfolio_daily_returns_series.empty else 0.0,
-            'annualized_return_from_daily': float(((1 + portfolio_daily_returns_series.mean())**252 - 1)) if len(portfolio_daily_returns_series) > 0 else 0.0,
+            'annualized_return_from_daily': float(((1 + portfolio_daily_returns_series.mean())**252 - 1)),
             'geometric_mean_daily': float(((1 + portfolio_daily_returns_series).prod()**(1/len(portfolio_daily_returns_series)) - 1)) if len(portfolio_daily_returns_series) > 0 else 0.0,
             'mean_monthly_return': float(mean_monthly_return) if mean_monthly_return is not None else 0.0, # Use mean_monthly_return (decimal)
             'geometric_mean_monthly': float(geometric_mean_monthly) if geometric_mean_monthly is not None else 0.0, # Store as decimal
@@ -859,8 +859,9 @@ def generate_efficient_frontier(returns_data, num_portfolios=20):
             weights = np.array(weights)
             
             # Basic return and risk calculation
-            portfolio_return = np.sum(mean_returns * weights) * 12  # Annualized
-            portfolio_risk = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(12)  # Annualized
+            trading_days     = 252
+            portfolio_return = np.sum(mean_returns * weights) * trading_days
+            portfolio_risk   = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(trading_days)
             
             # Handle potential division by zero in Sharpe calculation
             if portfolio_risk > 0:
@@ -1052,8 +1053,9 @@ def calculate_tangency_portfolio(returns_data):
     
     # Function to calculate portfolio Sharpe ratio
     def portfolio_sharpe(weights):
-        portfolio_return = np.sum(mean_returns * weights) * 12  # Annualized
-        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(12)  # Annualized
+        trading_days     = 252
+        portfolio_return = np.sum(mean_returns * weights) * trading_days
+        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(trading_days)
         sharpe_ratio = (portfolio_return - risk_free_rate * 12) / portfolio_stddev
         return -sharpe_ratio  # Negative for minimization
     
@@ -1075,8 +1077,9 @@ def calculate_tangency_portfolio(returns_data):
         weights = result['x']
         
         # Calculate portfolio metrics
-        portfolio_return = np.sum(mean_returns * weights) * 12  # Annualized
-        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(12)  # Annualized
+        trading_days     = 252
+        portfolio_return = np.sum(mean_returns * weights) * trading_days
+        portfolio_stddev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(trading_days)
         sharpe_ratio = (portfolio_return - risk_free_rate * 12) / portfolio_stddev
         
         # Calculate tracking error and information ratio versus SPY (if SPY is in the portfolio)

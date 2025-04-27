@@ -455,26 +455,26 @@
             <tr>
               <th>#</th>
               {% for ticker in tickers %}
-              <th>{{ ticker }}</th>
+                <th>{{ ticker }}</th>
               {% endfor %}
-              <th>Active Return</th>
-              <th>Tracking Error</th>
-              <th>Information Ratio</th>
+              <th>Return</th>
+              <th>Risk</th>
+              <th>Sharpe Ratio</th>
             </tr>
           </thead>
           <tbody>
             {% for portfolio in efficient_portfolios %}
-            <tr>
-              <td>{{ loop.index }}</td>
-              {% for ticker in tickers %}
-              <td>{{ "%.2f"|format(portfolio[ticker] * 100) }}%</td>
-              {% endfor %}
-              <td>{{ "%.2f"|format(portfolio['Active Return'] * 100) }}%</td>
-              <td>{{ "%.2f"|format(portfolio['Tracking Error'] * 100) }}%</td>
-              <td>{{ "%.3f"|format(portfolio['Information Ratio']) }}</td>
-            </tr>
+              <tr>
+                <td>{{ loop.index }}</td>
+                {% for ticker in tickers %}
+                  <td>{{ "%.2f"|format(portfolio[ticker] * 100) }}%</td>
+                {% endfor %}
+                <td>{{ "%.2f"|format(portfolio['Return'] * 100) }}%</td>
+                <td>{{ "%.2f"|format(portfolio['Risk']   * 100) }}%</td>
+                <td>{{ "%.3f"|format(portfolio['Sharpe Ratio']) }}</td>
+              </tr>
             {% endfor %}
-          </tbody>
+          </tbody>          
         </table>
       </div>
     </div>

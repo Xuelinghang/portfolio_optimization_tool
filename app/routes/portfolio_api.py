@@ -1289,3 +1289,49 @@ def get_portfolios_json():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({"error": "An internal error occurred while fetching portfolios."}), 500
+    
+@portfolio_bp.route('/api/update-profile/<int:portfolio_id>', methods=['POST'])
+@login_required
+def update_portfolio_profile(portfolio_id):
+    """
+    API endpoint to trigger portfolio recalculation after a transaction.
+    This recalculates the portfolio's total_value and allocation percentages.
+    """
+    user_id = current_user.id
+
+    portfolio = Portfolio.query.filter_by(id=portfolio_id, user_id=user_id).first()
+
+    if not portfolio:
+        return jsonify({"error": "Portfolio not found or not authorized"}), 404
+
+    try:
+        # Fetch all holdings for the portfolio
+        holdings = PortfolioAsset.query.filter_by(portfolio_id=portfolio.id).all()
+
+        # Recalculate total value
+        total_value = sum(holding.dollar_amount for holding in holdings if holding.dollar_amount is not None)
+
+        if total_value <= 0:
+            total_value = 0.0  # Avoid division by zero
+
+        portfolio.total_value = total_value
+
+        # Update each holding's allocation percentage
+        for holding in holdings:
+            if holding.dollar_amount is not None and total_value > 0:
+                holding.allocation_pct = (holding.dollar_amount / total_value)
+            else:
+                holding.allocation_pct = 0.0
+
+            db.session.add(holding)  # Mark holding as dirty (even if unchanged)
+
+        db.session.add(portfolio)
+        db.session.commit()
+
+        return jsonify({"message": "Portfolio profile updated successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating portfolio profile for ID {portfolio_id}: {e}")
+        traceback.print_exc()
+        return jsonify({"error": "Internal server error during profile update."}), 500
