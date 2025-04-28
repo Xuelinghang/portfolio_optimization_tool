@@ -1,8 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app import db
-from app.models import User, Transaction
 from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
 import random
 import string
 
@@ -18,6 +15,10 @@ def generate_random_password():
 @admin_bp.route('/admin', methods=['GET', 'POST'])
 @login_required  # Ensure that only logged-in users with admin privileges can access this
 def admin_dashboard():
+    # Import db and models here to avoid circular imports at app startup
+    from app import db  # Import db inside the function
+    from app.models import User, Transaction  # Import models here
+
     if not current_user.is_admin:
         flash('You are not authorized to view this page.', 'danger')
         return redirect(url_for('portfolio.home'))  # Redirect to home if not admin
