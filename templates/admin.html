@@ -95,7 +95,9 @@
             <a href="{{ url_for('main.index') }}">Home</a>
             <a href="{{ url_for('portfolio.portfolio_page') }}">Portfolio</a>
             <a href="{{ url_for('transactions.transactions_page') }}">Transactions</a>
-            <a href="{{ url_for('admin.admin_page') }}">Admin</a>
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_bp.admin_dashboard') }}">Admin</a>
+            {% endif %}
         </div>
     </div>
 
@@ -136,14 +138,22 @@
                         <td>{{ user.username }}</td>
                         <td>{{ user.email }}</td>
                         <td>{{ 'Active' if user.is_active else 'Disabled' }}</td>
-                        <td class="action-buttons">
-                            <button class="edit-btn" onclick="editUser('{{ user.id }}')">Edit</button>
-                            {% if user.is_active %}
-                            <button class="disable-btn" onclick="disableUser('{{ user.id }}')">Disable</button>
-                            {% else %}
-                            <button class="edit-btn" onclick="enableUser('{{ user.id }}')">Enable</button>
-                            {% endif %}
-                            <button class="reset-btn" onclick="resetPassword('{{ user.id }}')">Reset Password</button>
+                        <td class="action-buttons" style="display: flex;">
+                            <!-- Disable / Enable -->
+                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <input type="hidden" name="action" value="disable">
+                                <button type="submit" class="disable-btn"
+                                  {% if not user.is_active %}disabled{% endif %}>
+                                  Disable
+                                </button>
+                            </form>
+                            <!-- Reset Password -->
+                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <input type="hidden" name="action" value="reset_password">
+                                <button type="submit" class="reset-btn">Reset Password</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -155,7 +165,7 @@
                     </tr>
                 {% endif %}
             </tbody>
-        </table>        
+        </table>
 
         <!-- Section 3: System Transactions -->
         <h2 style="margin-top: 40px;">System Transactions</h2>
@@ -195,26 +205,5 @@
     <div class="footer">
         © 2025 Portfolio Optimizer
     </div>
-
-    <script>
-        function editUser(userId) {
-            window.location.href = `/admin/edit/${userId}`;
-        }
-        function disableUser(userId) {
-            if (confirm('Are you sure you want to disable this user?')) {
-                window.location.href = `/admin/disable/${userId}`;
-            }
-        }
-        function enableUser(userId) {
-            if (confirm('Are you sure you want to enable this user?')) {
-                window.location.href = `/admin/enable/${userId}`;
-            }
-        }
-        function resetPassword(userId) {
-            if (confirm('Reset password for this user?')) {
-                window.location.href = `/admin/reset_password/${userId}`;
-            }
-        }
-    </script>
 </body>
 </html>
