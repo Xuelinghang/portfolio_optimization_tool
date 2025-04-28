@@ -8,7 +8,7 @@ from flask import Flask
 def fix_asset_types():
     """Scan all assets and fix missing or wrong asset types."""
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////Users/wangjinchan/Desktop/Duke/2025_SPRING/512/portfolio_optimization_tool/instance/portfolio.db"  # <-- Adjust your DB path if needed
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/lx94/test/portfolio_optimization_tool/instance/portfolio.db"  # <-- Adjust your DB path if needed
     app.secret_key = "secret_key"  # Dummy key
     db.init_app(app)
 
