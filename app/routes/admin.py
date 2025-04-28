@@ -1,83 +1,51 @@
-# app/routes/admin.py
-
-import os
-import json
-import traceback
-import string
-import random
-from functools import wraps # Import wraps
-
-from flask import Blueprint, render_template, redirect, url_for, flash, jsonify, request
-from flask_login import login_required, current_user
-from werkzeug.security import generate_password_hash
-
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
 from app.models import User, Transaction
+from flask_login import login_required, current_user
+from werkzeug.security import generate_password_hash
+import random
+import string
 
-admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+# Initialize Blueprint
+admin_bp = Blueprint('admin_bp', __name__)
 
-# Helper decorator to restrict access to admin users
-def admin_required(f):
-    @wraps(f) # Use functools.wraps to preserve original function metadata
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_admin:
-            flash("You do not have permission to access this page.", "danger")
-            return redirect(url_for("main.index"))
-        return f(*args, **kwargs)
-    return decorated_function
+def generate_random_password():
+    """Generates a random password."""
+    length = 12
+    characters = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(characters) for i in range(length))
 
-@admin_bp.route("/")
-@admin_required
+@admin_bp.route('/admin', methods=['GET', 'POST'])
+@login_required  # Ensure that only logged-in users with admin privileges can access this
 def admin_dashboard():
-    total_users = User.query.count()
-    active_users = User.query.filter_by(is_active=True).count()
-    disabled_users = total_users - active_users
-    system_transactions_count = Transaction.query.filter_by(is_system=True).count()
-    total_transactions = Transaction.query.count()
-
-    return render_template("admin/dashboard.html",
-                           total_users=total_users,
-                           active_users=active_users,
-                           disabled_users=disabled_users,
-                           system_transactions_count=system_transactions_count,
-                           total_transactions=total_transactions)
-
-@admin_bp.route("/users")
-@admin_required
-def manage_users():
+    if not current_user.is_admin:
+        flash('You are not authorized to view this page.', 'danger')
+        return redirect(url_for('portfolio.home'))  # Redirect to home if not admin
+    
+    # Get all users for admin to manage
     users = User.query.all()
-    return render_template("admin/users.html", users=users)
+    transactions = Transaction.query.all()  # Get all system transactions (for analysis)
 
-@admin_bp.route("/users/<int:user_id>/toggle_status", methods=["POST"])
-@admin_required
-def toggle_user_status(user_id):
-    user = User.query.get_or_404(user_id)
-    if user.is_admin and user.id == current_user.id:
-         flash("You cannot disable your own admin account.", "warning")
-    else:
-        user.is_active = not user.is_active
-        db.session.commit()
-        flash(f"User '{user.username}' account status toggled.", "success")
-    return redirect(url_for("admin.manage_users"))
+    if request.method == 'POST':
+        action = request.form.get('action')  # Determine the action (e.g., disable user, reset password)
+        user_id = request.form.get('user_id')  # Get the user_id from the form
+        user = User.query.get(user_id)
 
-@admin_bp.route("/users/<int:user_id>/reset_password", methods=["POST"])
-@admin_required
-def reset_user_password(user_id):
-    user = User.query.get_or_404(user_id)
+        if not user:
+            flash('User not found!', 'danger')
+            return redirect(url_for('admin_bp.admin_dashboard'))
 
-    temp_password = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=12))
+        if action == 'disable':
+            user.is_active = False  # Disable user account
+            db.session.commit()
+            flash(f'User {user.username} has been disabled.', 'success')
+            return redirect(url_for('admin_bp.admin_dashboard'))  # Redirect after action
+        
+        elif action == 'reset_password':
+            new_password = generate_random_password()  # Generate a random password
+            user.set_password(new_password)  # Hash and save the password
+            db.session.commit()
+            flash(f'Password for {user.username} has been reset. New password: {new_password}', 'success')
+            return redirect(url_for('admin_bp.admin_dashboard'))  # Redirect after action
 
-    user.set_password(temp_password)
-    user.password_reset_required = True
-    db.session.commit()
-
-    flash(f"Password for user '{user.username}' reset to: {temp_password}. They will be required to change it on next login.", "warning")
-
-    return redirect(url_for("admin.manage_users"))
-
-@admin_bp.route("/transactions/system")
-@admin_required
-def view_system_transactions():
-    system_transactions = Transaction.query.filter_by(is_system=True).all()
-    return render_template("admin/system_transactions.html", transactions=system_transactions)
+    return render_template('admin.html', users=users, transactions=transactions)
