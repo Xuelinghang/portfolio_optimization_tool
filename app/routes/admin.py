@@ -1,12 +1,8 @@
-<<<<<<< HEAD
 # app/routes/admin.py
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from app import db
 from app.models import User, Transaction, Portfolio, PortfolioAsset, Asset
-=======
-from flask import Blueprint, render_template, request, redirect, url_for, flash
->>>>>>> f34212a60b96a9e54545bcf57696b7a2cca51c88
 from flask_login import login_required, current_user
 import random
 import string
@@ -27,19 +23,12 @@ def generate_random_password():
 @admin_bp.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin_dashboard():
-<<<<<<< HEAD
     """
     Render the main Admin Dashboard, allowing:
     - Viewing & managing users
     - Viewing system transactions
     - Showing summary metrics at the top
     """
-=======
-    # Import db and models here to avoid circular imports at app startup
-    from app import db  # Import db inside the function
-    from app.models import User, Transaction  # Import models here
-
->>>>>>> f34212a60b96a9e54545bcf57696b7a2cca51c88
     if not current_user.is_admin:
         flash('You are not authorized to view this page.', 'danger')
         return redirect(url_for('portfolio.home'))
