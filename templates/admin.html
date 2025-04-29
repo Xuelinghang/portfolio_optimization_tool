@@ -94,7 +94,104 @@
             padding: 2px 6px;
             border-radius: 4px;
             margin-left: 6px;
-        }  
+        } 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            background: rgba(11, 93, 30, 0.5);  /* semi-opaque match to #0b5d1e */
+            align-items: center;
+            justify-content: center;
+        }
+          
+        /* Modal window */
+        .modal-content {
+            background: #ffffff;                /* white card */
+            padding: 24px;
+            border-radius: 8px;
+            width: 360px;
+            max-width: 90%;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            position: relative;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* Close button */
+        .close-btn {
+            position: absolute;
+            top: 12px; right: 12px;
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #0b5d1e;                     /* dark green accent */
+        }
+        .close-btn:hover {
+            color: #4CAF50;                     /* lighter green on hover */
+        }
+        
+        /* Modal header */
+        .modal-content h3 {
+            margin-top: 0;
+            font-size: 20px;
+            color: #0b5d1e;                     /* dark green */
+            text-align: center;
+        }
+        
+        /* Divider */
+        .modal-content hr {
+            border: none;
+            border-top: 1px solid #e0f0e0;      /* match table header color */
+            margin: 16px 0;
+        }
+        
+        /* Forms inside modal */
+        .modal-content form {
+            margin-top: 16px;
+        }
+        
+        /* Inputs */
+        .modal-content input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        /* Buttons */
+        .modal-content button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            font-size: 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        /* Send Reset Link (primary) */
+        #sendLinkForm button {
+            background-color: #0b5d1e;          /* dark green */
+            color: #ffffff;
+        }
+        #sendLinkForm button:hover {
+            background-color: #08421b;          /* darker shade */
+            transform: translateY(-1px);
+        }
+        
+        /* Set Password (secondary) */
+        #setByAdminForm button {
+            background-color: #4CAF50;          /* original green accent */
+            color: #ffffff;
+        }
+        #setByAdminForm button:hover {
+            background-color: #3e8e41;          /* a bit darker */
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -124,6 +221,17 @@
 
     <div class="admin-container">
 
+        <!-- 2) Flash-message block (place this at the very top of the container) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flashes">
+            {% for category, msg in messages %}
+              <li class="flash-{{ category }}">{{ msg }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
         <!-- Section 1: Summary Analysis -->
         <h1>Admin Dashboard</h1>
         <div style="display: flex; justify-content: space-around; margin-bottom: 30px;">
@@ -146,7 +254,7 @@
         </div>
 
         <!-- Section 2: Users Management -->
-        <h2 id="users">Users Management</h2>                  <!-- ← MODIFIED: added id for nav -->
+        <h2 id="users">Users Management</h2>
         <table>
             <thead>
                 <tr>
@@ -157,36 +265,37 @@
                 </tr>
             </thead>
             <tbody>
-                {% if users %}
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>{{ 'Active' if user.is_active else 'Disabled' }}</td>
-                        <td class="action-buttons" style="display: flex;">
-                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <input type="hidden" name="action" value="disable">
-                                <button type="submit" class="disable-btn"
-                                  {% if not user.is_active %}disabled{% endif %}>
-                                  Disable
-                                </button>
-                            </form>
-                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0 0 0 8px;">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <input type="hidden" name="action" value="reset_password">
-                                <button type="submit" class="reset-btn">Reset Password</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 20px; color: gray;">
-                            No users available yet.
-                        </td>
-                    </tr>
-                {% endif %}
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ 'Active' if user.is_active else 'Disabled' }}</td>
+                    <td class="action-buttons" style="display: flex;">
+
+                        <!-- Disable button unchanged -->
+                        <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
+                            <input type="hidden" name="user_id"   value="{{ user.id }}">
+                            <input type="hidden" name="action"    value="disable">
+                            <button type="submit" class="disable-btn"
+                              {% if not user.is_active %}disabled{% endif %}>
+                              Disable
+                            </button>
+                        </form>
+
+                        <!-- 3) Replace the old reset_password form with a modal-trigger button -->
+                        <button
+                          type="button"
+                          class="reset-btn"
+                          data-user-id="{{ user.id }}"
+                          data-username="{{ user.username }}"
+                          style="margin-left:8px;"
+                        >
+                          Reset Password
+                        </button>
+
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
 
@@ -224,6 +333,33 @@
         </table>
 
     </div>
+    <!-- 4) Insert the Reset-Password Modal HERE, right before the closing </body> -->
+    <div id="resetModal" class="modal">
+        <div class="modal-content">
+            <button id="closeModal" class="close-btn">&times;</button>
+            <h3>Reset password for <span id="modalUsername"></span></h3>
+    
+            <!-- Send Reset Link form -->
+            <form id="sendLinkForm" method="post" action="{{ url_for('admin_bp.admin_dashboard') }}">
+            <input type="hidden" name="action"    value="send_reset_link">
+            <input type="hidden" name="user_id"    id="linkUserId" value="">
+            <button type="submit">Send Reset Link</button>
+            </form>
+    
+            <hr>
+    
+            <!-- Admin-set Password form -->
+            <form id="setByAdminForm" method="post" action="{{ url_for('admin_bp.admin_dashboard') }}">
+            <input type="hidden" name="action"    value="reset_by_admin">
+            <input type="hidden" name="user_id"    id="adminUserId" value="">
+            <div>
+                <label>New Password</label><br>
+                <input type="password" name="new_password" required>
+            </div>
+            <button type="submit">Set Password</button>
+            </form>
+        </div>
+    </div>      
 
     <div class="footer">
         © 2025 Portfolio Optimizer
@@ -246,6 +382,26 @@
             console.error('Logout error:', err);
           }
         });
-      </script>
+              // Open modal
+        document.querySelectorAll('.reset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const userId   = btn.dataset.userId;
+                const username = btn.dataset.username;
+                document.getElementById('modalUsername').textContent = username;
+                document.getElementById('linkUserId').value       = userId;
+                document.getElementById('adminUserId').value      = userId;
+                document.getElementById('resetModal').style.display = 'flex';
+            });
+        });
+        // Close modal
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('resetModal').style.display = 'none';
+        });
+        window.addEventListener('click', e => {
+            if (e.target === document.getElementById('resetModal')) {
+                document.getElementById('resetModal').style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

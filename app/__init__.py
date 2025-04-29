@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
 from app.config import Config
+from flask_mail import Mail 
 
 # Load environment variables from .env
 load_dotenv()
@@ -14,7 +15,7 @@ load_dotenv()
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-
+mail = Mail() 
 # Make sure SQLAlchemy knows about all your models before create_all()
 import app.models  # no change here
 
@@ -41,6 +42,7 @@ def create_app():
     bcrypt.init_app(app)
     migrate = Migrate(app, db)  
     login_manager.init_app(app)
+    mail.init_app(app)
     login_manager.login_view = 'auth.login_page'
 
     # ─── Register blueprints here ───

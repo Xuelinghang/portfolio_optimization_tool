@@ -11,6 +11,8 @@ from app import db # Assuming db is initialized in app/__init__.py
 # This is needed to register the user_loader
 from app import login_manager # <--- ADDED import for login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer as Serializer
+from flask import current_app
 
 
 # --- User Loader function for Flask-Login ---
@@ -54,6 +56,25 @@ class User(db.Model, UserMixin): # <--- ADDED UserMixin inheritance
     def check_password(self, password):
         """Checks if the provided password matches the stored hash."""
         return check_password_hash(self.password_hash, password)
+    
+    def get_reset_token(self, expires_sec=3600):
+        """
+        Returns a timed JSON web signature that can be sent to the user.
+        """
+        s = Serializer(current_app.config['SECRET_KEY'])
+        return s.dumps({'user_id': self.id}, salt='password-reset-salt')
+    
+    @staticmethod
+    def verify_reset_token(token, expires_sec=3600):
+        """
+        Returns the User if the token is valid and not expired, else None.
+        """
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token, salt='password-reset-salt', max_age=expires_sec)
+        except Exception:
+            return None
+        return User.query.get(data['user_id'])
 
     # UserMixin provides these properties/methods automatically based on the columns:
     # is_authenticated, is_active, is_anonymous, get_id()

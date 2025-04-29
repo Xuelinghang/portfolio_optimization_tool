@@ -1,7 +1,8 @@
 # app/routes/admin.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from app import db
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from flask_mail import Message
+from app import db, mail
 from app.models import User, Transaction, Portfolio, PortfolioAsset, Asset
 from flask_login import login_required, current_user
 import random
@@ -11,14 +12,6 @@ from datetime import datetime, timedelta, UTC
 
 # Initialize Blueprint
 admin_bp = Blueprint('admin_bp', __name__)
-
-
-def generate_random_password():
-    """Generates a random password."""
-    length = 12
-    characters = string.ascii_letters + string.digits + string.punctuation
-    return ''.join(random.choice(characters) for _ in range(length))
-
 
 @admin_bp.route('/admin', methods=['GET', 'POST'])
 @login_required
@@ -33,33 +26,59 @@ def admin_dashboard():
         flash('You are not authorized to view this page.', 'danger')
         return redirect(url_for('portfolio.home'))
 
-    # --- Core data for users & transactions tables ---
+    # Core data
     users = User.query.all()
     transactions = Transaction.query.order_by(Transaction.transaction_date.desc()).all()
-
-    # --- Summary metrics for the dashboard header ---
-    total_users        = User.query.count()
+    total_users        = len(users)
     active_users       = User.query.filter_by(is_active=True).count()
     total_portfolios   = Portfolio.query.count()
     total_transactions = Transaction.query.count()
 
-    # --- Handle user actions (disable / reset password) ---
     if request.method == 'POST':
-        action  = request.form.get('action')
-        user_id = request.form.get('user_id')
-        user    = User.query.get(user_id)
+        action    = request.form.get('action')
+        user_id   = request.form.get('user_id')
+        user      = User.query.get(user_id)
 
         if not user:
             flash('User not found!', 'danger')
+
         elif action == 'disable':
             user.is_active = False
             db.session.commit()
             flash(f'User {user.username} has been disabled.', 'success')
-        elif action == 'reset_password':
-            new_password = generate_random_password()
-            user.set_password(new_password)
-            db.session.commit()
-            flash(f'Password for {user.username} has been reset. New password: {new_password}', 'success')
+
+        elif action == 'send_reset_link':
+            try:
+                token = user.get_reset_token()
+                reset_url = url_for('auth.reset_password', token=token, _external=True)
+                msg = Message(
+                    subject="Password Reset Request",
+                    recipients=[user.email],
+                    body=(
+                      f"Hello {user.username},\n\n"
+                      f"Reset your password by clicking:\n{reset_url}\n\n"
+                      "If this wasn’t you, ignore this email."
+                    )
+                )
+                mail.send(msg)
+                flash(f"A reset link has been sent to {user.email}.", 'success')
+            except Exception as e:
+                current_app.logger.error(f"Error sending reset email: {e}")
+                flash(
+                  "❌ Could not send reset link. "
+                  "Please check your mail server settings.",
+                  "danger"
+                )
+
+        elif action == 'reset_by_admin':
+            new_pw = request.form.get('new_password')
+            if not new_pw:
+                flash("Please enter a new password.", 'danger')
+            else:
+                user.set_password(new_pw)
+                user.password_reset_required = True
+                db.session.commit()
+                flash(f"Password for {user.username} has been set to “{new_pw}”.", 'success')
 
         return redirect(url_for('admin_bp.admin_dashboard'))
 
@@ -72,7 +91,6 @@ def admin_dashboard():
         total_portfolios=total_portfolios,
         total_transactions=total_transactions
     )
-
 
 # ──────────────────────────────────────────────────────────────────────
 # Portfolio Analysis Endpoint (basic version)

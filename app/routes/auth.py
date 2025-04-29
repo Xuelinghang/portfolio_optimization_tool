@@ -6,6 +6,7 @@ from app import db, bcrypt
 from app.models import User
 from flask_login import login_user, logout_user, current_user, login_required
 
+
 auth_bp = Blueprint("auth", __name__)
 
 
@@ -48,26 +49,18 @@ def register():
     if User.query.filter(or_(User.username == username, User.email == email)).first():
         return jsonify({"error": "Username or email already exists"}), 400
 
-    # Hash the password as before
-    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-    new_user = User(username=username, email=email, password_hash=hashed_password)
+    new_user = User(username=username, email=email)
+    new_user.set_password(password)
 
-    # --- Modified: auto-flag admins by checking email domain ---
     domain = email.split("@")[-1].lower()
     new_user.is_admin = (domain == "portfoliooptimizer.com")
 
     db.session.add(new_user)
     try:
         db.session.commit()
-
-        # --- Modified: immediately log in the new user ---
         login_user(new_user)
 
-        # --- Modified: choose post-registration redirect by role ---
-        if new_user.is_admin:
-            redirect_url = url_for("admin_bp.admin_dashboard")
-        else:
-            redirect_url = url_for("auth.index")
+        redirect_url = url_for("admin_bp.admin_dashboard") if new_user.is_admin else url_for("auth.index")
 
         return jsonify({
             "message": "User registered and logged in successfully",
@@ -94,7 +87,7 @@ def login():
         User.email    == login_identifier
     )).first()
 
-    if user and bcrypt.check_password_hash(user.password_hash, password):
+    if user and user.check_password(password):
         # Log in via Flask-Login
         login_user(user)
         print(f"User {user.username} logged in successfully.")
