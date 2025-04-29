@@ -82,6 +82,19 @@
             color: gray;
             font-size: 14px;
         }
+        .nav-greeting {
+            margin-left: 20px;
+            font-weight: bold;
+            color: #0b5d1e;
+            }
+        .admin-badge {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }  
     </style>
 </head>
 <body>
@@ -92,11 +105,19 @@
             <div class="logo-text">Portfolio Optimizer</div>
         </div>
         <div class="nav">
-            <a href="{{ url_for('main.index') }}">Home</a>
-            <a href="{{ url_for('portfolio.portfolio_page') }}">Portfolio</a>
-            <a href="{{ url_for('transactions.transactions_page') }}">Transactions</a>
-            {% if current_user.is_admin %}
-                <a href="{{ url_for('admin_bp.admin_dashboard') }}">Admin</a>
+            <a href="{{ url_for('admin_bp.admin_dashboard') }}">Home</a>
+            <a href="{{ url_for('admin_bp.admin_portfolios_page') }}">Portfolio</a>
+            <a href="{{ url_for('admin_bp.admin_transactions_page') }}">Transactions</a>
+            <a href="{{ url_for('admin_bp.admin_users_page') }}">Users</a>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+                <span class="nav-greeting">
+                Hi, {{ current_user.username }}
+                <span class="admin-badge">Admin</span>
+                </span>
+                <!-- LOGOUT BUTTON -->
+                <button id="logoutButton" style="margin-left:20px; background:none; border:none; cursor:pointer; font-weight:bold; color:#0b5d1e;">
+                Logout
+                </button>
             {% endif %}
         </div>
     </div>
@@ -108,20 +129,24 @@
         <div style="display: flex; justify-content: space-around; margin-bottom: 30px;">
             <div>
                 <h3>Total Users</h3>
-                <p>{{ total_users }}</p>
+                <p>{{ total_users }}</p>                       <!-- ← MODIFIED -->
             </div>
             <div>
                 <h3>Active Users</h3>
-                <p>{{ active_users }}</p>
+                <p>{{ active_users }}</p>                      <!-- ← MODIFIED -->
             </div>
             <div>
-                <h3>Disabled Users</h3>
-                <p>{{ disabled_users }}</p>
+                <h3>Total Portfolios</h3>                     <!-- ← MODIFIED -->
+                <p>{{ total_portfolios }}</p>                  <!-- ← MODIFIED -->
+            </div>
+            <div>
+                <h3>Total Transactions</h3>                   <!-- ← MODIFIED -->
+                <p>{{ total_transactions }}</p>               <!-- ← MODIFIED -->
             </div>
         </div>
 
         <!-- Section 2: Users Management -->
-        <h2>Users Management</h2>
+        <h2 id="users">Users Management</h2>                  <!-- ← MODIFIED: added id for nav -->
         <table>
             <thead>
                 <tr>
@@ -139,7 +164,6 @@
                         <td>{{ user.email }}</td>
                         <td>{{ 'Active' if user.is_active else 'Disabled' }}</td>
                         <td class="action-buttons" style="display: flex;">
-                            <!-- Disable / Enable -->
                             <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
                                 <input type="hidden" name="user_id" value="{{ user.id }}">
                                 <input type="hidden" name="action" value="disable">
@@ -148,8 +172,7 @@
                                   Disable
                                 </button>
                             </form>
-                            <!-- Reset Password -->
-                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0;">
+                            <form method="post" action="{{ url_for('admin_bp.admin_dashboard') }}" style="margin:0 0 0 8px;">
                                 <input type="hidden" name="user_id" value="{{ user.id }}">
                                 <input type="hidden" name="action" value="reset_password">
                                 <button type="submit" class="reset-btn">Reset Password</button>
@@ -168,7 +191,7 @@
         </table>
 
         <!-- Section 3: System Transactions -->
-        <h2 style="margin-top: 40px;">System Transactions</h2>
+        <h2 id="transactions" style="margin-top: 40px;">System Transactions</h2>  <!-- ← MODIFIED: added id for nav -->
         <table>
             <thead>
                 <tr>
@@ -185,9 +208,9 @@
                     <tr>
                         <td>{{ tx.id }}</td>
                         <td>{{ tx.user.username }}</td>
-                        <td>{{ tx.action }}</td>
-                        <td>{{ tx.amount }}</td>
-                        <td>{{ tx.timestamp.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ tx.transaction_type }}</td>
+                        <td>{{ tx.price }}</td>
+                        <td>{{ tx.transaction_date.strftime('%Y-%m-%d') }}</td>
                     </tr>
                     {% endfor %}
                 {% else %}
@@ -205,5 +228,24 @@
     <div class="footer">
         © 2025 Portfolio Optimizer
     </div>
+    <script>
+        document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+          e.preventDefault();
+          try {
+            const res = await fetch('{{ url_for("auth.logout") }}', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (res.ok) {
+              window.location.href = '{{ url_for("auth.login_page") }}';
+            } else {
+              console.error('Logout failed with status', res.status);
+            }
+          } catch (err) {
+            console.error('Logout error:', err);
+          }
+        });
+      </script>
 </body>
 </html>

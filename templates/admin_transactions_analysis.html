@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transactions Analysis | Portfolio Optimizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='transactions.css') }}">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background-color: #f0f9f0; }
+        .header {
+            background: white; padding: 10px 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+        .logo { display: flex; align-items: center; }
+        .logo img { width:30px;height:30px;margin-right:8px; }
+        .logo-text { font-size:18px; font-weight:bold; color:#0b5d1e; }
+        .nav a { margin-left:20px; text-decoration:none; color:#0b5d1e; font-weight:bold; }
+        .admin-container {
+            max-width:1200px; margin:20px auto; background:white;
+            padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { text-align:center; color:#0b5d1e; margin-bottom:20px; }
+        .analysis-summary { display:flex; justify-content:space-around; margin-bottom:30px; }
+        .metric-card {
+            background:white; padding:16px; border-radius:8px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center;
+            flex:1 1 200px; margin:8px;
+        }
+        .metric-card h3 { margin:0 0 8px; color:#0b5d1e; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; }
+        table thead { background:#e0f0e0; }
+        table th, td { padding:12px; text-align:left; border-bottom:1px solid #ddd; }
+        ul { list-style:none; padding:0; margin-top:20px; }
+        ul li {
+            background:white; margin:6px 0; padding:8px 12px;
+            border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.1); color:#333;
+        }
+        .nav-greeting { margin-left:20px; font-weight:bold; color:#0b5d1e; }
+        .admin-badge {
+            background:#4CAF50; color:white; font-size:12px;
+            padding:2px 6px; border-radius:4px; margin-left:6px;
+        }
+        .footer { text-align:center; margin-top:40px; padding:20px; color:gray; font-size:14px; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+            <div class="logo-text">Portfolio Optimizer</div>
+        </div>
+        <div class="nav">
+            <a href="{{ url_for('admin_bp.admin_dashboard') }}">Home</a>
+            <a href="{{ url_for('admin_bp.admin_portfolios_page') }}">Portfolio</a>
+            <a href="{{ url_for('admin_bp.admin_transactions_page') }}">Transactions</a>
+            <a href="{{ url_for('admin_bp.admin_users_page') }}">Users</a>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+                <span class="nav-greeting">
+                Hi, {{ current_user.username }}
+                <span class="admin-badge">Admin</span>
+                </span>
+                <!-- LOGOUT BUTTON -->
+                <button id="logoutButton" style="margin-left:20px; background:none; border:none; cursor:pointer; font-weight:bold; color:#0b5d1e;">
+                Logout
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <h1>Transactions Analysis</h1>
+
+        <div class="analysis-summary">
+            <div class="metric-card">
+                <h3>Total Transactions</h3>
+                <p id="totalTx">–</p>
+            </div>
+            <div class="metric-card">
+                <h3>Avg Per User/Day</h3>
+                <p id="avgTx">–</p>
+            </div>
+        </div>
+        <h2>Transaction Volume Over Time</h2>
+        <canvas id="volumeChart" width="800" height="300"></canvas>
+        <h2>Daily Volume</h2>
+        <table id="dailyVolumeTable">
+            <thead>
+                <tr><th>Date</th><th>Count</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>Peak Hours</h2>
+        <table id="peakHoursTable">
+            <thead>
+                <tr><th>Hour</th><th>Count</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>Most-Traded Assets</h2>
+        <ul id="mostTradedList"></ul>
+    </div>
+
+    <div class="footer">© 2025 Portfolio Optimizer</div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+            e.preventDefault();
+            try {
+              const res = await fetch('{{ url_for("auth.logout") }}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              });
+              if (res.ok) {
+                window.location.href = '{{ url_for("auth.login_page") }}';
+              } else {
+                console.error('Logout failed with status', res.status);
+              }
+            } catch (err) {
+              console.error('Logout error:', err);
+            }
+        });
+
+        fetch('{{ url_for("admin_bp.analyze_transactions") }}', {
+            credentials: 'same-origin'
+          })
+          .then(r => {
+            if (!r.ok) {
+              if (r.redirected) window.location.href = r.url;
+              throw new Error(`Status ${r.status}`);
+            }
+            return r.json();
+          })
+          .then(d => {
+            // 1) Summary cards
+            document.getElementById('totalTx').innerText = d.total_transactions;
+            document.getElementById('avgTx').innerText  = d.avg_transactions_per_user_per_day;
+        
+            // 2) Daily volume table
+            const dvBody = document.querySelector('#dailyVolumeTable tbody');
+            dvBody.innerHTML = '';
+            d.daily_volume.forEach(row => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `<td>${row.day}</td><td>${row.count}</td>`;
+              dvBody.appendChild(tr);
+            });
+        
+            // 3) Peak hours table
+            const phBody = document.querySelector('#peakHoursTable tbody');
+            phBody.innerHTML = '';
+            d.peak_hours.forEach(h => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `<td>${h.hour}:00</td><td>${h.count}</td>`;
+              phBody.appendChild(tr);
+            });
+        
+            // 4) Most-traded list
+            const ml = document.getElementById('mostTradedList');
+            ml.innerHTML = '';
+            d.most_traded_assets.forEach(sym => {
+              const li = document.createElement('li');
+              li.textContent = sym;
+              ml.appendChild(li);
+            });
+        
+            // ─── NEW: Transaction Volume Line Chart ───
+            // This **must** be inside the same .then(d => { … }) where d is defined
+            const volCtx = document.getElementById('volumeChart').getContext('2d');
+            const dates  = d.daily_volume.map(row => row.day);
+            const counts = d.daily_volume.map(row => row.count);
+        
+            new Chart(volCtx, {
+              type: 'line',
+              data: {
+                labels: dates,
+                datasets: [{
+                  label: 'Transactions per Day',
+                  data: counts,
+                  fill: false,
+                  tension: 0.1
+                }]
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  x: { title: { display: true, text: 'Date' } },
+                  y: { beginAtZero: true, title: { display: true, text: 'Count' } }
+                }
+              }
+            });
+          })
+          .catch(console.error);
+    </script>
+</body>
+</html>

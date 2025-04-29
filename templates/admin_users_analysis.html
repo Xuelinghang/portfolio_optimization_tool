@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Users Analysis | Portfolio Optimizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='transactions.css') }}">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background-color: #f0f9f0; }
+    .header { background: white; padding: 10px 20px; display: flex;
+               justify-content: space-between; align-items: center;
+               box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+    .logo { display: flex; align-items: center; }
+    .logo img { width:30px; height:30px; margin-right:8px; }
+    .logo-text { font-size:18px; font-weight:bold; color:#0b5d1e; }
+    .nav a, .nav button { margin-left:20px; text-decoration:none;
+                          color:#0b5d1e; font-weight:bold;
+                          background:none; border:none; cursor:pointer; }
+    .admin-container { max-width:1200px; margin:20px auto; background:white;
+                       padding:20px; border-radius:8px;
+                       box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    h1 { text-align:center; color:#0b5d1e; margin-bottom:20px; }
+    .analysis-summary { display:flex; justify-content:space-around; margin-bottom:30px; }
+    .metric-card { background:white; padding:16px; border-radius:8px;
+                   box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center;
+                   flex:1 1 200px; margin:8px; }
+    .metric-card h3 { margin:0 0 8px; color:#0b5d1e; }
+    ul { list-style:none; padding:0; margin-top:20px; }
+    ul li { background:white; margin:6px 0; padding:8px 12px;
+             border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.1);
+             color:#333; }
+    .nav-greeting { margin-left:20px; font-weight:bold; color:#0b5d1e; }
+    .admin-badge {
+                 background:#4CAF50; color:white; font-size:12px;
+                 padding:2px 6px; border-radius:4px; margin-left:6px;
+    }
+    .footer { text-align:center; margin-top:40px; padding:20px;
+              color:gray; font-size:14px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+      <div class="logo-text">Portfolio Optimizer</div>
+    </div>
+    <div class="nav">
+      <a href="{{ url_for('admin_bp.admin_dashboard') }}">Home</a>
+      <a href="{{ url_for('admin_bp.admin_portfolios_page') }}">Portfolio</a>
+      <a href="{{ url_for('admin_bp.admin_transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('admin_bp.admin_users_page') }}">Users</a>
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <span class="nav-greeting">
+          Hi, {{ current_user.username }}
+          <span class="admin-badge">Admin</span>
+        </span>
+        <button id="logoutButton">Logout</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="admin-container">
+    <h1>Users Analysis</h1>
+
+    <!-- Summary Cards -->
+    <div class="analysis-summary">
+      <div class="metric-card">
+        <h3>Total Users</h3>
+        <p id="totalUsers">–</p>
+      </div>
+      <div class="metric-card">
+        <h3>Active Users</h3>
+        <p id="activeUsers">–</p>
+      </div>
+      <div class="metric-card">
+        <h3>Avg Portfolios/User</h3>
+        <p id="avgPortfolios">–</p>
+      </div>
+    </div>
+
+    <!-- Histogram -->
+    <h2>Distribution of Portfolios Per User</h2>
+    <canvas id="distributionChart" width="800" height="300"></canvas>
+
+    <!-- Top Active Users -->
+    <h2>Top Active Users by Transactions</h2>
+    <ul id="topUsersList"></ul>
+  </div>
+
+  <div class="footer">© 2025 Portfolio Optimizer</div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    fetch('{{ url_for("admin_bp.analyze_users") }}', {
+      credentials: 'same-origin'
+    })
+    .then(r => {
+      if (!r.ok) {
+        if (r.redirected) { window.location.href = r.url; return; }
+        throw new Error(`Status ${r.status}`);
+      }
+      return r.json();
+    })
+    .then(d => {
+      // Summary cards
+      document.getElementById('totalUsers').innerText    = d.total_users;
+      document.getElementById('activeUsers').innerText   = d.active_users;
+      document.getElementById('avgPortfolios').innerText = d.avg_portfolios_per_user;
+
+      // Distribution chart data
+      const labels = d.portfolio_distribution.map(x => x.n_portfolios);
+      const data   = d.portfolio_distribution.map(x => x.n_users);
+      const ctx    = document.getElementById('distributionChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Number of Users',
+            data
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Portfolios per User' } },
+            y: { beginAtZero: true, title: { display: true, text: 'Users' } }
+          }
+        }
+      });
+
+      // Top users list
+      const ul = document.getElementById('topUsersList');
+      d.top_active_users.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.user} (${item.tx_count} tx)`;
+        ul.appendChild(li);
+      });
+    })
+    .catch(console.error);
+
+    // Logout handler
+    document.getElementById('logoutButton')?.addEventListener('click', async e => {
+      e.preventDefault();
+      try {
+        const res = await fetch('{{ url_for("auth.logout") }}', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+        if (res.ok) window.location.href = '{{ url_for("auth.login_page") }}';
+      } catch(err) {
+        console.error('Logout error:', err);
+      }
+    });
+  </script>
+</body>
+</html>

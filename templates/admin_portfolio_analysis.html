@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Portfolio Analysis | Portfolio Optimizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='transactions.css') }}">
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background-color: #f0f9f0; }
+    .header {
+      background: white; padding: 10px 20px; display: flex;
+      justify-content: space-between; align-items: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .logo { display: flex; align-items: center; }
+    .logo img { width:30px;height:30px;margin-right:8px; }
+    .logo-text { font-size:18px; font-weight:bold; color:#0b5d1e; }
+    .nav a { margin-left:20px; text-decoration:none; color:#0b5d1e; font-weight:bold; }
+    .admin-container {
+      max-width:1200px; margin:20px auto; background:white;
+      padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { text-align:center; color:#0b5d1e; margin-bottom:20px; }
+    .analysis-summary { display:flex; justify-content:space-around; margin-bottom:30px; }
+    .metric-card {
+      background:white; padding:16px; border-radius:8px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1); text-align:center;
+      flex:1 1 200px; margin:8px;
+    }
+    .metric-card h3 { margin:0 0 8px; color:#0b5d1e; }
+    ul { list-style:none; padding:0; margin-top:20px; }
+    ul li {
+      background:white; margin:6px 0; padding:8px 12px;
+      border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.1); color:#333;
+    }
+    .nav-greeting { margin-left:20px; font-weight:bold; color:#0b5d1e; }
+    .admin-badge {
+      background:#4CAF50; color:white; font-size:12px;
+      padding:2px 6px; border-radius:4px; margin-left:6px;
+    }
+    .footer { text-align:center; margin-top:40px; padding:20px; color:gray; font-size:14px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo">
+      <div class="logo-text">Portfolio Optimizer</div>
+    </div>
+    <div class="nav">
+      <a href="{{ url_for('admin_bp.admin_dashboard') }}">Home</a>
+      <a href="{{ url_for('admin_bp.admin_portfolios_page') }}">Portfolio</a>
+      <a href="{{ url_for('admin_bp.admin_transactions_page') }}">Transactions</a>
+      <a href="{{ url_for('admin_bp.admin_users_page') }}">Users</a>
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <span class="nav-greeting">
+          Hi, {{ current_user.username }}
+          <span class="admin-badge">Admin</span>
+        </span>
+        <!-- LOGOUT BUTTON -->
+        <button id="logoutButton" style="margin-left:20px; background:none; border:none; cursor:pointer; font-weight:bold; color:#0b5d1e;">
+        Logout
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="admin-container">
+    <h1>Portfolio Analysis</h1>
+
+    <!-- Summary Cards -->
+    <div class="analysis-summary">
+      <div class="metric-card">
+        <h3>Total Portfolios</h3>
+        <p id="totalPortfolios">—</p>
+      </div>
+      <div class="metric-card">
+        <h3>Average Tickers</h3>
+        <p id="avgTickers">—</p>
+      </div>
+      <div class="metric-card">
+        <h3>Max Tickers</h3>
+        <p id="maxTickers">—</p>
+      </div>
+      <div class="metric-card">
+        <h3>Min Tickers</h3>
+        <p id="minTickers">—</p>
+      </div>
+    </div>
+
+    <!-- Chart Placeholder -->
+    <h2>Portfolio Usage Chart</h2>
+    <canvas id="portfolioChart" width="800" height="300"></canvas>    
+
+    <!-- Top-Tickers List -->
+    <h2>Top 10 Most-Used Tickers</h2>
+    <ul id="topTickersList"></ul>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    © 2025 Portfolio Optimizer
+  </div>
+
+  <!-- 1) Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 2) Fetch & render both summary, list, and chart -->
+  <script>
+    document.getElementById('logoutButton')?.addEventListener('click', async function(e) {
+        e.preventDefault();
+        try {
+          const res = await fetch('{{ url_for("auth.logout") }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          if (res.ok) {
+            window.location.href = '{{ url_for("auth.login_page") }}';
+          } else {
+            console.error('Logout failed with status', res.status);
+          }
+        } catch (err) {
+          console.error('Logout error:', err);
+        }
+    });
+    
+    fetch('{{ url_for("admin_bp.analyze_portfolios") }}', {
+        credentials: 'same-origin'
+      })
+      .then(r => r.json())
+      .then(d => {
+        // 1) Summary cards
+        document.getElementById('totalPortfolios').innerText = d.total_portfolios;
+        document.getElementById('avgTickers')    .innerText = d.avg_tickers_per_portfolio;
+        document.getElementById('maxTickers')    .innerText = d.max_tickers_in_portfolio;
+        document.getElementById('minTickers')    .innerText = d.min_tickers_in_portfolio;
+  
+        // 2) Ticker list
+        const ul = document.getElementById('topTickersList');
+        ul.innerHTML = '';
+        d.top_10.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = `${item.symbol} (${item.freq})`;
+          ul.appendChild(li);
+        });
+  
+        // 3) Chart data
+        const labels = d.top_10.map(item => item.symbol);
+        const values = d.top_10.map(item => item.freq);
+  
+        // 4) Build the chart
+        const ctx = document.getElementById('portfolioChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Times Used',
+              data: values,
+              backgroundColor: labels.map(_ => 'rgba(75,192,192,0.6)'),
+              borderColor:    labels.map(_ => 'rgba(75,192,192,1)'),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                title: { display: true, text: 'Ticker' }
+              },
+              y: {
+                beginAtZero: true,
+                suggestedMax: Math.max(...values) + 1,
+                title: { display: true, text: 'Frequency' }
+              }
+            }
+          }
+        });
+      })
+      .catch(console.error);
+  </script>
+</body>
+</html>
