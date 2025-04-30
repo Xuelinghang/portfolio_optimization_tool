@@ -304,32 +304,24 @@
         <table>
             <thead>
                 <tr>
-                    <th>Transaction ID</th>
-                    <th>User</th>
-                    <th>Action</th>
-                    <th>Amount</th>
-                    <th>Date</th>
+                  <th>Transaction ID</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Total Amount</th>
+                  <th>Date</th>
                 </tr>
-            </thead>
-            <tbody>
-                {% if transactions %}
-                    {% for tx in transactions %}
-                    <tr>
-                        <td>{{ tx.id }}</td>
-                        <td>{{ tx.user.username }}</td>
-                        <td>{{ tx.transaction_type }}</td>
-                        <td>{{ tx.price }}</td>
-                        <td>{{ tx.transaction_date.strftime('%Y-%m-%d') }}</td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 20px; color: gray;">
-                            No transactions available yet.
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
+              </thead>
+              <tbody>
+              {% for tx in transactions %}
+                <tr>
+                  <td>{{ tx.id }}</td>
+                  <td>{{ tx.user.username }}</td>
+                  <td>{{ tx.transaction_type }}</td>
+                  <td>{{ tx.total_amount | round(2) }}</td>
+                  <td>{{ tx.transaction_date.strftime('%Y-%m-%d') }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
         </table>
 
     </div>

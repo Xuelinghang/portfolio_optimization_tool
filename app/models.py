@@ -170,6 +170,11 @@ class Transaction(db.Model):
         type_str = self.transaction_type if self.transaction_type else 'N/A'
         date_str = self.transaction_date.strftime('%Y-%m-%d %H:%M') if self.transaction_date else 'N/A'
         return f"<Transaction ID: {self.id}, Type: {type_str}, User: {user_id_str}, Asset: {asset_id_str} on {date_str}>"
+    
+    @property
+    def total_amount(self):
+        return (self.price or 0) * (self.quantity or 0)
+
 
 
 class PortfolioAsset(db.Model):
