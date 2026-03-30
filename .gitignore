@@ -8,3 +8,5 @@ instance/portfolio.db
 portfolio.db
 utils/__pycache__/__init__.cpython-312.pyc
 utils/__pycache__/financial_metrics.cpython-312.pyc
+venv/
+.DS_Store
